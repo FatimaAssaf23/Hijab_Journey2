@@ -34,45 +34,20 @@ class LevelSeeder extends Seeder
             $classId = $existingClass->class_id;
         }
 
-        $levels = [
-            [
+        for ($i = 1; $i <= 10; $i++) {
+            $level = [
                 'class_id' => $classId,
-                'level_name' => 'Level 1',
-                'level_number' => 1,
-                'description' => 'Beginner level',
+                'level_name' => 'Level ' . $i,
+                'level_number' => $i,
+                'description' => 'Auto-generated level ' . $i,
                 'prerequisite_level_id' => null,
                 'is_locked_by_default' => false,
-            ],
-            [
-                'class_id' => $classId,
-                'level_name' => 'Level 2',
-                'level_number' => 2,
-                'description' => 'Intermediate level',
-                'prerequisite_level_id' => null,
-                'is_locked_by_default' => false,
-            ],
-            [
-                'class_id' => $classId,
-                'level_name' => 'Level 3',
-                'level_number' => 3,
-                'description' => 'Advanced level',
-                'prerequisite_level_id' => null,
-                'is_locked_by_default' => false,
-            ],
-            [
-                'class_id' => $classId,
-                'level_name' => 'Level 4',
-                'level_number' => 4,
-                'description' => 'Expert level',
-                'prerequisite_level_id' => null,
-                'is_locked_by_default' => false,
-            ],
-        ];
-
-        foreach ($levels as $level) {
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
             DB::table('levels')->updateOrInsert(
                 ['level_name' => $level['level_name']],
-                array_merge($level, ['created_at' => now(), 'updated_at' => now()])
+                $level
             );
         }
     }

@@ -36,9 +36,14 @@
                                 <h3 class="text-lg font-semibold">Welcome back, {{ Auth::user()->first_name ?? 'User' }}!</h3>
                                 <p class="text-gray-600 dark:text-gray-400">{{ __("You're logged in as a teacher!") }}</p>
                             </div>
-                            <a href="/assignments" class="text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2">
-                                <span class="text-xl">📝</span> Assignments
-                            </a>
+                            <div class="flex gap-2">
+                                <a href="/lessons" class="text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2 {{ request()->is('lessons') ? 'bg-white/30' : '' }}">
+                                    <span class="text-xl">📚</span> Lessons
+                                </a>
+                                <a href="/assignments" class="text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition flex items-center gap-2">
+                                    <span class="text-xl">📝</span> Assignments
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

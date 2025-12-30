@@ -53,20 +53,33 @@
                             @endif
                         </td>
                         <td class="px-4 py-2">
-                            @if($request->affected_classes && count($request->affected_classes))
-                                <form method="POST" action="{{ route('admin.emergency.reassign') }}" class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                                    @csrf
-                                    <input type="hidden" name="emergency_request_id" value="{{ $request->id }}">
-                                    <label for="teacher_id_{{ $request->id }}" class="text-xs font-semibold text-gray-700">Reassign to:</label>
-                                    <select name="teacher_id" id="teacher_id_{{ $request->id }}" class="rounded border-gray-300 focus:border-pink-400 focus:ring focus:ring-pink-200 focus:ring-opacity-50">
-                                        <option value="">Select teacher</option>
-                                        @foreach(\App\Models\User::where('role', 'teacher')->where('user_id', '!=', $request->teacher_id)->get() as $teacher)
-                                            <option value="{{ $teacher->user_id }}">{{ $teacher->first_name }} {{ $teacher->last_name }}</option>
-                                        @endforeach
-                                    </select>
-                                    <button type="submit" class="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded text-xs font-bold">Reassign</button>
-                                </form>
-                            @endif
+                            <div class="flex flex-col gap-2">
+                                @if($request->status === 'pending')
+                                    <form method="POST" action="{{ route('admin.emergency.approve', $request->id) }}" class="inline">
+                                        @csrf
+                                        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">Approve</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('admin.emergency.reject', $request->id) }}" class="inline mt-1">
+                                        @csrf
+                                        <input type="text" name="rejection_reason" placeholder="Reason for rejection" class="rounded border-gray-300 px-2 py-1 text-xs mb-1" required>
+                                        <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-bold">Reject</button>
+                                    </form>
+                                @endif
+                                @if($request->affected_classes && count($request->affected_classes))
+                                    <form method="POST" action="{{ route('admin.emergency.reassign') }}" class="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2">
+                                        @csrf
+                                        <input type="hidden" name="emergency_request_id" value="{{ $request->id }}">
+                                        <label for="teacher_id_{{ $request->id }}" class="text-xs font-semibold text-gray-700">Reassign to:</label>
+                                        <select name="teacher_id" id="teacher_id_{{ $request->id }}" class="rounded border-gray-300 focus:border-pink-400 focus:ring focus:ring-pink-200 focus:ring-opacity-50">
+                                            <option value="">Select teacher</option>
+                                            @foreach(\App\Models\User::where('role', 'teacher')->where('user_id', '!=', $request->teacher_id)->get() as $teacher)
+                                                <option value="{{ $teacher->user_id }}">{{ $teacher->first_name }} {{ $teacher->last_name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <button type="submit" class="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded text-xs font-bold">Reassign</button>
+                                    </form>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty

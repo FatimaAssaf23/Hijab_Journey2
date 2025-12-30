@@ -35,11 +35,24 @@
                     <div class="flex justify-between items-center">
                         <div>
                             <h2 class="text-2xl font-extrabold mb-1">{{ $group['level']['name'] }}</h2>
-                            <p class="text-base opacity-80 mb-1">Math Curriculum</p>
                             <div class="text-sm opacity-70">{{ count($group['lessons']) }} lessons</div>
                         </div>
-                        <a href="{{ route('admin.lessons.create', ['level' => $levelId]) }}" class="bg-white/90 hover:bg-white text-gray-800 px-4 py-2 rounded-lg font-semibold shadow hover:shadow-lg transition-all flex items-center gap-2">
+                        <a href="{{ route('admin.lessons.create', ['level' => $levelId]) }}" class="bg-white/90 hover:bg-white text-gray-800 px-4 py-2 rounded-lg font-semibold shadow hover:shadow-lg transition-all flex items-center gap-2" style="margin-left:1cm;">
                             <span>➕</span> Add Lesson
+                        </a>
+                        <style>
+                        .add-lesson-btn-move {
+                            margin-left: 1cm;
+                        }
+                        </style>
+                        <script>
+                        // Add the class to the Add Lesson button after page load
+                        document.addEventListener('DOMContentLoaded', function() {
+                            document.querySelectorAll('a[href*="admin.lessons.create"]').forEach(function(btn) {
+                                btn.classList.add('add-lesson-btn-move');
+                            });
+                        });
+                        </script>
                         </a>
                     </div>
                 </div>

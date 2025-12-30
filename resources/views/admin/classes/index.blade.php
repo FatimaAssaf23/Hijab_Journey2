@@ -28,7 +28,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @forelse($classes as $class)
-                <div class="bg-gradient-to-br {{ $class['color'] }} rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                <div class="bg-gradient-to-br {{ $class['color_gradient'] ?? 'from-pink-100 to-pink-200' }} rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
                     <!-- Card Header -->
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex-1">
@@ -182,25 +182,13 @@
     </div>
 
     <script>
-        // Sample students data - generated from classes
+        // Dynamic students data from backend
         const studentsData = {
             @foreach($classes as $class)
             {{ $class['id'] }}: [
-                @if(isset($class['studentsList']) && count($class['studentsList']) > 0)
-                    @foreach($class['studentsList'] as $student)
-                    { name: '{{ $student['name'] }}', email: '{{ $student['email'] }}', id: {{ $student['id'] }} },
-                    @endforeach
-                @elseif($class['id'] == 1)
-                    { name: 'Amina Ahmed', email: 'amina@student.com', id: 1 },
-                    { name: 'Fatima Hassan', email: 'fatima@student.com', id: 2 },
-                    { name: 'Zainab Ali', email: 'zainab@student.com', id: 3 },
-                @elseif($class['id'] == 2)
-                    { name: 'Sara Ahmed', email: 'sara@student.com', id: 6 },
-                    { name: 'Layla Hassan', email: 'layla@student.com', id: 7 },
-                @elseif($class['id'] == 3)
-                    { name: 'Noor Ibrahim', email: 'noor@student.com', id: 9 },
-                    { name: 'Yasmin Mohamed', email: 'yasmin@student.com', id: 10 },
-                @endif
+                @foreach($class['studentsList'] as $student)
+                    { name: @json($student['name']), email: @json($student['email']), id: {{ $student['id'] }} },
+                @endforeach
             ],
             @endforeach
         };

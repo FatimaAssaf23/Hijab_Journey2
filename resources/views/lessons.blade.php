@@ -88,23 +88,28 @@
     transform: translateY(-12px) scale(1.02);
     box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 20px rgba(0,0,0,0.1);
     cursor: pointer;
-}
-
-.lesson-card.unlocked:hover .card-overlay {
-    transform: scale(1.1);
-}
-
-.lesson-card.locked {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.card-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+            @foreach($lessons as $lesson)
+            <div class="col-12 col-sm-6 col-md-3 mb-4">
+                <div class="card lesson-card {{ $lesson->is_visible ? 'unlocked' : 'locked' }}">
+                    <div class="card-img-overlay d-flex flex-column justify-content-end" style="background: linear-gradient(135deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.8) 100%);">
+                        <div class="card-body p-4">
+                            <h5 class="card-title fw-bold mb-2 text-white">{{ $lesson->title }}</h5>
+                            <p class="card-text text-light opacity-75 mb-0">
+                                <i class="fas fa-clock me-2"></i>{{ $lesson->duration_minutes ?? 'N/A' }} minutes
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card-overlay" style="background-image: url('{{ $lesson->content_url ?? '/images/default_lesson.jpg' }}');"></div>
+                    @if(!$lesson->is_visible)
+                    <div class="lock-overlay">
+                        <div class="lock-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                    </div>
+                    @endif
+                </div>
     bottom: 0;
+            @endforeach
     background-size: cover;
     background-position: center;
     transition: transform 0.4s ease;

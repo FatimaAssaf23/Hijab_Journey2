@@ -18,6 +18,7 @@ class StudentClass extends Model
         'current_enrollment',
         'status',
         'description',
+        'color',
     ];
 
     protected function casts(): array

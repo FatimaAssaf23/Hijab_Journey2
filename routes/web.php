@@ -28,16 +28,17 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::get('/lessons', function () {
-    return view('lessons');
-})->middleware(['auth', 'verified'])->name('lessons');
+use App\Http\Controllers\LessonPublicController;
+Route::get('/lessons', [LessonPublicController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('lessons');
 
 // Guest Teacher Request Routes (no authentication required)
 Route::get('/become-teacher', [TeacherRequestController::class, 'guestCreate'])->name('teacher-request.guest');
@@ -51,7 +52,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Admin Dashboard Routes
-Route::prefix('admin')->group(function () {
+Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     // Admin profile
     Route::get('/profile', [AdminController::class, 'profile'])->name('admin.profile');
     Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
@@ -100,6 +101,9 @@ Route::prefix('admin')->group(function () {
     // Emergency Reassignment
     Route::get('/emergency', [AdminController::class, 'emergency'])->name('admin.emergency');
     Route::post('/emergency/{caseId}/reassign', [AdminController::class, 'reassignTeacher'])->name('admin.emergency.reassign');
+    // Emergency Requests Approval/Rejection
+    Route::post('/emergency-requests/{id}/approve', [AdminController::class, 'approveEmergencyRequest'])->name('admin.emergency.approve');
+    Route::post('/emergency-requests/{id}/reject', [AdminController::class, 'rejectEmergencyRequest'])->name('admin.emergency.reject');
     
     // Emergency API (Database-backed)
     Route::post('/emergency/classes/{classId}/reassign', [AdminController::class, 'reassignTeacherEmergency'])->name('admin.emergency.reassignTeacher');

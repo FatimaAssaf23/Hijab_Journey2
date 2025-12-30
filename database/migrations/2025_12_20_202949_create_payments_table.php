@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->increments('payment_id');
             $table->unsignedInteger('student_id');
-            $table->string('transaction_reference', 255)->unique();
+            $table->string('transaction_reference', 191)->unique();
             $table->enum('payment_method', ['paypal', 'credit_card']);
             $table->enum('payment_status', ['pending', 'successful', 'rejected', 'refunded'])->default('pending');
             $table->decimal('amount', 10, 2);
@@ -25,6 +25,8 @@ return new class extends Migration
 
             $table->foreign('student_id')->references('student_id')->on('students');
         });
+        // Force utf8mb4 charset and collation for this table
+        \DB::statement("ALTER TABLE payments CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     }
 
     /**

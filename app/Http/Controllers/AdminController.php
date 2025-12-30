@@ -1,10 +1,81 @@
+<?php
+namespace App\Http\Controllers;
+
+use App\Models\AdminProfile;
+use Illuminate\Http\Request;
+use App\Models\TeacherRequest;
+use App\Models\Lesson;
+use App\Models\StudentClass;
+use App\Models\TeacherSubstitution;
+use App\Models\Student;
+use App\Models\User;
+use App\Models\Level;
+use App\Models\Assignment;
+use App\Models\Comment;
+use App\Models\Grade;
+use App\Models\Quiz;
+use App\Models\Teacher;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Mail\TeacherRejectedMail;
+use App\Mail\TeacherApprovedMail;
+
+class AdminController extends Controller
+{
+        /**
+         * Approve an emergency absence request
+         *
+         * @param int $id
+         * @return \Illuminate\Http\RedirectResponse
+         */
+        public function approveEmergencyRequest($id)
+        {
+            $request = \App\Models\EmergencyRequest::find($id);
+            if (!$request) {
+                return redirect()->route('admin.emergency')->with('error', 'Emergency request not found.');
+            }
+            $request->status = 'approved';
+            $request->save();
+            return redirect()->route('admin.emergency')->with('success', 'Emergency request approved.');
+        }
+
+        /**
+         * Reject an emergency absence request
+         *
+         * @param \Illuminate\Http\Request $request
+         * @param int $id
+         * @return \Illuminate\Http\RedirectResponse
+         */
+        public function rejectEmergencyRequest(\Illuminate\Http\Request $httpRequest, $id)
+        {
+            $request = \App\Models\EmergencyRequest::find($id);
+            if (!$request) {
+                return redirect()->route('admin.emergency')->with('error', 'Emergency request not found.');
+            }
+            $httpRequest->validate([
+                'rejection_reason' => 'required|string|max:1000',
+            ]);
+            $request->status = 'rejected';
+            $request->rejection_reason = $httpRequest->rejection_reason;
+            $request->save();
+            return redirect()->route('admin.emergency')->with('success', 'Emergency request rejected.');
+        }
+
+        // ...existing code...
     /**
      * Show the admin profile page.
      */
     public function profile()
     {
         $admin = auth()->user();
-        return view('admin.profile', compact('admin'));
+        if (!$admin || $admin->role !== 'admin') {
+            abort(403, 'Unauthorized: Only admins can access this page.');
+        }
+        $adminProfile = AdminProfile::firstOrCreate(['user_id' => $admin->user_id]);
+        return view('admin.profile', compact('admin', 'adminProfile'));
     }
 
     /**
@@ -18,31 +89,32 @@
             'bio' => 'nullable|string|max:1000',
         ]);
 
+        $adminProfile = AdminProfile::firstOrCreate(['user_id' => $admin->user_id]);
+
         if ($request->hasFile('profile_photo')) {
             $file = $request->file('profile_photo');
-            $path = $file->store('profile-photos', 'public');
+            $path = $file->store('admin-profile-photos', 'public');
             // Delete old photo if exists
-            if ($admin->profile_photo_path) {
-                \Storage::disk('public')->delete($admin->profile_photo_path);
+            if ($adminProfile->profile_photo_path) {
+                \Storage::disk('public')->delete($adminProfile->profile_photo_path);
             }
-            $admin->profile_photo_path = $path;
+            $adminProfile->profile_photo_path = $path;
         }
         if ($request->filled('bio')) {
-            $admin->bio = $request->bio;
+            $adminProfile->bio = $request->bio;
         }
-        $admin->save();
+        $adminProfile->save();
         return redirect()->route('admin.profile')->with('success', 'Profile updated successfully.');
     }
-use App\Mail\TeacherRejectedMail;
 
-class AdminController extends Controller
-{
     // Class color palette (matches the design)
     private static $classColors = [
-        'pink-dark' => 'from-[#E88A93] to-[#F08080]',
-        'pink-light' => 'from-[#F2C4C4] to-[#F4B8B8]',
-        'cream' => 'from-[#EDE4D8] to-[#E5D9C9]',
-        'turquoise' => 'from-[#3DD9C4] to-[#2ED3BC]',
+        // Updated pink palette from user image
+        'pink-dark' => 'from-[#C96B78] to-[#C96B78]',
+        'pink-light' => 'from-[#F3B6BC] to-[#F3B6BC]',
+        'cream' => 'from-[#F5DDDF] to-[#F5DDDF]',
+        // Custom turquoise from user image
+        'turquoise' => 'from-[#176D76] to-[#7AB6BE]',
         'teal' => 'from-[#2DBCB0] to-[#25A99E]',
         'tan' => 'from-[#CCB083] to-[#C4A677]',
         'beige' => 'from-[#E4CFB3] to-[#DCC5A5]',
@@ -85,10 +157,17 @@ class AdminController extends Controller
      */
     private function getClassesFromDb()
     {
-        $colorKeys = array_keys(self::$classColors);
-        
-        return StudentClass::with('teacher')->get()->map(function ($class, $index) use ($colorKeys) {
-            $colorKey = $colorKeys[$index % count($colorKeys)];
+        return StudentClass::with(['teacher', 'students'])->get()->map(function ($class) {
+            $colorKey = $class->color;
+            $colorGradient = self::$classColors[$colorKey] ?? null;
+            // Get students for this class
+            $studentsList = $class->students->map(function ($student) {
+                return [
+                    'id' => $student->student_id,
+                    'name' => $student->first_name . ' ' . $student->last_name,
+                    'email' => $student->email,
+                ];
+            })->toArray();
             return [
                 'id' => $class->class_id,
                 'name' => $class->class_name,
@@ -98,7 +177,9 @@ class AdminController extends Controller
                 'students' => $class->current_enrollment,
                 'capacity' => $class->capacity,
                 'status' => $class->status,
-                'color' => self::$classColors[$colorKey],
+                'color' => $colorKey,
+                'color_gradient' => $colorGradient,
+                'studentsList' => $studentsList,
             ];
         })->toArray();
     }
@@ -372,6 +453,7 @@ class AdminController extends Controller
             'current_enrollment' => 0,
             'status' => 'active',
             'description' => $request->description ?? null,
+            'color' => $request->color,
         ]);
 
         return redirect()->route('admin.classes')->with('success', 'Class created successfully!');
@@ -390,6 +472,7 @@ class AdminController extends Controller
             'current_enrollment' => $classModel->current_enrollment,
             'status' => $classModel->status,
             'description' => $classModel->description,
+            'color' => $classModel->color,
         ];
 
         return view('admin.classes.edit', [
@@ -414,6 +497,9 @@ class AdminController extends Controller
         $class->class_name = $request->name;
         $class->capacity = (int) $request->students;
         $class->teacher_id = $request->teacherId ?: null;
+        if ($request->filled('color')) {
+            $class->color = $request->color;
+        }
         $class->save();
 
         return redirect()->route('admin.classes')->with('success', 'Class updated successfully!');
@@ -453,7 +539,7 @@ class AdminController extends Controller
             return redirect()->route('admin.requests')->with('error', 'Request not found!');
         }
 
-        DB::beginTransaction();
+        \Illuminate\Support\Facades\DB::beginTransaction();
         try {
             $teacherRequest->status = 'approved';
             $teacherRequest->approved_by_admin_id = Auth::id();
@@ -591,7 +677,7 @@ class AdminController extends Controller
     public function emergency()
     {
         return view('admin.emergency.index', [
-            'emergencyCases' => $this->getEmergencyCasesFromDb(),
+            'requests' => $this->getEmergencyCasesFromDb(),
             'teachers' => $this->getTeachersFromDb(),
             'classes' => $this->getClassesFromDb(),
         ]);

@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->increments('user_id'); // PK, INT, AUTO_INCREMENT
-            $table->string('email', 255)->unique(); // UNIQUE, NOT NULL
-            $table->string('password', 255); // NOT NULL
+            $table->string('email', 191)->unique(); // UNIQUE, NOT NULL
+            $table->string('password', 191); // NOT NULL
             $table->string('first_name', 100); // NOT NULL
             $table->string('last_name', 100); // NOT NULL
             $table->enum('role', ['admin', 'teacher', 'student', 'guest']); // NOT NULL

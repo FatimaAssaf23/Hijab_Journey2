@@ -12,7 +12,7 @@
     @endif
 
     <div class="flex flex-col items-center mb-6">
-        <img src="{{ Auth::user()->profile_photo_url }}" alt="Profile Photo" class="w-24 h-24 rounded-full object-cover border border-gray-300">
+        <img src="{{ isset($profilePhotoUrl) ? $profilePhotoUrl : Auth::user()->profile_photo_url }}" alt="Profile Photo" class="w-24 h-24 rounded-full object-cover border border-gray-300">
         <span class="text-sm text-gray-500 mt-2">Current Photo</span>
         <button type="button" @click="$refs.photoInput.click()" class="mt-3 px-4 py-2 bg-[#7AD7C1] text-white rounded shadow hover:bg-[#5ec1a6] transition">Change Photo</button>
     </div>

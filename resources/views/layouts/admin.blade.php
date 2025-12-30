@@ -15,7 +15,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
+        <div class="min-h-screen flex flex-col bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
             <!-- Admin Navbar -->
             <nav class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl sticky top-0 z-50">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -126,16 +126,27 @@
 
                             <!-- Profile Dropdown -->
                             <div class="group relative">
+                                @php
+                                    $admin = auth()->user();
+                                    $adminProfile = \App\Models\AdminProfile::where('user_id', $admin->user_id)->first();
+                                    $profilePhoto = $adminProfile && $adminProfile->profile_photo_path ? asset('storage/' . $adminProfile->profile_photo_path) : asset('images/default-profile.png');
+                                @endphp
                                 <button class="flex items-center gap-2 text-white hover:bg-white/20 px-3 py-2 rounded-lg transition">
-                                    <div class="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
-                                        <span>👤</span>
-                                    </div>
-                                    <span class="font-semibold hidden sm:block">Admin</span>
+                                    <img src="{{ $profilePhoto }}" alt="Profile Photo" class="w-8 h-8 rounded-full object-cover border-2 border-white shadow">
+                                    <span class="font-semibold hidden sm:block">{{ $admin->first_name ?? 'Admin' }}</span>
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
                                 </button>
-                                <div class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
+                                <div class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
+                                    <div class="flex flex-col items-center px-4 py-4 border-b border-gray-200">
+                                        <img src="{{ $profilePhoto }}" alt="Profile Photo" class="w-16 h-16 rounded-full object-cover border-2 border-pink-300 mb-2">
+                                        <div class="font-bold text-gray-800 text-lg">{{ $admin->first_name }} {{ $admin->last_name }}</div>
+                                        <div class="text-xs text-gray-500 mb-1">{{ $admin->email }}</div>
+                                        @if($adminProfile && $adminProfile->bio)
+                                            <div class="text-sm text-gray-700 text-center mt-2">{{ $adminProfile->bio }}</div>
+                                        @endif
+                                    </div>
                                     <a href="{{ route('admin.profile') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
                                         <span>👤</span> Profile
                                     </a>
@@ -188,12 +199,12 @@
             </nav>
 
             <!-- Page Content -->
-            <main>
+            <main class="flex-1">
                 @yield('content')
             </main>
 
             <!-- Footer -->
-            <footer class="bg-white/50 backdrop-blur border-t border-pink-200 mt-8">
+            <footer class="bg-white/50 backdrop-blur border-t border-pink-200">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div class="flex justify-between items-center text-sm text-gray-600">
                         <span>© {{ date('Y') }} Hijab Journey. Admin Panel</span>
