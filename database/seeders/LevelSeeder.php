@@ -34,9 +34,11 @@ class LevelSeeder extends Seeder
             $classId = $existingClass->class_id;
         }
 
+        $levels = [];
         for ($i = 1; $i <= 10; $i++) {
-            $level = [
+            $levels[] = [
                 'class_id' => $classId,
+                'level_id' => $i,
                 'level_name' => 'Level ' . $i,
                 'level_number' => $i,
                 'description' => 'Auto-generated level ' . $i,
@@ -45,10 +47,7 @@ class LevelSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
-            DB::table('levels')->updateOrInsert(
-                ['level_name' => $level['level_name']],
-                $level
-            );
         }
+        DB::table('levels')->insert($levels);
     }
 }

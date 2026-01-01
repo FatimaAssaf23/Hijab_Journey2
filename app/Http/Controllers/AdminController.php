@@ -160,12 +160,13 @@ class AdminController extends Controller
         return StudentClass::with(['teacher', 'students'])->get()->map(function ($class) {
             $colorKey = $class->color;
             $colorGradient = self::$classColors[$colorKey] ?? null;
-            // Get students for this class
+            // Get students for this class, using related User model for name/email
             $studentsList = $class->students->map(function ($student) {
+                $user = $student->user;
                 return [
                     'id' => $student->student_id,
-                    'name' => $student->first_name . ' ' . $student->last_name,
-                    'email' => $student->email,
+                    'name' => $user ? ($user->first_name . ' ' . $user->last_name) : 'Unknown',
+                    'email' => $user ? $user->email : '',
                 ];
             })->toArray();
             return [
@@ -275,7 +276,20 @@ class AdminController extends Controller
     // LESSONS - Using Database
     private function getLevelsArray()
     {
-        return Level::all()->map(function($level, $index) {
+        $levels = Level::all();
+        if ($levels->isEmpty()) {
+            // Fallback: create levels 1-10 in-memory if DB is empty
+            $fallback = [];
+            for ($i = 1; $i <= 10; $i++) {
+                $fallback[] = [
+                    'id' => $i,
+                    'name' => 'Level ' . $i,
+                    'color' => self::$levelColors[$i] ?? 'from-gray-400 to-gray-500',
+                ];
+            }
+            return $fallback;
+        }
+        return $levels->map(function($level, $index) {
             return [
                 'id' => $level->level_id,
                 'name' => $level->level_name,

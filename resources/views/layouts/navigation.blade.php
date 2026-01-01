@@ -1,44 +1,61 @@
 <nav class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-2xl rounded-b-3xl border-b-4 border-[#F8C5C8]" style="box-shadow: 0 8px 32px 0 rgba(236,118,154,0.15);">
     <div class="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
-        <div class="flex items-center justify-between h-16">
+        <div class="flex items-center justify-between" style="height: 2.5cm;">
             <!-- Navbar content -->
             <div class="flex-1 flex items-center justify-center">
                 <div class="hidden md:flex items-center gap-6" style="backdrop-filter: blur(2px);">
                                 <div class="group relative">
-                                    <button class="flex items-center gap-2 text-white font-semibold px-3 py-2 rounded-md hover:bg-white/10 transition">
+                                    <button class="flex items-center gap-2 text-white font-semibold px-3 py-2 rounded-md hover:bg-white/10 transition focus:outline-none">
                                         Contacts
+                                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                                     </button>
                                     <div class="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all">
                                         <a href="/meetings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Meeting</a>
                                         <a href="/group-chat" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Group Chat</a>
-                                        <a href="/contact-instructor" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Inbox Messages</a>
+                                        <a href="/contact-instructor" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Contact Instructor</a>
                                     </div>
                                 </div>
                 @if(Auth::check() && Auth::user()->role === 'teacher')
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3 text-base font-semibold text-white bg-transparent border-0 shadow-none px-0 py-0">Dashboard</a>
-                    <a href="/games" class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Games</a>
+                    <a href="/teacher/dashboard" class="flex items-center gap-3 text-base font-semibold text-white bg-transparent border-0 shadow-none px-0 py-0 order-first">Dashboard</a>
+                    <a href="/teacher/classes" class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Classes</a>
+                    <div class="group relative">
+                        <button class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 focus:outline-none">
+                            Tasks
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
+                            <a href="/assignments" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Assignments</a>
+                            <a href="/quizzes" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Quizzes</a>
+                            <a href="/games" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Games</a>
+                        </div>
+                    </div>
+                    <!-- Games button removed, now in Tasks dropdown -->
                     <a href="{{ route('teacher.lessons.manage') }}" class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Lessons Management</a>
-                    <a href="/quizzes" class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Quizzes</a>
+                    <!-- Quizzes button removed, now in Tasks dropdown -->
                     <a href="/grades" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Grades</a>
                     <a href="{{ route('teacher.emergency.create') }}" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-[#EC769A] bg-[#EC769A]">Emergency</a>
                 @else
-                    <a href="{{ route('dashboard') }}" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Dashboard</a>
+                    <a href="{{ route('student.dashboard') }}" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition" style="order: -1;">Dashboard</a>
                     <a href="/levels" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Levels</a>
-                    <a href="/lessons" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Lessons</a>
+                    <a href="/rewards" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Rewards</a>
                     <a href="/grades" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Grades</a>
-                    <a href="/meetings" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Meetings</a>
-                    <a href="/group-chat" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Group Chat</a>
                 @endif
 
-                <!-- Assignments Button (visible to all) -->
-                <a href="/assignments" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Assignments</a>
+                <!-- Assignments button removed, now in Tasks dropdown -->
             </div>
 
 
-                <a href="/progress" class="flex items-center gap-2 font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">
+                @if(Auth::check() && Auth::user()->role === 'teacher')
+                <a href="/progress" class="flex flex-row items-center gap-2 font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 whitespace-nowrap">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#197D8C"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>
-                    Students Progress
+                    <span class="whitespace-nowrap">Students</span> <span class="whitespace-nowrap">Progress</span>
                 </a>
+                @else
+                <a href="/progress" class="flex flex-row items-center gap-2 font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 whitespace-nowrap">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#197D8C"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>
+                    <span class="whitespace-nowrap">My</span> <span class="whitespace-nowrap">Progress</span>
+                </a>
+                @endif
 
             </div>
 
@@ -121,9 +138,9 @@
                     <a href="{{ route('login') }}" class="text-white font-medium">Login</a>
                 @endauth
                 @auth
-                    <form method="POST" action="{{ route('logout') }}" class="ml-4 inline">
+                    <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
-                        <button type="submit" class="px-4 py-2 rounded-md text-sm font-medium text-red-600 bg-white hover:bg-gray-100 shadow">Logout</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl text-base font-semibold text-white bg-gradient-to-r from-pink-400 to-teal-400 hover:bg-pink-500 transition shadow-sm ml-2">Logout</button>
                     </form>
                 @endauth
                 <!-- Mobile menu button -->
@@ -153,7 +170,7 @@
         </div>
         <div class="px-2 pb-4 space-y-1">
             @if(Auth::check() && Auth::user()->role === 'teacher')
-                <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Dashboard</a>
+                <a href="{{ route('student.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Dashboard</a>
                 <a href="/lessons/manage" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Lessons Management</a>
                 <a href="/quizzes" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Quizzes</a>
                 <a href="/meetings" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Meetings</a>
@@ -161,7 +178,7 @@
                 <a href="/group-chat" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Contacts</a>
                 <a href="/inbox" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Inbox</a>
             @else
-                <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Home / Dashboard</a>
+                <a href="{{ route('student.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Home / Dashboard</a>
                 <a href="/levels" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">My Class / Levels</a>
                 <a href="/lessons" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Lessons</a>
                 <a href="/grades" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Reward / Grades</a>

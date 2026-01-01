@@ -23,10 +23,9 @@ class DatabaseSeeder extends Seeder
                 'first_name' => 'Admin',
                 'last_name' => 'User',
                 'email' => 'admin@admin.com',
-                'password' => bcrypt('admin1234'), // Default password
+                'password' => \Illuminate\Support\Facades\Hash::make('admin1234'), // Default password
                 'role' => 'admin',
                 'profile_image_url' => null,
-                'profile_photo_path' => null,
                 'bio' => null,
                 'phone_number' => null,
                 'date_joined' => now(),

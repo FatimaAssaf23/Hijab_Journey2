@@ -1,3 +1,311 @@
+<!-- Modal and class management scripts: placed here for guaranteed global access -->
+<script>
+
+// Use only the Blade-generated studentsData and classesData for reliability
+const studentsData = {
+    @foreach($classes as $class)
+    {{ $class['id'] }}: [
+        @foreach($class['studentsList'] as $student)
+            { name: @json($student['name']), email: @json($student['email']), id: {{ $student['id'] }} },
+        @endforeach
+    ],
+    @endforeach
+};
+const classesData = {
+    @foreach($classes as $class)
+    {{ $class['id'] }}: {
+        name: "{{ $class['name'] }}",
+        teacher: "@php $teacher = collect($teachers)->firstWhere('id', $class['teacherId']); echo $teacher ? $teacher['name'] : 'Unassigned'; @endphp",
+        students: {{ count($class['studentsList']) }},
+        capacity: {{ $class['capacity'] ?? 30 }},
+        status: "{{ $class['status'] ?? 'active' }}",
+        description: "{{ $class['description'] ?? 'No description available' }}"
+    },
+    @endforeach
+};
+let currentClassId = null;
+
+function showStudentsList(classId) {
+    const students = studentsData[classId] || [];
+    let content = '';
+    if (students.length > 0) {
+        content = '<div class="space-y-2">';
+        students.forEach((student, index) => {
+            content += `
+                <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg hover:shadow-md transition-all">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold">
+                        ${index + 1}
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold text-gray-800">${student.name}</p>
+                        <p class="text-xs text-gray-500">${student.email}</p>
+                    </div>
+                    <div class="text-pink-500">👤</div>
+                </div>
+            `;
+        });
+        content += '</div>';
+    } else {
+        content = '<div class="text-center py-8"><p class="text-gray-500">No students enrolled yet</p><p class="text-sm text-gray-400 mt-2">Students will appear here once they join this class</p></div>';
+    }
+    document.getElementById('studentsContent').innerHTML = content;
+    document.getElementById('studentsModal').classList.remove('hidden');
+}
+window.showStudentsList = showStudentsList;
+
+function closeStudentsList() {
+    document.getElementById('studentsModal').classList.add('hidden');
+}
+window.closeStudentsList = closeStudentsList;
+
+function showClassInfo(classId) {
+    const classInfo = classesData[classId];
+    if (!classInfo) return;
+    const statusColors = {
+        'active': 'bg-green-100 text-green-800',
+        'full': 'bg-yellow-100 text-yellow-800',
+        'closed': 'bg-red-100 text-red-800'
+    };
+    const content = `
+        <div class="space-y-4">
+            <div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg p-4">
+                <p class="text-sm text-gray-500 mb-1">Class Name</p>
+                <p class="text-xl font-bold text-gray-800">${classInfo.name}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4">
+                <p class="text-sm text-gray-500 mb-1">👨‍🏫 Teacher</p>
+                <p class="font-semibold text-gray-800">${classInfo.teacher}</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-purple-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-500 mb-1">👥 Current Students</p>
+                    <p class="text-2xl font-bold text-purple-600">${classInfo.students}</p>
+                </div>
+                <div class="bg-pink-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-500 mb-1">📊 Max Capacity</p>
+                    <p class="text-2xl font-bold text-pink-600">${classInfo.capacity}</p>
+                </div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-sm text-gray-500 mb-2">Status</p>
+                <span class="inline-block px-4 py-2 rounded-full font-semibold ${statusColors[classInfo.status] || statusColors['active']}">
+                    ${classInfo.status.charAt(0).toUpperCase() + classInfo.status.slice(1)}
+                </span>
+            </div>
+            <div class="bg-gradient-to-r from-pink-50 to-teal-50 rounded-lg p-4">
+                <p class="text-sm text-gray-500 mb-2">📝 Description</p>
+                <p class="text-gray-700 leading-relaxed">${classInfo.description}</p>
+            </div>
+        </div>
+    `;
+    document.getElementById('classInfoContent').innerHTML = content;
+    document.getElementById('classInfoModal').classList.remove('hidden');
+}
+window.showClassInfo = showClassInfo;
+
+function closeClassInfo() {
+    document.getElementById('classInfoModal').classList.add('hidden');
+}
+window.closeClassInfo = closeClassInfo;
+
+function manageClass(classId) {
+    currentClassId = classId;
+    const students = studentsData[classId] || [];
+    renderManageStudents(students);
+    document.getElementById('manageClassModal').classList.remove('hidden');
+}
+window.manageClass = manageClass;
+
+function renderManageStudents(students) {
+    document.getElementById('studentCount').textContent = students.length;
+    let content = '';
+    if (students.length > 0) {
+        students.forEach((student, index) => {
+            content += `
+                <div class="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg hover:shadow-md transition-all">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold">
+                        ${index + 1}
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold text-gray-800">${student.name}</p>
+                        <p class="text-xs text-gray-500">${student.email}</p>
+                    </div>
+                    <button onclick="changeStudentClass(${student.id}, '${student.name}')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-all">🔄 Change Class</button>
+                    <button onclick="removeStudent(${student.id})" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all">🗑️ Remove</button>
+                </div>
+            `;
+        });
+    } else {
+        content = '<div class="text-center py-8"><p class="text-gray-500">No students enrolled yet</p><p class="text-sm text-gray-400 mt-2">Add students using the form above</p></div>';
+    }
+    document.getElementById('manageStudentsContent').innerHTML = content;
+}
+window.renderManageStudents = renderManageStudents;
+
+function addStudentToClass() {
+    const select = document.getElementById('newStudentSelect');
+    const studentId = select.value;
+    const studentName = select.options[select.selectedIndex].text;
+    if (!studentId) {
+        alert('Please select a student');
+        return;
+    }
+    const students = studentsData[currentClassId] || [];
+    if (students.find(s => s.id == studentId)) {
+        alert('Student is already in this class');
+        return;
+    }
+    // Send POST request to backend to update class_id
+    fetch(`/admin/classes/${currentClassId}/students/add`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ student_ids: [parseInt(studentId)] })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const newStudent = {
+                id: parseInt(studentId),
+                name: studentName,
+                email: studentName.toLowerCase().replace(' ', '') + '@student.com'
+            };
+            if (!studentsData[currentClassId]) {
+                studentsData[currentClassId] = [];
+            }
+            studentsData[currentClassId].push(newStudent);
+            renderManageStudents(studentsData[currentClassId]);
+            select.value = '';
+            alert('Student added successfully!');
+        } else {
+            alert('Failed to add student: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(() => {
+        alert('Failed to add student due to network error.');
+    });
+}
+window.addStudentToClass = addStudentToClass;
+
+function removeStudent(studentId) {
+    if (!confirm('Are you sure you want to remove this student from the class?')) {
+        return;
+    }
+    fetch(`/admin/classes/${currentClassId}/students/remove`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ student_ids: [studentId] })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            studentsData[currentClassId] = studentsData[currentClassId].filter(s => s.id !== studentId);
+            renderManageStudents(studentsData[currentClassId]);
+            // Update class info modal student count if open
+            if (document.getElementById('classInfoModal') && !document.getElementById('classInfoModal').classList.contains('hidden')) {
+                if (classesData[currentClassId]) {
+                    classesData[currentClassId].students = studentsData[currentClassId].length;
+                }
+                // Update the DOM directly if the modal is open
+                const classInfoStudents = document.querySelector('#classInfoContent .bg-purple-50 .text-2xl');
+                if (classInfoStudents) {
+                    classInfoStudents.textContent = studentsData[currentClassId].length;
+                }
+            }
+            // Update class card count
+            const studentCountElem = document.getElementById('studentCount_' + currentClassId);
+            if (studentCountElem) {
+                studentCountElem.textContent = studentsData[currentClassId].length + ' students';
+            }
+            alert('Student removed successfully!');
+        } else {
+            alert('Failed to remove student: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(() => {
+        alert('Failed to remove student due to network error.');
+    });
+}
+window.removeStudent = removeStudent;
+
+function changeStudentClass(studentId, studentName) {
+    let classOptions = '';
+    for (const classId in classesData) {
+        if (parseInt(classId) !== currentClassId) {
+            classOptions += `<option value="${classId}">${classesData[classId].name}</option>`;
+        }
+    }
+    const dialog = `
+        <div id="changeClassDialog" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl transform transition-all">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">🔄 Change Class</h3>
+                <p class="text-gray-600 mb-4">Move <strong>${studentName}</strong> to:</p>
+                <select id="targetClassSelect" class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 mb-6 focus:outline-none focus:border-blue-500">
+                    <option value="">Select target class...</option>
+                    ${classOptions}
+                </select>
+                <div class="flex gap-3">
+                    <button onclick="confirmClassChange(${studentId})" class="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:shadow-lg text-white font-semibold py-3 rounded-lg transition-all">Confirm</button>
+                    <button onclick="closeChangeClassDialog()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 rounded-lg transition-all">Cancel</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', dialog);
+}
+window.changeStudentClass = changeStudentClass;
+
+function confirmClassChange(studentId) {
+    const targetClassId = document.getElementById('targetClassSelect').value;
+    if (!targetClassId) {
+        alert('Please select a target class');
+        return;
+    }
+    const student = studentsData[currentClassId].find(s => s.id === studentId);
+    if (!student) return;
+    studentsData[currentClassId] = studentsData[currentClassId].filter(s => s.id !== studentId);
+    if (!studentsData[targetClassId]) {
+        studentsData[targetClassId] = [];
+    }
+    studentsData[targetClassId].push(student);
+    renderManageStudents(studentsData[currentClassId]);
+    closeChangeClassDialog();
+    alert('Student moved to new class successfully!');
+}
+window.confirmClassChange = confirmClassChange;
+
+function closeChangeClassDialog() {
+    const dialog = document.getElementById('changeClassDialog');
+    if (dialog) {
+        dialog.remove();
+    }
+}
+window.closeChangeClassDialog = closeChangeClassDialog;
+
+function closeManageClass() {
+    document.getElementById('manageClassModal').classList.add('hidden');
+    currentClassId = null;
+}
+window.closeManageClass = closeManageClass;
+
+// Modal close on backdrop click
+document.getElementById('studentsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeStudentsList();
+});
+document.getElementById('classInfoModal').addEventListener('click', function(e) {
+    if (e.target === this) closeClassInfo();
+});
+document.getElementById('manageClassModal').addEventListener('click', function(e) {
+    if (e.target === this) closeManageClass();
+});
+</script>
 @extends('layouts.admin')
 
 @section('content')
@@ -65,14 +373,7 @@
                                 <div class="flex-1">
                                     <p class="text-white/80 text-sm font-medium">👥 Students</p>
                                     <p class="text-white font-semibold" id="studentCount_{{ $class['id'] }}">
-                                        @php
-                                            // Calculate actual students from static data
-                                            $actualCount = 0;
-                                            if ($class['id'] == 1) $actualCount = 3;
-                                            elseif ($class['id'] == 2) $actualCount = 2;
-                                            elseif ($class['id'] == 3) $actualCount = 2;
-                                            echo $actualCount . ' students';
-                                        @endphp
+                                        <script>document.write((studentsData[{{ $class['id'] }}] ? studentsData[{{ $class['id'] }}].length : 0) + ' students');</script>
                                     </p>
                                 </div>
                                 <button onclick="showStudentsList({{ $class['id'] }})" class="bg-white/50 hover:bg-white text-gray-800 px-3 py-1 rounded-lg text-xs font-semibold transition-all">
@@ -84,6 +385,7 @@
 
                     <!-- Action Buttons -->
                     <div class="grid grid-cols-2 gap-2">
+                        <!-- Removed old Class Info button and re-added below for clean markup and event binding -->
                         <button onclick="showClassInfo({{ $class['id'] }})" class="bg-white/90 text-gray-800 font-semibold py-2 rounded-lg hover:bg-white transition-all text-sm">
                             📋 Class Info
                         </button>
@@ -181,18 +483,8 @@
         </div>
     </div>
 
-    <script>
-        // Dynamic students data from backend
-        const studentsData = {
-            @foreach($classes as $class)
-            {{ $class['id'] }}: [
-                @foreach($class['studentsList'] as $student)
-                    { name: @json($student['name']), email: @json($student['email']), id: {{ $student['id'] }} },
-                @endforeach
-            ],
-            @endforeach
-        };
 
+    <script>
         // Get actual student count from studentsData
         function getActualStudentCount(classId) {
             return studentsData[classId] ? studentsData[classId].length : 0;
@@ -200,7 +492,6 @@
 
         function showStudentsList(classId) {
             const students = studentsData[classId] || [];
-            
             let content = '';
             if (students.length > 0) {
                 content = '<div class="space-y-2">';
@@ -407,15 +698,32 @@
                 return;
             }
 
-            // Remove student from class (in real app, this would be an API call)
-            studentsData[currentClassId] = studentsData[currentClassId].filter(s => s.id !== studentId);
-
-            // Re-render the list
-            renderManageStudents(studentsData[currentClassId]);
-
-            // Show success message
-            alert('Student removed successfully!');
+            // Make AJAX call to backend to remove student
+            fetch(`/admin/classes/${currentClassId}/remove-students`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ student_ids: [studentId] })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove student from local data and re-render
+                    studentsData[currentClassId] = studentsData[currentClassId].filter(s => s.id !== studentId);
+                    renderManageStudents(studentsData[currentClassId]);
+                    alert('Student removed successfully!');
+                } else {
+                    alert('Failed to remove student: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(() => {
+                alert('Failed to remove student due to network error.');
+            });
         }
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
         function changeStudentClass(studentId, studentName) {
             // Build class options HTML
@@ -500,6 +808,7 @@
                 closeManageClass();
             }
         });
-    </script>
+
 </div>
 @endsection
+

@@ -1,4 +1,3 @@
-
 <?php
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmergencyRequestController;
@@ -6,6 +5,10 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TeacherRequestController;
 use App\Http\Controllers\TeacherLessonController;
+use App\Http\Controllers\TeacherClassesController;
+use App\Models\Level;
+use App\Models\Student;
+use App\Models\ClassLessonVisibility;
 
 // Profile photo upload
 Route::get('/profile/photo', [ProfileController::class, 'showPhotoForm'])->name('profile.photo.form');
@@ -28,12 +31,23 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return view('welcome');
 });
 
-Route::get('/dashboard', function () {
+use Illuminate\Support\Facades\Auth;
+
+Route::get('/student/dashboard', function () {
+    $user = Auth::user();
+    if ($user && ($user->role === 'teacher' || $user->role === 'admin')) {
+        abort(403, 'Unauthorized');
+    }
     return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'verified'])->name('student.dashboard');
+
+// Teacher dashboard route
+Route::get('/teacher/dashboard', function () {
+    return view('teacher.dashboard');
+})->middleware(['auth', 'verified', 'can:isTeacher'])->name('teacher.dashboard');
 
 use App\Http\Controllers\LessonPublicController;
 Route::get('/lessons', [LessonPublicController::class, 'index'])
@@ -123,10 +137,38 @@ Route::middleware(['auth', 'verified'])->prefix('teacher')->group(function () {
     Route::get('/lessons/{lesson}/view', [TeacherLessonController::class, 'view'])->name('teacher.lessons.view');
 });
 
+// Teacher Classes Management
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->prefix('teacher')->group(function () {
+    Route::get('/classes', [TeacherClassesController::class, 'index'])->name('teacher.classes');
+});
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Levels route
+Route::get('/levels', function () {
+    $user = auth()->user();
+    $student = Student::where('user_id', $user->user_id)->first();
+    $studentClassId = $student ? $student->class_id : null;
+    $levels = Level::with(['lessons'])->get();
+    foreach ($levels as $level) {
+        $level->lessons = $level->lessons->filter(function($lesson) use ($studentClassId) {
+            $visibility = ClassLessonVisibility::where('lesson_id', $lesson->lesson_id)
+                ->where('class_id', $studentClassId)
+                ->first();
+            return $visibility && $visibility->is_visible;
+        })->values();
+    }
+    return view('levels', compact('levels'));
+})->middleware(['auth', 'verified'])->name('levels');
+
+// Student Lesson View Route
+Route::get('/lessons/{lesson}/view', function ($lessonId) {
+    $lesson = \App\Models\Lesson::findOrFail($lessonId);
+    return view('lesson-view', compact('lesson'));
+})->middleware(['auth', 'verified'])->name('student.lesson.view');
 
 require __DIR__.'/auth.php';

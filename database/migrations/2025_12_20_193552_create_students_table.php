@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('students', function (Blueprint $table) {
             $table->increments('student_id');
             $table->unsignedInteger('user_id')->unique();
+            $table->unsignedInteger('class_id')->nullable();
             $table->enum('gender', ['male', 'female', 'other', 'prefer_not_to_say'])->nullable();
             $table->date('date_of_birth')->nullable();
-            $table->string('city', 100)->nullable();
-            $table->string('street', 255)->nullable();
+            $table->string('country', 100)->nullable();
             $table->string('language', 50)->nullable();
             $table->integer('total_score')->default(0);
             $table->enum('plan_type', ['free', 'premium'])->default('free');
@@ -26,6 +26,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('user_id')->references('user_id')->on('users');
+            $table->foreign('class_id')->references('class_id')->on('student_classes')->onDelete('set null');
         });
     }
 

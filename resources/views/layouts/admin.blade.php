@@ -154,8 +154,8 @@
                                         <span>⚙️</span> Settings
                                     </a>
                                     <hr class="my-2 border-gray-200">
-                                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
-                                        <span>🏠</span> Back to Site
+                                    <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
+                                        <span>🏠</span> Back to Dashboard
                                     </a>
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
@@ -220,5 +220,6 @@
                 document.getElementById('mobile-menu')?.classList.toggle('hidden');
             });
         </script>
+        @stack('scripts')
     </body>
 </html>

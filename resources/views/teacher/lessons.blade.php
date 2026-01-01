@@ -49,14 +49,45 @@
                             @if($lesson->is_visible)
                                 <form method="POST" action="{{ route('teacher.lessons.lock', $lesson->lesson_id) }}">
                                     @csrf
-                                    <button type="submit" title="Hide from students" class="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#E9B7B9] text-[#197D8C] font-bold hover:bg-[#F6D6D6] transition">
+                                    <div class="mb-2">
+                                        <label for="lock_class_id_{{ $lesson->lesson_id }}" class="block text-sm text-gray-700 mb-1">Select class</label>
+                                        <div class="relative">
+                                            <select id="lock_class_id_{{ $lesson->lesson_id }}" name="class_id" required class="border rounded px-4 py-2 w-full appearance-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 pr-8">
+                                                <option value="">Select class</option>
+                                                @foreach($teacherClasses as $class)
+                                                    <option value="{{ $class->class_id }}">{{ $class->class_name }}</option>
+                                                @endforeach
+                                            </select>
+                                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button type="submit" title="Hide from students" class="flex items-center gap-1 px-5 py-2 rounded-lg bg-[#E9B7B9] text-[#197D8C] font-bold hover:bg-[#F6D6D6] transition shadow-md mt-1">
                                         <span class="text-lg">🙈</span> Hide
                                     </button>
                                 </form>
                             @else
+                                @php
+                                    $teacherClasses = \App\Models\StudentClass::where('teacher_id', auth()->id())->get();
+                                @endphp
                                 <form method="POST" action="{{ route('teacher.lessons.unlock', $lesson->lesson_id) }}">
                                     @csrf
-                                    <button type="submit" title="Show to students" class="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#6EC6C5] text-white font-bold hover:bg-[#197D8C] hover:text-white transition">
+                                    <div class="mb-2">
+                                        <label for="class_id_{{ $lesson->lesson_id }}" class="block text-sm text-gray-700 mb-1">Select class</label>
+                                        <div class="relative">
+                                            <select id="class_id_{{ $lesson->lesson_id }}" name="class_id" required class="border rounded px-4 py-2 w-full appearance-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 pr-8">
+                                                <option value="">Select class</option>
+                                                @foreach($teacherClasses as $class)
+                                                    <option value="{{ $class->class_id }}">{{ $class->class_name }}</option>
+                                                @endforeach
+                                            </select>
+                                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button type="submit" title="Show to students" class="flex items-center gap-1 px-5 py-2 rounded-lg bg-[#6EC6C5] text-white font-bold hover:bg-[#197D8C] hover:text-white transition shadow-md mt-1">
                                         <span class="text-lg">👁️</span> Show
                                     </button>
                                 </form>
