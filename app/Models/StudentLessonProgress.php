@@ -9,6 +9,7 @@ class StudentLessonProgress extends Model
 {
     use HasFactory;
 
+    protected $table = 'student_lesson_progresses';
     protected $primaryKey = 'progress_id';
 
     protected $fillable = [

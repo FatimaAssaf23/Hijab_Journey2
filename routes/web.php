@@ -1,4 +1,24 @@
 <?php
+// Set Dead Time for Assignment
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/assignments/{assignment}/dead-time', [App\Http\Controllers\AssignmentController::class, 'setDeadTime'])->name('assignments.setDeadTime');
+use App\Http\Controllers\GradeController;
+// Teacher grades a submission
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/assignments/submission/{submission}/grade', [GradeController::class, 'store'])->name('assignments.submission.grade');
+// View a specific assignment submission (teacher)
+use App\Models\AssignmentSubmission;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->get('/assignments/submission/{submission}', function ($submissionId) {
+    $submission = AssignmentSubmission::with('student.user')->findOrFail($submissionId);
+    $studentName = $submission->student && $submission->student->user ? $submission->student->user->first_name . ' ' . $submission->student->user->last_name : '';
+    $fileName = basename($submission->submission_file_url);
+    $isPdf = strtolower(pathinfo($fileName, PATHINFO_EXTENSION)) === 'pdf';
+    return view('assignments.submission-view', compact('submission', 'studentName', 'fileName', 'isPdf'));
+})->name('assignments.submission.view');
+// Student Game Quiz Routes
+use App\Http\Controllers\StudentGameController;
+Route::middleware(['auth', 'verified'])->prefix('student')->group(function () {
+    Route::get('/games', [StudentGameController::class, 'index'])->name('student.games');
+    Route::get('/games/quiz', [StudentGameController::class, 'quiz'])->name('student.games.quiz');
+});
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\ProfileController;
@@ -34,7 +54,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-use Illuminate\Support\Facades\Auth;
 
 Route::get('/student/dashboard', function () {
     $user = Auth::user();
@@ -172,3 +191,47 @@ Route::get('/lessons/{lesson}/view', function ($lessonId) {
 })->middleware(['auth', 'verified'])->name('student.lesson.view');
 
 require __DIR__.'/auth.php';
+
+// Games page for teachers
+use Illuminate\Support\Facades\Auth;
+
+use App\Http\Controllers\GameWordController;
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/games', [GameWordController::class, 'index'])->name('teacher.games');
+    Route::post('/games', [GameWordController::class, 'store'])->name('teacher.games.store');
+    Route::post('/games/delete/{id}', [GameWordController::class, 'destroy'])->name('teacher.games.delete');
+});
+
+use App\Http\Controllers\AssignmentController;
+
+// Teacher assignments (upload & list)
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
+    Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+    Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+});
+
+// Student assignments (view & submission)
+use App\Http\Controllers\AssignmentSubmissionController;
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/student/assignment', [AssignmentController::class, 'studentIndex'])->name('student.assignments');
+    Route::post('/student/assignment/submit', [AssignmentSubmissionController::class, 'store'])->name('student.assignment.submit');
+    Route::delete('/student/assignment/delete/{submission}', [AssignmentSubmissionController::class, 'destroy'])->name('student.assignment.delete');
+});
+
+// Student marks lesson as completed
+use App\Models\StudentLessonProgress;
+
+Route::post('/lessons/{lesson}/complete', function ($lessonId) {
+    $user = Auth::user();
+    if (!$user) abort(403);
+    $student = $user->student;
+    if (!$student) abort(403);
+    $progress = StudentLessonProgress::firstOrNew([
+        'student_id' => $student->student_id,
+        'lesson_id' => $lessonId,
+    ]);
+    $progress->status = 'completed';
+    $progress->completed_at = now();
+    $progress->save();
+    return redirect()->back()->with('success', 'Lesson marked as completed!');
+})->middleware(['auth', 'verified'])->name('student.lesson.complete');

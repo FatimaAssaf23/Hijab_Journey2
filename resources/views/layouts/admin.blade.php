@@ -53,6 +53,7 @@
                                 Classes
                             </a>
 
+
                             <!-- Users Dropdown -->
                             <div class="group relative">
                                 <button class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/20 transition {{ request()->routeIs('admin.students*') || request()->routeIs('admin.teachers*') ? 'bg-white/20' : '' }}">

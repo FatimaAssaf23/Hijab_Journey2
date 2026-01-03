@@ -12,17 +12,13 @@ class Assignment extends Model
     protected $primaryKey = 'assignment_id';
 
     protected $fillable = [
-        'level_id',
-        'class_id',
         'teacher_id',
-        'checked_by_admin_id',
         'title',
         'description',
-        'pdf_url',
-        'posted_date',
+        'file_path',
+        'level_id',
+        'class_id',
         'due_date',
-        'max_score',
-        'approval_status',
     ];
 
     protected function casts(): array

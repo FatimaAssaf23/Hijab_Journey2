@@ -36,9 +36,11 @@
                     <a href="{{ route('teacher.emergency.create') }}" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-[#EC769A] bg-[#EC769A]">Emergency</a>
                 @else
                     <a href="{{ route('student.dashboard') }}" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition" style="order: -1;">Dashboard</a>
+                    <a href="/student/assignment" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Assignments</a>
                     <a href="/levels" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Levels</a>
                     <a href="/rewards" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Rewards</a>
                     <a href="/grades" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Grades</a>
+                    <a href="/student/games" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition"><span>🎮</span> Games</a>
                 @endif
 
                 <!-- Assignments button removed, now in Tasks dropdown -->

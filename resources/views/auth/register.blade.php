@@ -56,7 +56,121 @@
             <div style="flex: 1;">
                 <label for="password" class="auth-label">{{ __('Password') }}</label>
                 <input id="password" type="password" name="password" class="auth-input block mt-1 w-full" required autocomplete="new-password" />
-                <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                                <x-input-error :messages="$errors->get('password')" class="mt-2" />
+
+                                <!-- Password Strength Checker UI -->
+                                <div style="margin-top: 6px; background: #fff; border-radius: 7px; box-shadow: 0 1px 4px rgba(44,62,80,0.06); padding: 5px 8px; max-width: 220px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                                    <div style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 1px;">Strength</div>
+                                    <div style="height: 6px; background: #eee; border-radius: 3px; overflow: hidden; width: 100%; margin-bottom: 2px;">
+                                        <div id="strengthFill" style="height: 100%; width: 10%; background: #e63946; transition: width 0.3s, background 0.3s;"></div>
+                                    </div>
+                                    <div id="strengthText" style="font-size: 11px; color: #374151; font-weight: 500; margin-bottom: 1px;">Very Weak</div>
+                                    <div style="display: flex; gap: 6px; width: 100%; justify-content: space-between;">
+                                        <span id="lengthIcon" style="font-size: 14px;">❌</span>
+                                        <span id="uppercaseIcon" style="font-size: 14px;">❌</span>
+                                        <span id="numberIcon" style="font-size: 14px;">❌</span>
+                                        <span id="symbolIcon" style="font-size: 14px;">❌</span>
+                                    </div>
+                                    <div style="display: flex; gap: 6px; width: 100%; justify-content: space-between; font-size: 10px; color: #6b7280;">
+                                        <span id="lengthText" class="requirement-not-met">8+ chars</span>
+                                        <span id="uppercaseText" class="requirement-not-met">Upper</span>
+                                        <span id="numberText" class="requirement-not-met">Num</span>
+                                        <span id="symbolText" class="requirement-not-met">Sym</span>
+                                    </div>
+                                </div>
+                                <style>
+                                      .requirement-met { color: #2a9d8f !important; font-weight: 600; }
+                                      .requirement-not-met { color: #e63946 !important; font-weight: 500; }
+                                </style>
+                                <script>
+                                // ===== Password strength checker =====
+                                const passwordInput = document.getElementById('password');
+                                const strengthFill = document.getElementById('strengthFill');
+                                const strengthText = document.getElementById('strengthText');
+                                const lengthIcon = document.getElementById('lengthIcon');
+                                const lengthText = document.getElementById('lengthText');
+                                const uppercaseIcon = document.getElementById('uppercaseIcon');
+                                const uppercaseText = document.getElementById('uppercaseText');
+                                const numberIcon = document.getElementById('numberIcon');
+                                const numberText = document.getElementById('numberText');
+                                const symbolIcon = document.getElementById('symbolIcon');
+                                const symbolText = document.getElementById('symbolText');
+
+                                passwordInput.addEventListener('input', checkPasswordStrength);
+
+                                function checkPasswordStrength() {
+                                    const password = passwordInput.value;
+                                    // ===== Password requirements =====
+                                      const hasMinLength = password.length >= 8;
+                                      const hasUppercase = /[A-Z]/.test(password);
+                                      const hasNumber = /[0-9]/.test(password);
+                                      const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+                                      // ===== Update requirement indicators =====
+                                      updateRequirement(hasMinLength, lengthIcon, lengthText, "8+ chars");
+                                      updateRequirement(hasUppercase, uppercaseIcon, uppercaseText, "Uppercase");
+                                      updateRequirement(hasNumber, numberIcon, numberText, "Number");
+                                      updateRequirement(hasSymbol, symbolIcon, symbolText, "Symbol");
+                                    // ===== Strength score =====
+                                    let score = 0;
+                                    if (hasMinLength) score++;
+                                    if (hasUppercase) score++;
+                                    if (hasNumber) score++;
+                                    if (hasSymbol) score++;
+                                    updateStrengthIndicator(score);
+                                }
+
+                                // ===== Requirement color + icon =====
+                                function updateRequirement(isValid, icon, text, message) {
+                                    if (isValid) {
+                                        icon.textContent = "✔";
+                                        icon.style.color = "#2a9d8f";
+                                        text.textContent = message;
+                                        text.className = "requirement-met";
+                                    } else {
+                                        icon.textContent = "✖";
+                                        icon.style.color = "#e63946";
+                                        text.textContent = message;
+                                        text.className = "requirement-not-met";
+                                    }
+                                }
+
+                                // ===== Strength bar colors =====
+                                function updateStrengthIndicator(score) {
+                                    let strength = "";
+                                    let color = "";
+                                    let width = "";
+                                    switch (score) {
+                                        case 0:
+                                            strength = "Very Weak";
+                                            color = "#e63946";
+                                            width = "10%";
+                                            break;
+                                        case 1:
+                                            strength = "Weak";
+                                            color = "#f4a261";
+                                            width = "25%";
+                                            break;
+                                        case 2:
+                                            strength = "Fair";
+                                            color = "#f4a261";
+                                            width = "50%";
+                                            break;
+                                        case 3:
+                                            strength = "Good";
+                                            color = "#2a9d8f";
+                                            width = "75%";
+                                            break;
+                                        case 4:
+                                            strength = "Strong";
+                                            color = "#2a9d8f";
+                                            width = "100%";
+                                            break;
+                                    }
+                                    strengthFill.style.width = width;
+                                    strengthFill.style.backgroundColor = color;
+                                    strengthText.textContent = strength;
+                                }
+                                </script>
             </div>
             <div style="flex: 1;">
                 <label for="password_confirmation" class="auth-label">{{ __('Confirm Password') }}</label>
