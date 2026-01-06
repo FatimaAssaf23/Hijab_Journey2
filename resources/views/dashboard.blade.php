@@ -1,20 +1,25 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-5xl mx-auto px-2 lg:px-0" style="background-color: #FFF4FA; min-height: 100vh;">
-    <div class="relative" style="background-color: #FFF4FA;" class="bg-gradient-to-br from-pink-100 via-purple-100 to-white shadow-2xl rounded-3xl p-10 mt-12 border border-pink-100 overflow-hidden group transition-all duration-300 hover:scale-[1.01]">
-        <!-- Glassmorphism effect -->
-        <div class="absolute inset-0 bg-white/60 backdrop-blur-xl rounded-3xl z-0"></div>
-        <!-- Decorative SVG background -->
-        <svg class="absolute right-0 top-0 w-56 h-56 opacity-10 pointer-events-none z-0" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="100" cy="100" r="100" fill="#f472b6"/>
-        </svg>
+<div class="max-w-5xl mx-auto px-2 lg:px-0 min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-white relative">
+    <!-- Decorative background shapes -->
+    <div class="absolute left-0 top-0 w-72 h-72 bg-pink-200 rounded-full opacity-30 blur-2xl z-0"></div>
+    <div class="absolute right-0 bottom-0 w-72 h-72 bg-purple-200 rounded-full opacity-30 blur-2xl z-0"></div>
+    <div class="relative z-10 bg-white/80 shadow-2xl rounded-3xl p-10 mt-16 border border-pink-100 overflow-hidden group transition-all duration-300 hover:scale-[1.01]">
+        <!-- Hijabi Girl Image in Pink Circle -->
+        <div class="absolute right-16 top-16 flex flex-col items-center z-20">
+            <div class="w-36 h-36 rounded-full bg-pink-200 flex items-center justify-center shadow-lg border-4 border-white mt-[-60px]">
+                <img src="{{ asset('images/dashboard/hijabi1.jpg') }}" alt="Hijabi Girl 1" class="w-28 h-28 rounded-full object-contain p-2 shadow-xl border-2 border-pink-300 bg-white" loading="lazy">
+            </div>
+            <span class="mt-2 text-pink-500 font-bold text-lg drop-shadow">Welcome!</span>
+        </div>
         <div class="relative z-10">
-            <h2 class="font-black text-3xl text-pink-600 mb-6 flex items-center gap-3 tracking-tight">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 7v-6m0 6H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v12a2 2 0 01-2 2h-7z" /></svg>
+            <!-- Hijabi Girl Image now inside pink circle above -->
+            <h2 class="font-black text-4xl text-pink-600 mb-4 flex items-center gap-3 tracking-tight drop-shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 7v-6m0 6H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v12a2 2 0 01-2 2h-7z" /></svg>
                 Student Dashboard
             </h2>
-            <div class="mb-6 text-base text-gray-500 italic">“Education is the passport to the future, for tomorrow belongs to those who prepare for it today.”</div>
+            <div class="mb-8 text-lg text-purple-500 italic font-medium">A girl is like a pearl; she needs a hijab to protect her.</div>
             @php
                 $student = Auth::user()->student;
                 $class = $student?->studentClass;
@@ -32,26 +37,34 @@
                 }
             @endphp
             @if($class)
+                <div class="mb-6 p-4 rounded-xl bg-pink-50 border border-pink-200 shadow flex flex-col gap-2">
+                    <div class="font-bold text-pink-600 text-lg">Class Info</div>
+                    <div><span class="font-semibold">Class Name:</span> {{ $class->class_name }}</div>
+                    @if(!empty($class->class_message))
+                        <div class="text-purple-700"><span class="font-semibold">Message:</span> {{ $class->class_message }}</div>
+                    @endif
+                    <div><span class="font-semibold">Teacher:</span> {{ $class->teacher?->first_name }} {{ $class->teacher?->last_name }}</div>
+                </div>
                 <div class="flex flex-col lg:flex-row gap-8 items-stretch">
                     <!-- Class Info Card -->
-                    <div style="background-color: #FFF4FA;" class="rounded-2xl p-6 shadow-xl flex-1 flex flex-col gap-5 border border-pink-100 ring-1 ring-pink-50 min-w-[280px] max-w-lg">
+                    <div class="rounded-2xl p-8 shadow-2xl flex-1 flex flex-col gap-6 border border-pink-100 ring-2 ring-pink-50 min-w-[280px] max-w-lg bg-gradient-to-br from-pink-50 via-white to-purple-50">
                         <div class="flex items-center gap-4 mb-2">
-                            <span class="inline-block bg-gradient-to-r from-pink-400 to-purple-400 text-white px-6 py-2 rounded-full text-2xl font-black shadow-lg tracking-tight">{{ $class->class_name }}</span>
+                            <span class="inline-block bg-gradient-to-r from-pink-400 to-purple-400 text-white px-8 py-3 rounded-full text-2xl font-black shadow-xl tracking-tight border-2 border-pink-200">{{ $class->class_name }}</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-5 w-full">
-                            <div class="bg-blue-50/70 rounded-xl p-4 flex flex-col items-start shadow-sm">
+                        <div class="grid grid-cols-2 gap-6 w-full">
+                            <div class="bg-blue-100/70 rounded-xl p-5 flex flex-col items-start shadow-md">
                                 <div class="text-xs text-gray-500 mb-1 flex items-center gap-1">👨‍🏫 <span>Teacher</span></div>
                                 <div class="font-semibold text-gray-800 text-base">{{ $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned' }}</div>
                             </div>
-                            <div class="bg-purple-50/70 rounded-xl p-4 flex flex-col items-start shadow-sm">
+                            <div class="bg-purple-100/70 rounded-xl p-5 flex flex-col items-start shadow-md">
                                 <div class="text-xs text-gray-500 mb-1 flex items-center gap-1">👥 <span>Students</span></div>
                                 <div class="text-2xl font-bold text-purple-600">{{ $class->students->count() }}</div>
                             </div>
-                            <div class="bg-pink-50/70 rounded-xl p-4 flex flex-col items-start shadow-sm">
+                            <div class="bg-pink-100/70 rounded-xl p-5 flex flex-col items-start shadow-md">
                                 <div class="text-xs text-gray-500 mb-1 flex items-center gap-1">📊 <span>Capacity</span></div>
                                 <div class="text-2xl font-bold text-pink-600">{{ $class->capacity }}</div>
                             </div>
-                            <div class="bg-gray-50/70 rounded-xl p-4 flex flex-col items-start shadow-sm">
+                            <div class="bg-gray-100/70 rounded-xl p-5 flex flex-col items-start shadow-md">
                                 <div class="text-xs text-gray-500 mb-1 flex items-center gap-1">🔖 <span>Status</span></div>
                                 <span class="inline-block px-4 py-1 rounded-full font-bold text-xs tracking-wide
                                     @if($class->status === 'active') bg-green-100 text-green-800
@@ -62,7 +75,7 @@
                                 </span>
                             </div>
                             <!-- Lessons Completed -->
-                            <div class="bg-gradient-to-r from-green-200 via-green-100 to-white rounded-xl p-4 flex flex-col items-start shadow-lg border border-green-200 col-span-2">
+                            <div class="bg-gradient-to-r from-green-200 via-green-100 to-white rounded-xl p-5 flex flex-col items-start shadow-xl border-2 border-green-200 col-span-2">
                                 <div class="flex items-center gap-2 mb-1">
                                     <svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5 text-green-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7' /></svg>
                                     <span class="text-xs text-green-700 font-semibold uppercase tracking-wide">Lessons Completed</span>
@@ -71,28 +84,28 @@
                             </div>
                         </div>
                         <!-- Progress bar placeholder for future features -->
-                        <div class="w-full mt-2">
-                            <div class="text-xs text-gray-400 mb-1">Progress</div>
-                            <div class="w-full bg-pink-100 rounded-full h-2.5">
-                                <div class="bg-gradient-to-r from-pink-400 to-purple-400 h-2.5 rounded-full transition-all duration-700" style="width: 40%"></div>
+                        <div class="w-full mt-4">
+                            <div class="text-xs text-pink-400 mb-2 font-bold">Progress</div>
+                            <div class="w-full bg-pink-100 rounded-full h-3">
+                                <div class="bg-gradient-to-r from-pink-400 to-purple-400 h-3 rounded-full transition-all duration-700" style="width: 40%"></div>
                             </div>
                         </div>
                     </div>
                     <!-- To-Do List: Upcoming Assignments (Inline Cards) -->
-                    <div class="bg-white/70 rounded-2xl p-6 shadow-lg border border-pink-100 flex-1 mt-0 w-full min-w-[280px] max-w-2xl flex flex-col">
-                        <div class="flex items-center gap-3 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m2 0a2 2 0 100-4H7a2 2 0 100 4zm0 0v4a2 2 0 11-4 0v-4" /></svg>
-                            <span class="font-black text-pink-600 text-xl tracking-tight">Upcoming Assignments</span>
+                    <div class="bg-gradient-to-br from-pink-50 via-white to-purple-50 rounded-2xl p-8 shadow-2xl border border-pink-100 flex-1 mt-0 w-full min-w-[280px] max-w-2xl flex flex-col">
+                        <div class="flex items-center gap-3 mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m2 0a2 2 0 100-4H7a2 2 0 100 4zm0 0v4a2 2 0 11-4 0v-4" /></svg>
+                            <span class="font-black text-pink-600 text-2xl tracking-tight drop-shadow">Upcoming Assignments</span>
                         </div>
                         @if($upcomingAssignments->count())
-                            <div class="flex gap-5 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-pink-200 scrollbar-track-pink-50">
+                            <div class="flex gap-8 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-pink-200 scrollbar-track-pink-50">
                                 @foreach($upcomingAssignments as $assignment)
-                                    <div class="min-w-[220px] max-w-xs bg-gradient-to-br from-pink-50 via-purple-50 to-white rounded-xl shadow-md p-5 flex flex-col justify-between border border-pink-100 hover:shadow-xl transition-all duration-300">
+                                    <div class="min-w-[240px] max-w-xs bg-gradient-to-br from-pink-100 via-white to-purple-100 rounded-2xl shadow-xl p-6 flex flex-col justify-between border-2 border-pink-200 hover:scale-105 hover:shadow-2xl transition-all duration-300">
                                         <div>
-                                            <div class="font-bold text-gray-800 text-lg mb-1 truncate">{{ $assignment->title }}</div>
-                                            <div class="text-xs text-gray-500 flex items-center gap-1 mb-2"><svg xmlns='http://www.w3.org/2000/svg' class='h-4 w-4 text-pink-300' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' /></svg> Due: {{ \Carbon\Carbon::parse($assignment->due_date)->format('M d, Y') }}</div>
+                                            <div class="font-bold text-pink-600 text-xl mb-2 truncate drop-shadow">{{ $assignment->title }}</div>
+                                            <div class="text-xs text-purple-500 flex items-center gap-2 mb-3"><svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5 text-pink-300' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' /></svg> Due: {{ \Carbon\Carbon::parse($assignment->due_date)->format('M d, Y') }}</div>
                                         </div>
-                                        <a href="{{ asset('storage/' . $assignment->file_path) }}" class="mt-2 inline-block bg-gradient-to-r from-pink-400 to-purple-400 text-white px-4 py-1.5 rounded-lg shadow hover:scale-105 hover:shadow-xl transition text-sm font-bold text-center" target="_blank">View</a>
+                                        <a href="{{ asset('storage/' . $assignment->file_path) }}" class="mt-2 inline-block bg-gradient-to-r from-pink-400 to-purple-400 text-white px-6 py-2 rounded-xl shadow-lg hover:scale-110 hover:shadow-2xl transition text-base font-bold text-center" target="_blank">View</a>
                                     </div>
                                 @endforeach
                             </div>

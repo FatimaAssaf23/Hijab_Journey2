@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,6 +29,14 @@ class StudentClass extends Model
     }
 
     /**
+     * The levels that belong to the class (many-to-many).
+     */
+    public function levels()
+    {
+        return $this->belongsToMany(Level::class, 'class_level', 'class_id', 'level_id');
+    }
+
+    /**
      * Get the teacher that owns the class.
      */
     public function teacher()
@@ -43,14 +50,6 @@ class StudentClass extends Model
     public function students()
     {
         return $this->hasMany(Student::class, 'class_id', 'class_id');
-    }
-
-    /**
-     * Get the levels for the class.
-     */
-    public function levels()
-    {
-        return $this->hasMany(Level::class, 'class_id', 'class_id');
     }
 
     /**
@@ -100,5 +99,4 @@ class StudentClass extends Model
     {
         return $this->hasMany(ClassLessonVisibility::class, 'class_id', 'class_id');
     }
-
 }

@@ -6,7 +6,6 @@
         <span class="text-5xl mr-4 align-middle">📚</span>
         <div>
             <h1 class="text-4xl font-extrabold text-white mb-2">Lessons Management</h1>
-            <p class="text-white/90 text-lg">Manage lessons by grade level • Click "Add Lesson" under each level to add</p>
         </div>
     </div>
 </div>
@@ -29,69 +28,37 @@
                             <span class="text-4xl">{{ $lesson->icon ?? '📘' }}</span>
                             <div class="flex-1">
                                 <div class="font-bold text-lg text-[#197D8C]">{{ $lesson->title }}</div>
-                                <div class="text-xs text-[#6EC6C5]">Duration: {{ $lesson->duration_minutes ?? '-' }} min</div>
+                                <div class="text-xs text-[#6EC6C5]">Duration: {{ ($lesson->duration_minutes === null || $lesson->duration_minutes == 0) ? '0' : $lesson->duration_minutes }} min</div>
                             </div>
                         </div>
                         <div class="text-gray-700 mb-2">{{ $lesson->description }}</div>
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold"
-                                style="background: {{ $lesson->is_visible ? '#6EC6C5' : '#EAD8C0' }}; color: {{ $lesson->is_visible ? '#fff' : '#197D8C' }};">
-                                {{ $lesson->is_visible ? 'Visible to Students' : 'Hidden from Students' }}
-                            </span>
-                            @if($lesson->skills)
-                                <span class="ml-2 px-3 py-1 rounded-lg bg-[#e0e0e0] text-gray-700 text-xs font-semibold">{{ is_array($lesson->skills) ? count($lesson->skills) : $lesson->skills }} skills</span>
-                            @endif
+                        <div class="mb-2">
+                            <div class="font-semibold text-sm text-[#197D8C] mb-1">Class Visibility:</div>
+                            <ul class="space-y-1">
+                                @foreach($classes as $class)
+                                    @php
+                                        $visibility = $lesson->classLessonVisibilities->firstWhere('class_id', $class->class_id);
+                                    @endphp
+                                    <li class="flex items-center gap-2">
+                                        <span class="text-gray-800">{{ $class->class_name }}</span>
+                                        <form method="POST" action="{{ $visibility && $visibility->is_visible ? route('teacher.lessons.lock', $lesson->lesson_id) : route('teacher.lessons.unlock', $lesson->lesson_id) }}" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="class_id" value="{{ $class->class_id }}">
+                                            <button type="submit" class="px-2 py-1 rounded text-xs font-bold focus:outline-none transition-colors duration-200
+                                                {{ $visibility && $visibility->is_visible
+                                                    ? 'bg-[#EC769A] text-white hover:bg-[#FC8EAC]'
+                                                    : 'bg-[#6EC6C5] text-white hover:bg-[#197D8C]' }}">
+                                                {{ $visibility && $visibility->is_visible ? 'Hide' : 'Show' }}
+                                            </button>
+                                        </form>
+                                    </li>
+                                @endforeach
+                            </ul>
                         </div>
                         <div class="flex gap-3 mt-auto">
                             <a href="{{ route('teacher.lessons.view', $lesson->lesson_id) }}" target="_blank" title="View lesson content" class="flex items-center gap-1 px-4 py-2 rounded-lg bg-[#197D8C] text-white font-bold hover:bg-[#6EC6C5] transition">
                                 <span class="text-lg">📖</span> View
                             </a>
-                            @if($lesson->is_visible)
-                                <form method="POST" action="{{ route('teacher.lessons.lock', $lesson->lesson_id) }}">
-                                    @csrf
-                                    <div class="mb-2">
-                                        <label for="lock_class_id_{{ $lesson->lesson_id }}" class="block text-sm text-gray-700 mb-1">Select class</label>
-                                        <div class="relative">
-                                            <select id="lock_class_id_{{ $lesson->lesson_id }}" name="class_id" required class="border rounded px-4 py-2 w-full appearance-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 pr-8">
-                                                <option value="">Select class</option>
-                                                @foreach($teacherClasses as $class)
-                                                    <option value="{{ $class->class_id }}">{{ $class->class_name }}</option>
-                                                @endforeach
-                                            </select>
-                                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <button type="submit" title="Hide from students" class="flex items-center gap-1 px-5 py-2 rounded-lg bg-[#E9B7B9] text-[#197D8C] font-bold hover:bg-[#F6D6D6] transition shadow-md mt-1">
-                                        <span class="text-lg">🙈</span> Hide
-                                    </button>
-                                </form>
-                            @else
-                                @php
-                                    $teacherClasses = \App\Models\StudentClass::where('teacher_id', auth()->id())->get();
-                                @endphp
-                                <form method="POST" action="{{ route('teacher.lessons.unlock', $lesson->lesson_id) }}">
-                                    @csrf
-                                    <div class="mb-2">
-                                        <label for="class_id_{{ $lesson->lesson_id }}" class="block text-sm text-gray-700 mb-1">Select class</label>
-                                        <div class="relative">
-                                            <select id="class_id_{{ $lesson->lesson_id }}" name="class_id" required class="border rounded px-4 py-2 w-full appearance-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 pr-8">
-                                                <option value="">Select class</option>
-                                                @foreach($teacherClasses as $class)
-                                                    <option value="{{ $class->class_id }}">{{ $class->class_name }}</option>
-                                                @endforeach
-                                            </select>
-                                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <button type="submit" title="Show to students" class="flex items-center gap-1 px-5 py-2 rounded-lg bg-[#6EC6C5] text-white font-bold hover:bg-[#197D8C] hover:text-white transition shadow-md mt-1">
-                                        <span class="text-lg">👁️</span> Show
-                                    </button>
-                                </form>
-                            @endif
                         </div>
                     </div>
                 @empty

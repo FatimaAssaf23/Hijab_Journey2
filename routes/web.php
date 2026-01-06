@@ -1,4 +1,18 @@
 <?php
+// Level name update (admin)
+use App\Http\Controllers\LevelController;
+Route::post('/admin/levels/update-name', [LevelController::class, 'updateName'])->name('admin.levels.updateName');
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\EmergencyRequestController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\TeacherRequestController;
+use App\Http\Controllers\TeacherLessonController;
+use App\Http\Controllers\TeacherClassesController;
+use App\Models\Level;
+use App\Models\Student;
+use App\Models\ClassLessonVisibility;
+
 // Set Dead Time for Assignment
 Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/assignments/{assignment}/dead-time', [App\Http\Controllers\AssignmentController::class, 'setDeadTime'])->name('assignments.setDeadTime');
 use App\Http\Controllers\GradeController;
@@ -19,16 +33,7 @@ Route::middleware(['auth', 'verified'])->prefix('student')->group(function () {
     Route::get('/games', [StudentGameController::class, 'index'])->name('student.games');
     Route::get('/games/quiz', [StudentGameController::class, 'quiz'])->name('student.games.quiz');
 });
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\EmergencyRequestController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\TeacherRequestController;
-use App\Http\Controllers\TeacherLessonController;
-use App\Http\Controllers\TeacherClassesController;
-use App\Models\Level;
-use App\Models\Student;
-use App\Models\ClassLessonVisibility;
+
 
 // Profile photo upload
 Route::get('/profile/photo', [ProfileController::class, 'showPhotoForm'])->name('profile.photo.form');
@@ -200,6 +205,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/games', [GameWordController::class, 'index'])->name('teacher.games');
     Route::post('/games', [GameWordController::class, 'store'])->name('teacher.games.store');
     Route::post('/games/delete/{id}', [GameWordController::class, 'destroy'])->name('teacher.games.delete');
+    Route::post('/games/update/{id}', [GameWordController::class, 'update'])->name('teacher.games.update');
 });
 
 use App\Http\Controllers\AssignmentController;

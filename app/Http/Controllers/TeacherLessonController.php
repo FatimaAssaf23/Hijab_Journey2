@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -12,18 +11,17 @@ class TeacherLessonController extends Controller
     // Show all lessons for management
     public function index()
     {
-        $teacher = Auth::user();
-        $teacherClasses = \App\Models\StudentClass::where('teacher_id', $teacher->user_id)->get();
-        $levels = \App\Models\Level::all();
-        // For each level, get all lessons assigned to that level (regardless of uploader)
-        foreach ($levels as $level) {
-            $level->lessons = \App\Models\Lesson::where('level_id', $level->level_id)->get();
-            foreach ($level->lessons as $lesson) {
-                $visibility = ClassLessonVisibility::where('lesson_id', $lesson->lesson_id)->first();
-                $lesson->is_visible = $visibility ? $visibility->is_visible : false;
-            }
-        }
-        return view('teacher.lessons', compact('levels', 'teacherClasses'));
+        $teacher_id = Auth::id();
+        // Get all classes for this teacher
+        $classes = \App\Models\StudentClass::where('teacher_id', $teacher_id)->get();
+
+        // Eager load lessons for each level, and for each lesson, eager load class visibilities
+        $levels = \App\Models\Level::with(['lessons.classLessonVisibilities' => function($q) use ($teacher_id) {
+            $q->where('teacher_id', $teacher_id);
+        }])->get();
+
+        // Pass classes to the view as well
+        return view('teacher.lessons', compact('levels', 'classes'));
     }
 
     // Unlock lesson for students

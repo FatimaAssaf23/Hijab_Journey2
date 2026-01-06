@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,6 +25,14 @@ class Level extends Model
             'level_number' => 'integer',
             'is_locked_by_default' => 'boolean',
         ];
+    }
+
+    /**
+     * The classes that belong to the level.
+     */
+    public function classes()
+    {
+        return $this->belongsToMany(StudentClass::class, 'class_level', 'level_id', 'class_id');
     }
 
     /**

@@ -1,0 +1,17 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class GroupWordPair extends Model
+{
+    use HasFactory;
+    protected $fillable = ['lesson_group_id', 'word', 'definition'];
+
+    public function group()
+    {
+        return $this->belongsTo(LessonGroup::class, 'lesson_group_id');
+    }
+}

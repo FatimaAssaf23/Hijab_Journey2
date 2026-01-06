@@ -110,11 +110,11 @@ class AdminController extends Controller
     // Class color palette (matches the design)
     private static $classColors = [
         // Updated pink palette from user image
-        'pink-dark' => 'from-[#C96B78] to-[#C96B78]',
-        'pink-light' => 'from-[#F3B6BC] to-[#F3B6BC]',
-        'cream' => 'from-[#F5DDDF] to-[#F5DDDF]',
+        'pink-dark' => 'from-[#E88A93] to-[#F08080]',
+        'pink-light' => 'from-[#F2C4C4] to-[#F4B8B8]',
+        'cream' => 'from-[#EDE4D8] to-[#E5D9C9]',
         // Custom turquoise from user image
-        'turquoise' => 'from-[#176D76] to-[#7AB6BE]',
+        'turquoise' => 'from-[#3DD9C4] to-[#2ED3BC]',
         'teal' => 'from-[#2DBCB0] to-[#25A99E]',
         'tan' => 'from-[#CCB083] to-[#C4A677]',
         'beige' => 'from-[#E4CFB3] to-[#DCC5A5]',
@@ -169,19 +169,20 @@ class AdminController extends Controller
                     'email' => $user ? $user->email : '',
                 ];
             })->toArray();
-            return [
-                'id' => $class->class_id,
-                'name' => $class->class_name,
-                'teacherId' => $class->teacher_id,
-                'teacherName' => $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned',
-                'grade' => 1,
-                'students' => $class->current_enrollment,
-                'capacity' => $class->capacity,
-                'status' => $class->status,
-                'color' => $colorKey,
-                'color_gradient' => $colorGradient,
-                'studentsList' => $studentsList,
-            ];
+                return [
+                    'id' => $class->class_id,
+                    'name' => $class->class_name,
+                    'teacherId' => $class->teacher_id,
+                    'teacherName' => $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned',
+                    'grade' => 1,
+                    'students' => $class->current_enrollment,
+                    'capacity' => $class->capacity,
+                    'status' => $class->status,
+                    'color' => $colorKey,
+                    'color_gradient' => $colorGradient,
+                    'studentsList' => $studentsList,
+                    'description' => $class->description,
+                ];
         })->toArray();
     }
 
@@ -335,12 +336,40 @@ class AdminController extends Controller
 
     public function storeLesson(Request $request)
     {
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'skills' => 'required|integer|min:0',
             'icon' => 'required|string|max:10',
-            'levelId' => 'required|integer',
+            // Accept either levelId (existing) or new_level_name (new)
+            'levelId' => 'nullable|integer',
+            'new_level_name' => 'nullable|string|max:255',
+            'new_level_number' => 'nullable|integer',
+            'new_level_description' => 'nullable|string|max:255',
         ]);
+
+        // Always ensure the selected level exists in the DB (for dropdown 1-10)
+        if ($request->filled('levelId')) {
+            $levelNumber = (int) $request->levelId;
+            $level = \App\Models\Level::firstOrCreate(
+                ['level_number' => $levelNumber],
+                [
+                    'level_name' => 'Level ' . $levelNumber,
+                    'description' => 'Auto-created for lesson',
+                ]
+            );
+            $levelId = $level->level_id;
+        } else {
+            // Fallback for custom/new level (if ever used)
+            $level = \App\Models\Level::firstOrCreate(
+                ['level_name' => $request->new_level_name],
+                [
+                    'level_number' => $request->new_level_number ?? 1,
+                    'description' => $request->new_level_description ?? '',
+                ]
+            );
+            $levelId = $level->level_id;
+        }
 
         // Handle file upload (save to public/lessons)
         $contentUrl = null;
@@ -352,10 +381,10 @@ class AdminController extends Controller
         }
 
         // Get the next lesson order for this level
-        $maxOrder = Lesson::where('level_id', $request->levelId)->max('lesson_order') ?? 0;
+        $maxOrder = Lesson::where('level_id', $levelId)->max('lesson_order') ?? 0;
 
-        Lesson::create([
-            'level_id' => (int) $request->levelId,
+        $lesson = Lesson::create([
+            'level_id' => $levelId,
             'title' => $request->title,
             'skills' => (int) $request->skills,
             'icon' => $request->icon,
@@ -364,7 +393,26 @@ class AdminController extends Controller
             'duration_minutes' => $request->duration_minutes ? (int) $request->duration_minutes : null,
             'lesson_order' => $maxOrder + 1,
             'is_visible' => true,
+            'uploaded_by_admin_id' => auth()->id(),
         ]);
+
+        // Automatically make this lesson visible for all teachers/classes for this level
+        $classes = \App\Models\StudentClass::whereHas('levels', function($q) use ($request) {
+            $q->where('levels.level_id', (int) $request->levelId);
+        })->get();
+        $teachers = \App\Models\User::where('role', 'teacher')->get();
+        foreach ($classes as $class) {
+            foreach ($teachers as $teacher) {
+                \App\Models\ClassLessonVisibility::firstOrCreate([
+                    'class_id' => $class->class_id,
+                    'lesson_id' => $lesson->lesson_id,
+                    'teacher_id' => $teacher->user_id,
+                ], [
+                    'is_visible' => true,
+                    'changed_at' => now(),
+                ]);
+            }
+        }
 
         return redirect()->route('admin.lessons')->with('success', 'Lesson created successfully!');
     }
@@ -1120,9 +1168,15 @@ class AdminController extends Controller
         $newClass->save();
 
         if ($request->expectsJson()) {
+            $user = $student->user;
             return response()->json([
                 'success' => true,
                 'message' => 'Student transferred to new class successfully!',
+                'student' => [
+                    'id' => $student->student_id,
+                    'name' => $user ? ($user->first_name . ' ' . $user->last_name) : 'Unknown',
+                    'email' => $user ? $user->email : '',
+                ],
                 'new_class' => $newClass->fresh()
             ]);
         }

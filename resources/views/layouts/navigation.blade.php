@@ -66,12 +66,28 @@
                 @auth
                     <div class="relative group flex items-center h-full" x-data="{ showBioModal: false, showPasswordModal: false }">
                         <button class="focus:outline-none flex items-center justify-center w-16 h-16 rounded-full bg-white/90 ring-2 ring-[#7AD7C1] overflow-hidden shadow-lg transition-transform hover:scale-105">
-                            <img src="{{ Auth::user()->profile_photo_url ?? '/images/default-avatar.svg' }}" alt="avatar" class="w-14 h-14 rounded-full object-cover" />
+                            @if(Auth::user()->role === 'teacher')
+                                @php
+                                    $teacherProfile = \App\Models\TeacherProfile::where('user_id', Auth::id())->first();
+                                    $profilePhoto = $teacherProfile && $teacherProfile->profile_photo_path ? asset('storage/' . $teacherProfile->profile_photo_path) : asset('images/default-avatar.svg');
+                                @endphp
+                                <img src="{{ $profilePhoto }}" alt="avatar" class="w-14 h-14 rounded-full object-cover" />
+                            @else
+                                <img src="{{ Auth::user()->profile_photo_url ?? '/images/default-avatar.svg' }}" alt="avatar" class="w-14 h-14 rounded-full object-cover" />
+                            @endif
                         </button>
                         <!-- Profile dropdown -->
                         <div class="absolute right-0 top-14 w-56 bg-white rounded-xl shadow-2xl py-3 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all z-50">
                             <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
-                                <img src="{{ Auth::user()->profile_photo_url ?? '/images/default-avatar.svg' }}" alt="avatar" class="w-16 h-16 rounded-full object-cover ring-2 ring-[#7AD7C1]" />
+                                @if(Auth::user()->role === 'teacher')
+                                    @php
+                                        $teacherProfile = \App\Models\TeacherProfile::where('user_id', Auth::id())->first();
+                                        $profilePhoto = $teacherProfile && $teacherProfile->profile_photo_path ? asset('storage/' . $teacherProfile->profile_photo_path) : asset('images/default-avatar.svg');
+                                    @endphp
+                                    <img src="{{ $profilePhoto }}" alt="avatar" class="w-16 h-16 rounded-full object-cover ring-2 ring-[#7AD7C1]" />
+                                @else
+                                    <img src="{{ Auth::user()->profile_photo_url ?? '/images/default-avatar.svg' }}" alt="avatar" class="w-16 h-16 rounded-full object-cover ring-2 ring-[#7AD7C1]" />
+                                @endif
                                 <div>
                                     <div class="font-semibold text-gray-800">
                                         @if(Auth::user()->first_name ?? false)
@@ -80,8 +96,8 @@
                                             {{ Auth::user()->name }}
                                         @endif
                                     </div>
-                                    <div class="mt-1 text-xs text-gray-600 italic max-w-[180px] truncate" title="{{ \App\Models\User::find(Auth::id())->bio }}">
-                                        {{ (\App\Models\User::find(Auth::id())->bio) ? \App\Models\User::find(Auth::id())->bio : 'No bio yet.' }}
+                                    <div class="mt-1 text-xs text-gray-600 italic max-w-[180px] truncate" title="{{ Auth::user()->role === 'teacher' ? optional(\App\Models\TeacherProfile::where('user_id', Auth::id())->first())->bio : Auth::user()->bio }}">
+                                        {{ Auth::user()->role === 'teacher' ? (optional(\App\Models\TeacherProfile::where('user_id', Auth::id())->first())->bio ?: 'No bio yet.') : (Auth::user()->bio ?: 'No bio yet.') }}
                                     </div>
                                     <a href="{{ route('profile.edit') }}" class="hidden"></a>
                                     <button type="button" @click="showBioModal = true" class="inline-block mt-2 text-xs text-[#7AD7C1] font-medium">My Bio</button>

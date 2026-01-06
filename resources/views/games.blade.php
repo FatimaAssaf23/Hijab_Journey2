@@ -1,61 +1,113 @@
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('content')
+
 
 <div class="container mx-auto py-8">
     <h2 class="text-2xl font-bold mb-6">Word/Definition Pairs</h2>
 
-    @if (!empty($pairs))
-        <div class="mb-8">
-            <h3 class="text-lg font-semibold mb-2">Saved Pairs:</h3>
-            <div class="grid gap-4 md:grid-cols-2">
-                @foreach ($pairs as $pair)
-                    <div class="pair-row border rounded p-4 flex flex-col gap-2 relative" data-id="{{ $pair['id'] }}" style="background-color:#D1F7F3;">
-                        <div class="flex flex-col gap-1 pair-view">
-                            <div class="font-bold word-text">{{ $pair['word'] }}</div>
-                            <div class="text-gray-700 def-text">{{ $pair['definition'] }}</div>
-                        </div>
-                        <form class="pair-edit-form hidden flex-col gap-2" method="POST" action="#">
-                            @csrf
-                            <input type="text" name="word" class="form-input border rounded px-2 py-1 mb-1" value="{{ $pair['word'] }}" required>
-                            <input type="text" name="definition" class="form-input border rounded px-2 py-1 mb-1" value="{{ $pair['definition'] }}" required>
-                            <div class="flex gap-2">
-                                <button type="submit" class="saveEditBtn bg-green-500 text-white px-2 py-1 rounded">Save</button>
-                                <button type="button" class="cancelEditBtn bg-gray-400 text-white px-2 py-1 rounded">Cancel</button>
-                            </div>
-                        </form>
-                        <div class="flex gap-2 mt-2">
-                            <button type="button" class="editPairBtn text-white px-2 py-1 rounded" style="background-color:#F8C5C8;color:#b91c1c;">Edit</button>
-                            <form class="inline deletePairForm" method="POST" action="{{ route('teacher.games.delete', $pair['id']) }}" onsubmit="return confirm('Are you sure you want to delete this pair?');">
-                                @csrf
-                                <button type="submit" class="deletePairBtn text-white px-2 py-1 rounded" style="background-color:#FC8EAC;">Delete</button>
-                            </form>
-                        </div>
-                    </div>
-                @endforeach
+
+
+    <form method="GET" action="">
+        <div class="flex flex-col md:flex-row gap-4 mb-4 items-end">
+            <div>
+                <label for="lesson_id" class="block font-semibold mb-1">Select Lesson:</label>
+                <select name="lesson_id" id="lesson_id" class="form-select border rounded px-3 py-2 w-full" onchange="this.form.submit()">
+                    <option value="">-- Choose Lesson --</option>
+                    @foreach($lessons ?? [] as $lesson)
+                        <option value="{{ $lesson->lesson_id }}" {{ (isset($selectedLessonId) && $selectedLessonId == $lesson->lesson_id) ? 'selected' : '' }}>{{ $lesson->title }}</option>
+                    @endforeach
+                </select>
             </div>
         </div>
+    </form>
+
+    @if(isset($selectedLessonId) && $selectedLessonId)
+    <form id="createGroupForm" method="POST" action="{{ route('teacher.games.store') }}">
+        @csrf
+        <input type="hidden" name="create_groups" value="1">
+        <input type="hidden" name="lesson_id" value="{{ $selectedLessonId }}">
+        <div class="flex items-center gap-2 mb-0">
+            <label for="group_name" class="block font-semibold mb-1">Group Name:</label>
+            <input type="text" name="group_name" id="group_name" class="form-input border rounded px-3 py-2 w-48" required>
+            <button type="submit" class="px-4 py-2 rounded bg-[#7AD7C1] text-white">Create Group</button>
+        </div>
+    </form>
     @endif
 
-    <form id="wordDefForm" method="POST" action="{{ route('teacher.games.store') }}">
-        @csrf
-        <div id="pairsContainer">
-            @php
-                $oldWords = old('words', []);
-                $oldDefs = old('definitions', []);
-                $count = max(count($oldWords), count($oldDefs), 1);
-            @endphp
-            @for ($i = 0; $i < $count; $i++)
-                <div class="flex flex-col md:flex-row gap-4 mb-4 pair-box bg-white shadow rounded p-4">
-                    <input type="text" name="words[]" class="form-input border rounded px-3 py-2 w-full md:w-1/3" placeholder="Word" value="{{ $oldWords[$i] ?? '' }}" required>
-                    <input type="text" name="definitions[]" class="form-input border rounded px-3 py-2 w-full md:w-2/3" placeholder="Definition" value="{{ $oldDefs[$i] ?? '' }}" required>
-                    <button type="button" class="removePairBtn text-red-500 hover:text-red-700 hidden md:block">Remove</button>
+
+    @if(isset($selectedLessonId) && $selectedLessonId)
+    <div id="groupsContainer">
+        @if($groups->count() > 0)
+            @foreach($groups as $group)
+                <div class="group-box border rounded p-4 mb-4 bg-white shadow">
+                    <h4 class="font-bold mb-2">{{ $group->name }}</h4>
+                    <!-- Show saved pairs for this group -->
+                    @php
+                        $groupPairs = \App\Models\GroupWordPair::where('lesson_group_id', $group->id)->get();
+                    @endphp
+                    @if($groupPairs->count() > 0)
+                        <div class="mb-4">
+                            <h5 class="font-semibold mb-1">Saved Pairs:</h5>
+                            <div class="grid gap-2 md:grid-cols-2">
+                                @foreach ($groupPairs as $pair)
+                                    <div class="pair-row border rounded p-2 flex flex-col gap-1 relative" data-id="{{ $pair->id }}" style="background-color:#D1F7F3;">
+                                        <div class="font-bold word-text">{{ $pair->word }}</div>
+                                        <div class="text-gray-700 def-text">{{ $pair->definition }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @else
+                        <div class="mb-4 text-gray-500">No word pairs found for this group.</div>
+                    @endif
+                    <!-- Add new pairs form for this group -->
+                    <form method="POST" action="{{ route('teacher.games.store') }}?lesson_id={{ $selectedLessonId }}&group_id={{ $group->id }}">
+                        @csrf
+                        <input type="hidden" name="group_id" value="{{ $group->id }}">
+                        <div class="flex flex-col md:flex-row gap-2 mb-2">
+                            <input type="text" name="words[]" class="form-input border rounded px-3 py-2 w-full md:w-1/3" placeholder="Word" required>
+                            <input type="text" name="definitions[]" class="form-input border rounded px-3 py-2 w-full md:w-2/3" placeholder="Definition" required>
+                            <button type="button" class="addPairBtn px-2 py-1 bg-[#F8C5C8] text-[#b91c1c] rounded">+</button>
+                        </div>
+                        <div class="pairs-list"></div>
+                        <button type="submit" class="mt-2 px-4 py-2 rounded bg-[#7AD7C1] text-white">Save Pairs</button>
+                    </form>
                 </div>
-            @endfor
-        </div>
-        <button type="button" id="addPairBtn" class="px-4 py-2 rounded" style="background-color:#F8C5C8;color:#b91c1c;">Add Another Pair</button>
-        <button type="submit" class="px-4 py-2 rounded ml-2" style="background-color:#FC8EAC;color:white;">Submit</button>
-    </form>
+            @endforeach
+        @else
+            <div class="text-gray-500">No groups found for this lesson. Please create a group.</div>
+        @endif
+    </div>
+    <!-- Group Name and Create Group button moved inline above -->
+    @endif
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.addPairBtn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const container = btn.closest('form');
+            const pairsList = container.querySelector('.pairs-list');
+            const wordInput = container.querySelector('input[name="words[]"]');
+            const defInput = container.querySelector('input[name="definitions[]"]');
+            if (wordInput.value && defInput.value) {
+                const pairDiv = document.createElement('div');
+                pairDiv.className = 'flex gap-2 mb-2';
+                pairDiv.innerHTML = `<input type='text' name='words[]' value='${wordInput.value}' class='form-input border rounded px-3 py-2 w-full md:w-1/3' required readonly> <input type='text' name='definitions[]' value='${defInput.value}' class='form-input border rounded px-3 py-2 w-full md:w-2/3' required readonly> <button type='button' class='removePairBtn px-2 py-1 bg-gray-300 text-gray-700 rounded'>-</button>`;
+                pairsList.appendChild(pairDiv);
+                wordInput.value = '';
+                defInput.value = '';
+                pairDiv.querySelector('.removePairBtn').onclick = function() { pairDiv.remove(); };
+            }
+        });
+    });
+});
+</script>
+
+    {{-- Removed global Saved Pairs section. Pairs are now only shown inside their group boxes. --}}
+
+    <!-- Removed fallback word/definition pairs form. Only group boxes with their own forms are shown. -->
 </div>
 
 <script>

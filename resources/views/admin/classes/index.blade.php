@@ -268,16 +268,45 @@ function confirmClassChange(studentId) {
         alert('Please select a target class');
         return;
     }
-    const student = studentsData[currentClassId].find(s => s.id === studentId);
-    if (!student) return;
-    studentsData[currentClassId] = studentsData[currentClassId].filter(s => s.id !== studentId);
-    if (!studentsData[targetClassId]) {
-        studentsData[targetClassId] = [];
-    }
-    studentsData[targetClassId].push(student);
-    renderManageStudents(studentsData[currentClassId]);
-    closeChangeClassDialog();
-    alert('Student moved to new class successfully!');
+    // Call backend to change student class
+    fetch(`/admin/students/${studentId}/change-class`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ new_class_id: targetClassId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove student from old class
+            studentsData[currentClassId] = studentsData[currentClassId].filter(s => s.id !== studentId);
+            // Add student to new class
+            if (!studentsData[targetClassId]) {
+                studentsData[targetClassId] = [];
+            }
+            studentsData[targetClassId].push({
+                id: studentId,
+                name: data.student ? data.student.name : '',
+                email: data.student ? data.student.email : ''
+            });
+            renderManageStudents(studentsData[currentClassId]);
+            // Update student count in both classes
+            const oldCountElem = document.getElementById('studentCount_' + currentClassId);
+            if (oldCountElem) oldCountElem.textContent = studentsData[currentClassId].length + ' students';
+            const newCountElem = document.getElementById('studentCount_' + targetClassId);
+            if (newCountElem) newCountElem.textContent = studentsData[targetClassId].length + ' students';
+            closeChangeClassDialog();
+            alert('Student moved to new class successfully!');
+        } else {
+            alert('Failed to move student: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(() => {
+        alert('Failed to move student due to network error.');
+    });
 }
 window.confirmClassChange = confirmClassChange;
 
@@ -343,14 +372,14 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
                             <h3 class="text-2xl font-bold text-white mb-1">{{ $class['name'] }}</h3>
                             <p class="text-white/90 text-sm">Grade {{ $class['grade'] }}</p>
                         </div>
-                        <div class="flex gap-2">
-                            <a href="{{ route('admin.classes.edit', $class['id']) }}" class="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-all">
+                        <div class="flex gap-2 items-start">
+                            <a href="{{ route('admin.classes.edit', $class['id']) }}" class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all flex items-center justify-center" style="width:56px;height:56px;">
                                 ✏️
                             </a>
                             <form method="POST" action="{{ route('admin.classes.delete', $class['id']) }}" style="display:inline;">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" onclick="return confirm('Delete this class?')" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-all">
+                                <button type="submit" onclick="return confirm('Delete this class?')" class="bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all flex items-center justify-center" style="width:56px;height:56px;">
                                     🗑️
                                 </button>
                             </form>
@@ -446,28 +475,6 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
                 <button onclick="closeManageClass()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
             
-            <!-- Add Student Section -->
-            <div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl p-6 mb-6">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">➕ Add New Student</h3>
-                <div class="flex gap-3">
-                    <select id="newStudentSelect" class="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500">
-                        <option value="">Select a student...</option>
-                        <option value="1">Amina Ahmed</option>
-                        <option value="2">Fatima Hassan</option>
-                        <option value="3">Zainab Ali</option>
-                        <option value="4">Mariam Ibrahim</option>
-                        <option value="5">Aisha Mohamed</option>
-                        <option value="6">Sara Ahmed</option>
-                        <option value="7">Layla Hassan</option>
-                        <option value="8">Huda Ali</option>
-                        <option value="9">Noor Ibrahim</option>
-                        <option value="10">Yasmin Mohamed</option>
-                    </select>
-                    <button onclick="addStudentToClass()" class="bg-gradient-to-r from-pink-500 to-purple-500 hover:shadow-lg text-white font-semibold px-6 py-2 rounded-lg transition-all">
-                        Add Student
-                    </button>
-                </div>
-            </div>
 
             <!-- Current Students List -->
             <div>

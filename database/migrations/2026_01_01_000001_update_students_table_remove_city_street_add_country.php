@@ -9,8 +9,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('students', function (Blueprint $table) {
-            $table->dropColumn(['city', 'street']);
-            $table->string('country', 100)->nullable();
+            // $table->string('country', 100)->nullable(); // Already exists, skip to avoid duplicate error
         });
     }
 

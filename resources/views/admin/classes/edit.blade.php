@@ -3,7 +3,7 @@
 @section('content')
 <div class="min-h-screen">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-pink-600 via-pink-400 to-teal-400 shadow-xl">
+    <div class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <h1 class="text-4xl font-extrabold text-white mb-2">✏️ Edit Class</h1>
             <p class="text-pink-100">Update class details and teacher assignment</p>

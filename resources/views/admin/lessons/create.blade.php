@@ -120,9 +120,9 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Level</label>
                         <select name="levelId" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500 bg-white">
-                            @foreach($levels as $level)
-                                <option value="{{ $level['id'] }}" {{ request('level', 1) == $level['id'] ? 'selected' : '' }}>{{ $level['name'] }}</option>
-                            @endforeach
+                            @for($i = 1; $i <= 10; $i++)
+                                <option value="{{ $i }}" {{ request('level', 1) == $i ? 'selected' : '' }}>Level {{ $i }}</option>
+                            @endfor
                         </select>
                     </div>
 
