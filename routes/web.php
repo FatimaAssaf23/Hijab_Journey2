@@ -34,6 +34,10 @@ Route::middleware(['auth', 'verified'])->prefix('student')->group(function () {
     Route::get('/games/quiz', [StudentGameController::class, 'quiz'])->name('student.games.quiz');
 });
 
+// Clock Game Save Route (Teacher)
+use App\Http\Controllers\ClockGameController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/clock', [ClockGameController::class, 'store'])->name('teacher.games.clock.store');
+
 
 // Profile photo upload
 Route::get('/profile/photo', [ProfileController::class, 'showPhotoForm'])->name('profile.photo.form');

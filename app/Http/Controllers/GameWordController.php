@@ -35,7 +35,7 @@ class GameWordController extends Controller
 
         $groups = collect();
         $pairs = collect();
-
+        $clockGame = null;
 
         // Removed group creation logic from index. Now handled in store.
 
@@ -44,9 +44,13 @@ class GameWordController extends Controller
             if ($selectedGroupId) {
                 $pairs = \App\Models\GroupWordPair::where('lesson_group_id', $selectedGroupId)->get();
             }
+            // Fetch clock game for this lesson
+            $clockGame = \App\Models\Game::where('lesson_id', $selectedLessonId)
+                ->where('game_type', 'clock')
+                ->first();
         }
 
-        return view('games', compact('lessons', 'groups', 'pairs', 'selectedLessonId', 'selectedGroupId'));
+        return view('games', compact('lessons', 'groups', 'pairs', 'selectedLessonId', 'selectedGroupId', 'clockGame'));
     }
 
     public function store(Request $request)
