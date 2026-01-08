@@ -1,7 +1,5 @@
 <?php
-// Level name update (admin)
-use App\Http\Controllers\LevelController;
-Route::post('/admin/levels/update-name', [LevelController::class, 'updateName'])->name('admin.levels.updateName');
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\ProfileController;
@@ -9,6 +7,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TeacherRequestController;
 use App\Http\Controllers\TeacherLessonController;
 use App\Http\Controllers\TeacherClassesController;
+use App\Http\Controllers\LevelController;
 use App\Models\Level;
 use App\Models\Student;
 use App\Models\ClassLessonVisibility;
@@ -95,6 +94,8 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     Route::get('/profile', [AdminController::class, 'profile'])->name('admin.profile');
     Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
     Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
+    // Level name update
+    Route::post('/levels/update-name', [LevelController::class, 'updateName'])->name('admin.levels.updateName');
     // Lessons
     Route::get('/lessons', [AdminController::class, 'lessons'])->name('admin.lessons');
     Route::get('/lessons/create', [AdminController::class, 'createLesson'])->name('admin.lessons.create');

@@ -26,49 +26,27 @@
         </div>
     @endif
 
+    <!-- Level Name Edit Form (outside loop) -->
+    <form id="edit-level-name-form" method="POST" action="{{ route('admin.levels.updateName') }}" style="display:none;">
+        @csrf
+        <input type="hidden" name="level_id" id="edit-level-id">
+        <input type="hidden" name="level_name" id="edit-level-name">
+    </form>
+
     <!-- Lessons by Level -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         @forelse($groupedLessons as $levelId => $group)
             <div>
                 <!-- Level Header -->
                 <div class="rounded-2xl px-6 py-4 mb-4 flex items-start justify-between" style="background: linear-gradient(90deg, #F8C5C8 0%, #FC8EAC 50%, #EC769A 100%); color: #222;">
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center w-full">
                         <div class="flex items-center gap-2">
                             <h2 class="text-2xl font-extrabold mb-1">{{ $group['level']['name'] }}</h2>
                             <button onclick="editLevelName('{{ $levelId }}', '{{ addslashes($group['level']['name']) }}')" class="ml-2 px-2 py-1 rounded bg-[#EC769A] hover:bg-[#FC8EAC] text-white text-xs font-bold transition-all">Edit Name</button>
                             <div class="text-sm opacity-70 ml-4">{{ count($group['lessons']) }} lessons</div>
                         </div>
-                        <form id="edit-level-name-form" method="POST" action="{{ route('admin.levels.updateName') }}" style="display:none;">
-                            @csrf
-                            <input type="hidden" name="level_id" id="edit-level-id">
-                            <input type="hidden" name="level_name" id="edit-level-name">
-                        </form>
-                        <script>
-                        function editLevelName(levelId, currentName) {
-                            var newName = prompt('Enter new level name:', currentName);
-                            if (newName && newName.trim() !== '' && newName !== currentName) {
-                                document.getElementById('edit-level-id').value = levelId;
-                                document.getElementById('edit-level-name').value = newName;
-                                document.getElementById('edit-level-name-form').submit();
-                            }
-                        }
-                        </script>
                         <a href="{{ route('admin.lessons.create', ['level' => $levelId]) }}" class="bg-white/90 hover:bg-white text-gray-800 px-4 py-2 rounded-lg font-semibold shadow hover:shadow-lg transition-all flex items-center gap-2" style="margin-left:1cm;">
                             <span>➕</span> Add Lesson
-                        </a>
-                        <style>
-                        .add-lesson-btn-move {
-                            margin-left: 1cm;
-                        }
-                        </style>
-                        <script>
-                        // Add the class to the Add Lesson button after page load
-                        document.addEventListener('DOMContentLoaded', function() {
-                            document.querySelectorAll('a[href*="admin.lessons.create"]').forEach(function(btn) {
-                                btn.classList.add('add-lesson-btn-move');
-                            });
-                        });
-                        </script>
                         </a>
                     </div>
                 </div>
@@ -119,4 +97,15 @@
         @endforelse
     </div>
 </div>
+
+<script>
+function editLevelName(levelId, currentName) {
+    var newName = prompt('Enter new level name:', currentName);
+    if (newName && newName.trim() !== '' && newName !== currentName) {
+        document.getElementById('edit-level-id').value = levelId;
+        document.getElementById('edit-level-name').value = newName.trim();
+        document.getElementById('edit-level-name-form').submit();
+    }
+}
+</script>
 @endsection
