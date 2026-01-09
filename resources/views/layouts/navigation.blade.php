@@ -11,7 +11,7 @@
                                     </button>
                                     <div class="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all">
                                         <a href="/meetings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Meeting</a>
-                                        <a href="/group-chat" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Group Chat</a>
+                                        <a href="{{ route('group-chat.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Group Chat</a>
                                         <a href="/contact-instructor" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Contact Instructor</a>
                                     </div>
                                 </div>
@@ -200,7 +200,6 @@
                 <a href="/levels" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">My Class / Levels</a>
                 <a href="/lessons" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Lessons</a>
                 <a href="/grades" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Reward / Grades</a>
-                <a href="/meetings" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Chat / Meeting</a>
             @endif
             @auth
                 <form method="POST" action="{{ route('logout') }}">

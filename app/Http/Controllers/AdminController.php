@@ -518,12 +518,31 @@ class AdminController extends Controller
         return redirect()->route('admin.lessons')->with('success', 'Lesson deleted successfully!');
     }
 
+    /**
+     * Get unenrolled students from database
+     */
+    private function getUnenrolledStudents()
+    {
+        return Student::whereNull('class_id')
+            ->with('user')
+            ->get()
+            ->map(function ($student) {
+                $user = $student->user;
+                return [
+                    'id' => $student->student_id,
+                    'name' => $user ? ($user->first_name . ' ' . $user->last_name) : 'Unknown',
+                    'email' => $user ? $user->email : '',
+                ];
+            })->toArray();
+    }
+
     // CLASSES
     public function classes()
     {
         return view('admin.classes.index', [
             'classes' => $this->getClassesFromDb(),
             'teachers' => $this->getTeachersFromDb(),
+            'unenrolledStudents' => $this->getUnenrolledStudents(),
         ]);
     }
 
@@ -543,6 +562,14 @@ class AdminController extends Controller
             'teacherId' => 'nullable|integer',
             'color' => 'required|string|in:pink-dark,pink-light,cream,turquoise,teal,tan,beige,ivory,blush,coral,rose',
         ]);
+
+        // Check if a class with the same name already exists (prevent duplicates)
+        $existingClass = StudentClass::where('class_name', $request->name)->first();
+        if ($existingClass) {
+            return redirect()->route('admin.classes.create')
+                ->withInput()
+                ->withErrors(['name' => 'A class with this name already exists. Please choose a different name.']);
+        }
 
         StudentClass::create([
             'class_name' => $request->name,

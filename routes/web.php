@@ -210,11 +210,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\GroupChatController;
 
 // Teacher assignments (upload & list)
 Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+});
+
+// Group Chat Routes (Students and Teachers)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/group-chat/{classId?}', [GroupChatController::class, 'index'])->name('group-chat.index');
+    Route::post('/group-chat/messages', [GroupChatController::class, 'store'])->name('group-chat.store');
+    Route::get('/group-chat/{classId}/messages', [GroupChatController::class, 'getMessages'])->name('group-chat.messages');
+    Route::post('/group-chat/messages/{messageId}/reaction', [GroupChatController::class, 'addReaction'])->name('group-chat.reaction');
+    Route::delete('/group-chat/messages/{messageId}', [GroupChatController::class, 'deleteMessage'])->name('group-chat.delete');
 });
 
 // Student assignments (view & submission)
