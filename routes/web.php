@@ -211,6 +211,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\GroupChatController;
+use App\Http\Controllers\MeetingController;
 
 // Teacher assignments (upload & list)
 Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
@@ -252,3 +253,14 @@ Route::post('/lessons/{lesson}/complete', function ($lessonId) {
     $progress->save();
     return redirect()->back()->with('success', 'Lesson marked as completed!');
 })->middleware(['auth', 'verified'])->name('student.lesson.complete');
+
+// Meeting routes
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
+    Route::get('/meetings/create', [MeetingController::class, 'create'])->name('meetings.create');
+    Route::post('/meetings', [MeetingController::class, 'store'])->name('meetings.store');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/meetings', [MeetingController::class, 'index'])->name('meetings.index');
+    Route::get('/meetings/{meeting:meeting_id}', [MeetingController::class, 'show'])->name('meetings.show');
+});
