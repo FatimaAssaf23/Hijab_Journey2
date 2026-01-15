@@ -18,6 +18,7 @@ class Quiz extends Model
         'checked_by_admin_id',
         'title',
         'description',
+        'background_color',
         'timer_minutes',
         'due_date',
         'max_score',

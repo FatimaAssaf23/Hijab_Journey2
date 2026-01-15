@@ -32,11 +32,33 @@ use App\Http\Controllers\StudentGameController;
 Route::middleware(['auth', 'verified'])->prefix('student')->group(function () {
     Route::get('/games', [StudentGameController::class, 'index'])->name('student.games');
     Route::get('/games/quiz', [StudentGameController::class, 'quiz'])->name('student.games.quiz');
+    Route::post('/games/save-score', [StudentGameController::class, 'saveScore'])->name('student.games.saveScore');
+    Route::get('/grades', [App\Http\Controllers\StudentGradeController::class, 'index'])->name('student.grades');
 });
+
+// Student Progress Route
+use App\Http\Controllers\StudentProgressController;
+Route::middleware(['auth', 'verified'])->get('/progress', [StudentProgressController::class, 'index'])->name('student.progress');
 
 // Clock Game Save Route (Teacher)
 use App\Http\Controllers\ClockGameController;
 Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/clock', [ClockGameController::class, 'store'])->name('teacher.games.clock.store');
+
+// Scrambled Clocks Game Save Route (Teacher)
+use App\Http\Controllers\ScrambledClocksGameController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/scrambled-clocks', [ScrambledClocksGameController::class, 'store'])->name('teacher.games.scrambled-clocks.store');
+
+// Word Clock Arrangement Game Save Route (Teacher)
+use App\Http\Controllers\WordClockArrangementController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/word-clock-arrangement', [WordClockArrangementController::class, 'store'])->name('teacher.games.word-clock-arrangement.store');
+
+// Word Search Game Save Route (Teacher)
+use App\Http\Controllers\WordSearchGameController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/word-search', [WordSearchGameController::class, 'store'])->name('teacher.games.word-search.store');
+
+// Matching Pairs Game Save Route (Teacher)
+use App\Http\Controllers\MatchingPairsGameController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/matching-pairs', [MatchingPairsGameController::class, 'store'])->name('teacher.games.matching-pairs.store');
 
 
 // Profile photo upload
@@ -226,6 +248,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/student/assignment', [AssignmentController::class, 'studentIndex'])->name('student.assignments');
     Route::post('/student/assignment/submit', [AssignmentSubmissionController::class, 'store'])->name('student.assignment.submit');
     Route::delete('/student/assignment/delete/{submission}', [AssignmentSubmissionController::class, 'destroy'])->name('student.assignment.delete');
+});
+
+// Teacher quizzes
+use App\Http\Controllers\QuizController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
+    Route::get('/quizzes', [QuizController::class, 'index'])->name('quizzes.index');
+    Route::get('/quizzes/create', [QuizController::class, 'create'])->name('quizzes.create');
+    Route::post('/quizzes', [QuizController::class, 'store'])->name('quizzes.store');
+    Route::get('/quizzes/{id}', [QuizController::class, 'show'])->name('quizzes.show');
+    Route::get('/quizzes/{id}/edit', [QuizController::class, 'edit'])->name('quizzes.edit');
+    Route::put('/quizzes/{id}', [QuizController::class, 'update'])->name('quizzes.update');
+    Route::delete('/quizzes/{id}', [QuizController::class, 'destroy'])->name('quizzes.destroy');
+    Route::put('/quizzes/{quizId}/questions/{questionId}', [QuizController::class, 'updateQuestion'])->name('quizzes.questions.update');
+    Route::delete('/quizzes/{quizId}/questions/{questionId}', [QuizController::class, 'deleteQuestion'])->name('quizzes.questions.delete');
+});
+
+// Student quizzes
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/student/quizzes', [QuizController::class, 'studentIndex'])->name('student.quizzes');
+    Route::get('/student/quizzes/{id}', [QuizController::class, 'studentShow'])->name('student.quizzes.show');
+    Route::post('/student/quizzes/{id}/submit', [QuizController::class, 'submit'])->name('student.quizzes.submit');
+    Route::get('/student/quizzes/result/{attemptId}', [QuizController::class, 'result'])->name('student.quizzes.result');
 });
 
 // Student marks lesson as completed
