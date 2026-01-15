@@ -1,4 +1,4 @@
-<nav class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-2xl rounded-b-3xl border-b-4 border-[#F8C5C8]" style="box-shadow: 0 8px 32px 0 rgba(236,118,154,0.15);">
+<nav class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-2xl rounded-b-3xl border-b-4 border-[#F8C5C8] relative z-50" style="box-shadow: 0 8px 32px 0 rgba(236,118,154,0.15);">
     <div class="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
         <div class="flex items-center justify-between" style="height: 2.5cm;">
             <!-- Navbar content -->
@@ -6,10 +6,13 @@
                 <div class="hidden md:flex items-center gap-6" style="backdrop-filter: blur(2px);">
                                 <div class="group relative">
                                     <button class="flex items-center gap-2 text-white font-semibold px-3 py-2 rounded-md hover:bg-white/10 transition focus:outline-none">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                        </svg>
                                         Contacts
                                         <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                                     </button>
-                                    <div class="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all">
+                                    <div class="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
                                         <a href="/meetings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Meeting</a>
                                         <a href="{{ route('group-chat.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Group Chat</a>
                                         <a href="/contact-instructor" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Contact Instructor</a>
@@ -32,15 +35,63 @@
                     <!-- Games button removed, now in Tasks dropdown -->
                     <a href="{{ route('teacher.lessons.manage') }}" class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Lessons Management</a>
                     <!-- Quizzes button removed, now in Tasks dropdown -->
-                    <a href="/grades" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Grades</a>
-                    <a href="{{ route('teacher.emergency.create') }}" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-[#EC769A] bg-[#EC769A]">Emergency</a>
+                    <a href="{{ route('student.grades') }}" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Grades</a>
+                    <a href="{{ route('teacher.emergency.create') }}" class="font-semibold px-4 py-2 rounded-xl transition text-white hover:bg-white/10">Emergency</a>
                 @else
-                    <a href="{{ route('student.dashboard') }}" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition" style="order: -1;">Dashboard</a>
-                    <a href="/student/assignment" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Assignments</a>
-                    <a href="/levels" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Levels</a>
-                    <a href="/rewards" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Rewards</a>
-                    <a href="/grades" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">Grades</a>
-                    <a href="/student/games" class="text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition"><span>🎮</span> Games</a>
+                    <a href="{{ route('student.dashboard') }}" class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition" style="order: -1;">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                        Dashboard
+                    </a>
+                    <div class="group relative">
+                        <button class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition focus:outline-none">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            Tasks
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
+                            <a href="/student/games" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Games
+                            </a>
+                            <a href="/student/assignment" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Assignments
+                            </a>
+                            <a href="/student/quizzes" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                </svg>
+                                Quiz
+                            </a>
+                        </div>
+                    </div>
+                    <a href="/levels" class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                        Levels
+                    </a>
+                    <a href="/rewards" class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                        </svg>
+                        Rewards
+                    </a>
+                    <a href="{{ route('student.grades') }}" class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                        </svg>
+                        Grades
+                    </a>
                 @endif
 
                 <!-- Assignments button removed, now in Tasks dropdown -->
@@ -53,8 +104,10 @@
                     <span class="whitespace-nowrap">Students</span> <span class="whitespace-nowrap">Progress</span>
                 </a>
                 @else
-                <a href="/progress" class="flex flex-row items-center gap-2 font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 whitespace-nowrap">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#197D8C"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>
+                <a href="{{ route('student.progress') }}" class="flex flex-row items-center gap-2 font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 whitespace-nowrap">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
                     <span class="whitespace-nowrap">My</span> <span class="whitespace-nowrap">Progress</span>
                 </a>
                 @endif
@@ -192,7 +245,7 @@
                 <a href="/lessons/manage" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Lessons Management</a>
                 <a href="/quizzes" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Quizzes</a>
                 <a href="/meetings" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Meetings</a>
-                <a href="/grades" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Grades</a>
+                <a href="{{ route('student.grades') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Grades</a>
                 <a href="/group-chat" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Contacts</a>
                 <a href="/inbox" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Inbox</a>
             @else
@@ -200,6 +253,61 @@
                 <a href="/levels" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">My Class / Levels</a>
                 <a href="/lessons" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Lessons</a>
                 <a href="/grades" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Reward / Grades</a>
+                <a href="{{ route('student.dashboard') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    Home / Dashboard
+                </a>
+                <div class="px-3 py-2 text-base font-medium text-gray-700 border-b border-gray-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    Tasks
+                </div>
+                <a href="/student/games" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Games
+                </a>
+                <a href="/student/assignment" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Assignments
+                </a>
+                <a href="/student/quizzes" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    Quiz
+                </a>
+                <a href="/levels" class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                    My Class / Levels
+                </a>
+                <a href="/lessons" class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                    Lessons
+                </a>
+                <a href="{{ route('student.grades') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                    </svg>
+                    Reward / Grades
+                </a>
+                <a href="/meetings" class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    Chat / Meeting
+                </a>
             @endif
             @auth
                 <form method="POST" action="{{ route('logout') }}">
