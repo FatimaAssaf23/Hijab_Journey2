@@ -10,6 +10,9 @@
             
             <!-- Level Lessons Chart -->
             @include('teacher.partials.level-lessons-chart')
+            
+            <!-- Assignment Statistics Chart -->
+            @include('teacher.partials.assignment-stats-chart')
         </div>
     </div>
 @endsection

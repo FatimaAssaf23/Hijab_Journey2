@@ -69,6 +69,8 @@ Route::get('/student/dashboard', function () {
 
 // Teacher dashboard route
 Route::get('/teacher/dashboard', function () {
+    $teacher_id = auth()->id();
+    
     // Get all levels with their lesson counts (same as lesson management)
     $levels = \App\Models\Level::with('lessons')->orderBy('level_id')->get();
     
@@ -78,7 +80,43 @@ Route::get('/teacher/dashboard', function () {
         return $level->lessons->count();
     })->toArray());
     
-    return view('teacher.dashboard', compact('levels', 'levelNames', 'lessonCounts'));
+    // Calculate grade distribution (0-100) by number of distinct students
+    $gradeRanges = [
+        '0-20' => 0,
+        '21-40' => 0,
+        '41-60' => 0,
+        '61-80' => 0,
+        '81-100' => 0
+    ];
+    
+    // Get all assignment grades for this teacher with their average percentage per student
+    $studentAverages = \App\Models\Grade::where('teacher_id', $teacher_id)
+        ->whereNotNull('assignment_submission_id')
+        ->whereNotNull('percentage')
+        ->selectRaw('student_id, AVG(percentage) as avg_percentage')
+        ->groupBy('student_id')
+        ->get();
+    
+    // Count distinct students in each grade range based on their average
+    foreach ($studentAverages as $avg) {
+        $percentage = $avg->avg_percentage;
+        if ($percentage >= 0 && $percentage <= 20) {
+            $gradeRanges['0-20']++;
+        } elseif ($percentage >= 21 && $percentage <= 40) {
+            $gradeRanges['21-40']++;
+        } elseif ($percentage >= 41 && $percentage <= 60) {
+            $gradeRanges['41-60']++;
+        } elseif ($percentage >= 61 && $percentage <= 80) {
+            $gradeRanges['61-80']++;
+        } elseif ($percentage >= 81 && $percentage <= 100) {
+            $gradeRanges['81-100']++;
+        }
+    }
+    
+    $gradeRangeLabels = array_keys($gradeRanges);
+    $gradeRangeCounts = array_values($gradeRanges);
+    
+    return view('teacher.dashboard', compact('levels', 'levelNames', 'lessonCounts', 'gradeRangeLabels', 'gradeRangeCounts'));
 })->middleware(['auth', 'verified', 'can:isTeacher'])->name('teacher.dashboard');
 
 use App\Http\Controllers\LessonPublicController;
