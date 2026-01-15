@@ -69,7 +69,16 @@ Route::get('/student/dashboard', function () {
 
 // Teacher dashboard route
 Route::get('/teacher/dashboard', function () {
-    return view('teacher.dashboard');
+    // Get all levels with their lesson counts (same as lesson management)
+    $levels = \App\Models\Level::with('lessons')->orderBy('level_id')->get();
+    
+    // Prepare data for the chart - start with 0, then add levels
+    $levelNames = array_merge(['0'], $levels->pluck('level_name')->toArray());
+    $lessonCounts = array_merge([0], $levels->map(function($level) {
+        return $level->lessons->count();
+    })->toArray());
+    
+    return view('teacher.dashboard', compact('levels', 'levelNames', 'lessonCounts'));
 })->middleware(['auth', 'verified', 'can:isTeacher'])->name('teacher.dashboard');
 
 use App\Http\Controllers\LessonPublicController;

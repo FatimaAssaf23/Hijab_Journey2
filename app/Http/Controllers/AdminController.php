@@ -298,6 +298,23 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Calculate class status counts
+        $fullClassesCount = StudentClass::where(function($query) {
+            $query->where('status', 'full')
+                  ->orWhereColumn('current_enrollment', '>=', 'capacity');
+        })->count();
+        
+        $activeClassesCount = StudentClass::where('status', 'active')
+            ->whereColumn('current_enrollment', '<', 'capacity')
+            ->where('current_enrollment', '>', 0)
+            ->count();
+        
+        $emptyClassesCount = StudentClass::where('current_enrollment', 0)->count();
+
+        // Get approved and rejected teacher counts
+        $approvedTeachersCount = TeacherRequest::where('status', 'approved')->count();
+        $rejectedTeachersCount = TeacherRequest::where('status', 'rejected')->count();
+
         return view('admin.dashboard', [
             'lessonsCount' => Lesson::count(),
             'classesCount' => StudentClass::count(),
@@ -305,8 +322,13 @@ class AdminController extends Controller
             'emergencyCasesCount' => TeacherSubstitution::where('status', 'active')->count(),
             'studentsCount' => Student::count(),
             'teachersCount' => User::where('role', 'teacher')->count(),
+            'fullClassesCount' => $fullClassesCount,
+            'activeClassesCount' => $activeClassesCount,
+            'emptyClassesCount' => $emptyClassesCount,
             'unreadRequests' => $unreadRequests,
             'unreadRequestsCount' => $unreadRequests->count(),
+            'approvedTeachersCount' => $approvedTeachersCount,
+            'rejectedTeachersCount' => $rejectedTeachersCount,
         ]);
     }
 
