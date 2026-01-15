@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\GameWordPair;
+use App\Models\WordSearchGame;
 
 class GameWordController extends Controller
 {
@@ -29,66 +30,64 @@ class GameWordController extends Controller
                   ->orWhereNotNull('uploaded_by_admin_id');
         })->get();
 
-        // Get selected lesson and group from request
+        // Get selected lesson from request
         $selectedLessonId = $request->input('lesson_id');
-        $selectedGroupId = $request->input('group_id');
 
-        $groups = collect();
-        $pairs = collect();
+        $scramblePairs = collect();
         $clockGame = null;
-
-        // Removed group creation logic from index. Now handled in store.
+        $scrambledClocksGame = null;
+        $wordClockArrangementGame = null;
+        $wordSearchGame = null;
+        $matchingPairsGame = null;
 
         if ($selectedLessonId) {
-            $groups = \App\Models\LessonGroup::where('lesson_id', $selectedLessonId)->get();
-            if ($selectedGroupId) {
-                $pairs = \App\Models\GroupWordPair::where('lesson_group_id', $selectedGroupId)->get();
-            }
-            // Fetch clock game for this lesson
-            $clockGame = \App\Models\Game::where('lesson_id', $selectedLessonId)
-                ->where('game_type', 'clock')
+            // Fetch word/definition pairs directly for this lesson (separated by game type)
+            $scramblePairs = \App\Models\GroupWordPair::where('lesson_id', $selectedLessonId)
+                ->where('game_type', 'scramble')
+                ->get();
+            // Fetch clock game for this lesson from clock_games table
+            $clockGame = \App\Models\ClockGame::where('lesson_id', $selectedLessonId)->first();
+            // Fetch scrambled clocks game for this lesson
+            $scrambledClocksGame = \App\Models\Game::where('lesson_id', $selectedLessonId)
+                ->where('game_type', 'scrambled_clocks')
                 ->first();
+            // Fetch word clock arrangement game for this lesson
+            $wordClockArrangementGame = \App\Models\Game::where('lesson_id', $selectedLessonId)
+                ->where('game_type', 'word_clock_arrangement')
+                ->first();
+            // Fetch word search game for this lesson
+            $wordSearchGame = \App\Models\WordSearchGame::where('lesson_id', $selectedLessonId)->first();
+            // Fetch matching pairs game for this lesson
+            $matchingPairsGame = \App\Models\MatchingPairsGame::where('lesson_id', $selectedLessonId)->with('pairs')->first();
         }
 
-        return view('games', compact('lessons', 'groups', 'pairs', 'selectedLessonId', 'selectedGroupId', 'clockGame'));
+        return view('games', compact('lessons', 'scramblePairs', 'selectedLessonId', 'clockGame', 'scrambledClocksGame', 'wordClockArrangementGame', 'wordSearchGame', 'matchingPairsGame'));
     }
 
     public function store(Request $request)
     {
-        // Handle group creation
-        if ($request->input('create_groups') && $request->input('lesson_id')) {
-            $selectedLessonId = $request->input('lesson_id');
-            $groupName = $request->input('group_name');
-            if ($groupName) {
-                $group = \App\Models\LessonGroup::firstOrCreate([
-                    'lesson_id' => $selectedLessonId,
-                    'name' => $groupName
-                ]);
-                return redirect()->route('teacher.games', ['lesson_id' => $selectedLessonId, 'group_id' => $group->id]);
-            }
-        }
-
-        // Handle saving word/definition pairs for a group
-        if ($request->has('group_id') && $request->has('words') && $request->has('definitions')) {
-            $groupId = $request->input('group_id');
+        // Handle saving word/definition pairs directly for a lesson with game_type
+        if ($request->has('lesson_id') && $request->has('words') && $request->has('definitions') && $request->has('game_type')) {
+            $lessonId = $request->input('lesson_id');
+            $gameType = $request->input('game_type'); // 'mcq' or 'scramble'
             $words = $request->input('words');
             $definitions = $request->input('definitions');
             // Remove empty pairs
             $pairs = array_filter(array_map(function($w, $d) {
                 return (trim($w) !== '' && trim($d) !== '') ? ['word' => $w, 'definition' => $d] : null;
             }, $words, $definitions));
-            // Save each pair
+            // Save each pair directly to the lesson with game_type
             foreach ($pairs as $pair) {
                 \App\Models\GroupWordPair::create([
-                    'lesson_group_id' => $groupId,
+                    'lesson_id' => $lessonId,
+                    'game_type' => $gameType,
                     'word' => $pair['word'],
                     'definition' => $pair['definition'],
                 ]);
             }
-            // Redirect to show the group and its pairs
-            $group = \App\Models\LessonGroup::find($groupId);
-            $lessonId = $group ? $group->lesson_id : null;
-            return redirect()->route('teacher.games', ['lesson_id' => $lessonId, 'group_id' => $groupId]);
+            // Redirect to show the lesson and its pairs
+            return redirect()->route('teacher.games', ['lesson_id' => $lessonId])
+                ->with('success', 'Word pairs saved successfully!');
         }
 
         return redirect()->route('teacher.games');

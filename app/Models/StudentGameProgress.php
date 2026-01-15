@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StudentGameProgress extends Model
 {
+    protected $table = 'student_game_progresses';
+    
     protected $primaryKey = 'progress_id';
 
     protected $fillable = [

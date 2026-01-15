@@ -6,6 +6,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentIndex = 0;
     let answers = [];
     let quizFinished = false;
+    let mcqCompleted = false;
+    let scrambleCompleted = false;
+    let mcqScore = null;
+    let scrambleScore = null;
 
     function renderProgress() {
         let html = '';
@@ -26,13 +30,59 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!quizData.length) return;
         renderProgress();
         if (quizFinished) {
-            let score = answers.filter(a => a === true).length;
+            let correctAnswers = answers.filter(a => a === true).length;
+            let totalQuestions = quizData.length;
+            let score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+            
             let html = `<div class='bg-white shadow rounded p-4 mb-4 text-center'>`;
-            html += `<div class='text-2xl font-bold mb-4'>Quiz Complete!</div>`;
-            html += `<div class='text-xl mb-2'>Your Score: <span class='text-green-700'>${score}</span> / ${quizData.length}</div>`;
-            html += `<button class='restartBtn bg-blue-500 text-white px-4 py-2 rounded mt-4'>Restart Quiz</button>`;
-            html += `</div>`;
-            document.getElementById('quizArea').innerHTML = html;
+            html += `<div class='text-2xl font-bold mb-4'>${quizType === 'mcq' ? 'Multiple Choice' : 'Scrambled Letters'} Complete!</div>`;
+            html += `<div class='text-xl mb-2'>Your Score: <span class='text-green-700'>${correctAnswers}</span> / ${totalQuestions} (${score}%)</div>`;
+            
+            // Store current quiz score
+            if (quizType === 'mcq') {
+                mcqScore = score;
+            } else {
+                scrambleScore = score;
+            }
+            
+            // Check if both quiz types are completed
+            if (mcqCompleted && scrambleCompleted) {
+                // Calculate average score for both quiz types
+                let quizAverageScore = 0;
+                if (mcqScore !== null && scrambleScore !== null) {
+                    quizAverageScore = Math.round((mcqScore + scrambleScore) / 2);
+                } else if (mcqScore !== null) {
+                    quizAverageScore = mcqScore;
+                } else if (scrambleScore !== null) {
+                    quizAverageScore = scrambleScore;
+                }
+                
+                // Store quiz score (average of MCQ and Scrambled Letters)
+                if (typeof window.gameScores !== 'undefined') {
+                    window.gameScores.quiz = quizAverageScore;
+                }
+                
+                html += `<div class='text-lg font-semibold text-pink-600 mt-4 mb-4'>🎉 All Quiz Games Completed!</div>`;
+                html += `<div class='text-lg mb-2'>Quiz Average Score: <span class='text-pink-600 font-bold'>${quizAverageScore}%</span></div>`;
+                html += `</div>`;
+                document.getElementById('quizArea').innerHTML = html;
+                // Move to next game after 3 seconds only when BOTH are completed
+                if (typeof moveToNextGame === 'function') {
+                    setTimeout(() => moveToNextGame(), 3000);
+                }
+            } else {
+                
+                // Show option to switch to other quiz type or continue
+                if (quizType === 'mcq' && !scrambleCompleted) {
+                    html += `<div class='text-lg mb-4'>Try the Scrambled Letters game!</div>`;
+                    html += `<button class='switchToScrambleBtn bg-pink-500 text-white px-4 py-2 rounded mt-2'>Play Scrambled Letters</button>`;
+                } else if (quizType === 'scramble' && !mcqCompleted) {
+                    html += `<div class='text-lg mb-4'>Try the Multiple Choice game!</div>`;
+                    html += `<button class='switchToMcqBtn bg-blue-500 text-white px-4 py-2 rounded mt-2'>Play Multiple Choice</button>`;
+                }
+                html += `</div>`;
+                document.getElementById('quizArea').innerHTML = html;
+            }
             return;
         }
         let q = quizData[currentIndex];
@@ -78,7 +128,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchQuiz(type) {
-        fetch(window.quizRoute + '?type=' + type)
+        // Check if this quiz type is already completed
+        if (type === 'mcq' && mcqCompleted) {
+            quizFinished = true;
+            renderCurrentQuestion();
+            return;
+        }
+        if (type === 'scramble' && scrambleCompleted) {
+            quizFinished = true;
+            renderCurrentQuestion();
+            return;
+        }
+        
+        // Reset answers when starting a new quiz
+        answers = [];
+        currentIndex = 0;
+        quizFinished = false;
+        
+        // Get lesson_id from URL or data attribute
+        const urlParams = new URLSearchParams(window.location.search);
+        const lessonId = urlParams.get('lesson_id') || document.getElementById('quizArea')?.dataset.lessonId || '';
+        const url = window.quizRoute + '?type=' + type + (lessonId ? '&lesson_id=' + lessonId : '');
+        fetch(url)
             .then(res => res.json())
             .then(data => {
                 quizData = data.quiz;
@@ -120,11 +191,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('mcqBtn').onclick = function() {
         quizType = 'mcq';
         setActiveTab('mcq');
+        quizFinished = false;
         fetchQuiz('mcq');
     };
     document.getElementById('scrambleBtn').onclick = function() {
         quizType = 'scramble';
         setActiveTab('scramble');
+        quizFinished = false;
         fetchQuiz('scramble');
     };
     setActiveTab('mcq');
@@ -152,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderProgress();
             if (currentIndex === quizData.length - 1) {
                 quizFinished = true;
+                mcqCompleted = true;
                 renderCurrentQuestion();
             }
             if (chosen === correct) {
@@ -172,11 +246,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderCurrentQuestion();
             }
         }
-        if (e.target.classList.contains('restartBtn')) {
-            answers = Array(quizData.length).fill(null);
+        // Handle switching to other quiz type
+        if (e.target.classList.contains('switchToScrambleBtn')) {
+            quizType = 'scramble';
+            setActiveTab('scramble');
             quizFinished = false;
-            currentIndex = 0;
-            renderCurrentQuestion();
+            fetchQuiz('scramble');
+        }
+        if (e.target.classList.contains('switchToMcqBtn')) {
+            quizType = 'mcq';
+            setActiveTab('mcq');
+            quizFinished = false;
+            fetchQuiz('mcq');
         }
         // Scrambled letter logic
         if (e.target.classList.contains('scrambleLetterBtn')) {
@@ -209,6 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // If last question, show score after any check
             if (currentIndex === quizData.length - 1) {
                 quizFinished = true;
+                scrambleCompleted = true;
                 setTimeout(renderCurrentQuestion, 600); // brief delay to show feedback
             }
         }

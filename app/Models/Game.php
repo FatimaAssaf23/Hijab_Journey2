@@ -31,4 +31,19 @@ class Game extends Model
     {
         return $this->hasMany(StudentGameProgress::class, 'game_id', 'game_id');
     }
+
+    public function clockGame(): HasMany
+    {
+        return $this->hasMany(ClockGame::class, 'game_id', 'game_id');
+    }
+
+    public function wordSearchGame(): HasMany
+    {
+        return $this->hasMany(WordSearchGame::class, 'game_id', 'game_id');
+    }
+
+    public function matchingPairsGame(): HasMany
+    {
+        return $this->hasMany(MatchingPairsGame::class, 'game_id', 'game_id');
+    }
 }

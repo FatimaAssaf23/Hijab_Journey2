@@ -1,25 +1,2813 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto py-8">
-    <h2 class="text-2xl font-bold mb-6">Quiz Games</h2>
-    @if (!empty($error))
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{{ $error }}</div>
-    @else
-        <div class="mb-6 flex gap-4">
-            <button id="mcqBtn" class="quizTabBtn bg-blue-500 text-white px-4 py-2 rounded">Multiple Choice</button>
-            <button id="scrambleBtn" class="quizTabBtn px-4 py-2 rounded" style="background-color:#FC8EAC !important;color:white !important;">Scrambled Letters</button>
+<div class="min-h-screen bg-gradient-to-br from-pink-50 via-cyan-50/30 to-teal-50/20 relative overflow-hidden">
+    <!-- Animated Background Elements - Light Pink & Turquoise -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -left-40 w-[400px] h-[400px] bg-pink-200/40 rounded-full opacity-20 blur-3xl animate-pulse"></div>
+        <div class="absolute top-1/2 -right-40 w-[400px] h-[400px] bg-cyan-200/40 rounded-full opacity-20 blur-3xl animate-pulse" style="animation-delay: 1.5s;"></div>
+    </div>
+    
+<div class="container mx-auto py-8 relative z-10">
+    <!-- Lesson Selector - Show at top when lesson is selected -->
+    @if(isset($selectedLessonId) && $selectedLessonId && isset($lessonsWithGames) && $lessonsWithGames->count() > 0)
+        <div class="max-w-6xl mx-auto mb-8">
+            <div class="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-pink-200/40 transform transition-all duration-300 hover:shadow-2xl">
+                <form method="GET" action="{{ route('student.games') }}">
+                    <div class="flex flex-col md:flex-row gap-5 items-end">
+                        <div class="flex-1">
+                            <label for="lesson_id_top" class="block font-black text-gray-800 mb-3 text-lg flex items-center gap-2">
+                                <div class="w-10 h-10 bg-gradient-to-br from-pink-300 to-cyan-300 rounded-xl flex items-center justify-center shadow-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                </div>
+                                Select Lesson:
+                            </label>
+                            <div class="relative">
+                                <select name="lesson_id" id="lesson_id_top" 
+                                        class="w-full bg-white border-2 border-pink-200/60 rounded-xl px-4 py-3.5 pr-12 text-gray-800 font-semibold shadow-md hover:border-pink-300 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all duration-300 appearance-none cursor-pointer"
+                                        onchange="this.form.submit()">
+                                    <option value="">-- Choose Lesson --</option>
+                                    @foreach($lessonsWithGames ?? [] as $lesson)
+                                        <option value="{{ $lesson->lesson_id }}" {{ (isset($selectedLessonId) && $selectedLessonId == $lesson->lesson_id) ? 'selected' : '' }}>{{ $lesson->title }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                                    <svg class="h-5 w-5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div id="quizProgress" class="mb-6 flex gap-2"></div>
-        <div id="quizArea" data-route="{{ route('student.games.quiz') }}"></div>
+    @endif
+
+    @if(isset($selectedLessonId) && $selectedLessonId)
+    <!-- All games appear here one after another when a lesson is selected -->
+    
+    @php
+        // Determine which games are available and their order
+        $availableGames = [];
+        $gameIndex = 0;
+        $clockGameIndex = null;
+        $wordSearchGameIndex = null;
+        $scrambledClocksGameIndex = null;
+        $wordClockGameIndex = null;
+        $mcqGameIndex = null;
+        $scrambleGameIndex = null;
+        $matchingPairsGameIndex = null;
+        
+        if (isset($clockGame) && $clockGame && !empty($clockGame->words)) {
+            $clockGameIndex = $gameIndex;
+            $availableGames[] = ['type' => 'clock', 'index' => $gameIndex];
+            $gameIndex++;
+        }
+        if (isset($wordSearchGame) && $wordSearchGame && !empty($wordSearchGame->grid_data)) {
+            $wordSearchGameIndex = $gameIndex;
+            $availableGames[] = ['type' => 'wordsearch', 'index' => $gameIndex];
+            $gameIndex++;
+        }
+        if (isset($scrambledClocksGame) && $scrambledClocksGame && $scrambledClocksGame->game_data) {
+            $scrambledClocksGameIndex = $gameIndex;
+            $availableGames[] = ['type' => 'scrambledclocks', 'index' => $gameIndex];
+            $gameIndex++;
+        }
+        if (isset($wordClockArrangementGame) && $wordClockArrangementGame && !empty($wordClockArrangementGame->game_data)) {
+            $wordClockGameIndex = $gameIndex;
+            $availableGames[] = ['type' => 'wordclock', 'index' => $gameIndex];
+            $gameIndex++;
+        }
+        // Check for MCQ pairs
+        $hasMcqPairs = false;
+        if (isset($selectedLessonId) && $selectedLessonId && isset($mcqPairs)) {
+            $hasMcqPairs = $mcqPairs->count() > 0;
+        }
+        if ($hasMcqPairs) {
+            $mcqGameIndex = $gameIndex;
+            $availableGames[] = ['type' => 'mcq', 'index' => $gameIndex];
+            $gameIndex++;
+        }
+        // Check for Scrambled Letters pairs
+        $hasScramblePairs = false;
+        if (isset($selectedLessonId) && $selectedLessonId && isset($scramblePairs)) {
+            $hasScramblePairs = $scramblePairs->count() > 0;
+        }
+        if ($hasScramblePairs) {
+            $scrambleGameIndex = $gameIndex;
+            $availableGames[] = ['type' => 'scramble', 'index' => $gameIndex];
+            $gameIndex++;
+        }
+        // Check for Matching Pairs game
+        if (isset($matchingPairsGame) && $matchingPairsGame && $matchingPairsGame->pairs->count() > 0) {
+            $matchingPairsGameIndex = $gameIndex;
+            $availableGames[] = ['type' => 'matchingpairs', 'index' => $gameIndex];
+            $gameIndex++;
+        }
+    @endphp
+    
+    <!-- 1. Clock Game -->
+    @if(isset($clockGame) && $clockGame && !empty($clockGame->words))
+        @php
+            $clockWords = is_array($clockGame->words) ? $clockGame->words : [];
+        @endphp
+        @if(!empty($clockWords))
+            <div class="game-container max-w-6xl mx-auto bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 mb-8" data-game-type="clock" data-game-index="{{ $clockGameIndex }}" style="display: none;">
+                <div class="mb-6">
+                    @if(isset($lesson))
+                        <h2 class="text-3xl font-bold text-pink-600 mb-2" style="text-decoration: underline;" dir="rtl">{{ $lesson->title }}</h2>
+                    @endif
+                    <h3 class="text-2xl font-bold mb-4">Clock Game</h3>
+                </div>
+
+                <!-- Clock Game Words Display -->
+                <div class="flex flex-wrap justify-center gap-6 items-start">
+                    @foreach($clockWords as $index => $word)
+                        <div class="clock-game-word-item flex flex-col items-center">
+                            <svg width="100" height="100" class="clock-svg mb-2">
+                                <circle cx="50" cy="50" r="45" fill="white" stroke="#333" stroke-width="2"/>
+                                <!-- Clock numbers -->
+                                @for($i = 1; $i <= 12; $i++)
+                                    @php
+                                        $angle = ($i - 3) * 30 * M_PI / 180;
+                                        $x = 50 + 35 * cos($angle);
+                                        $y = 50 + 35 * sin($angle);
+                                    @endphp
+                                    <text x="{{ $x }}" y="{{ $y + 5 }}" text-anchor="middle" font-size="10" fill="#333">{{ $i }}</text>
+                                @endfor
+                                <!-- Random time for each clock (for visual variety) -->
+                                @php
+                                    $hour = ($index * 2) % 12;
+                                    $minute = ($index * 5) % 60;
+                                    $hourAngle = (($hour % 12) * 30 + $minute * 0.5 - 90) * M_PI / 180;
+                                    $hourX = 50 + 25 * cos($hourAngle);
+                                    $hourY = 50 + 25 * sin($hourAngle);
+                                    $minuteAngle = ($minute * 6 - 90) * M_PI / 180;
+                                    $minuteX = 50 + 35 * cos($minuteAngle);
+                                    $minuteY = 50 + 35 * sin($minuteAngle);
+                                @endphp
+                                <line x1="50" y1="50" x2="{{ $hourX }}" y2="{{ $hourY }}" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+                                <line x1="50" y1="50" x2="{{ $minuteX }}" y2="{{ $minuteY }}" stroke="#333" stroke-width="2" stroke-linecap="round"/>
+                                <circle cx="50" cy="50" r="3" fill="#333"/>
+                            </svg>
+                            <!-- Arrow pointing down -->
+                            <div class="text-2xl mb-1">↓</div>
+                            <!-- Word -->
+                            <div class="word-text text-lg font-semibold text-gray-800 px-3 py-2 bg-pink-50 rounded border border-pink-200" dir="rtl">{{ $word }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    @endif
+
+    <!-- 2. Word Search Puzzle -->
+    @if(isset($wordSearchGame) && $wordSearchGame && !empty($wordSearchGame->grid_data))
+        @php
+            $gridData = is_array($wordSearchGame->grid_data) ? $wordSearchGame->grid_data : json_decode($wordSearchGame->grid_data, true);
+            $grid = $gridData['grid'] ?? [];
+            $wordPositions = $gridData['word_positions'] ?? [];
+            $gridSize = $gridData['size'] ?? 10;
+            $wordsRaw = is_array($wordSearchGame->words) ? $wordSearchGame->words : [];
+            
+            // Clean words - remove ALL non-Arabic characters (numbers, hyphens, spaces, etc.)
+            // Keep ONLY Arabic letters
+            $words = [];
+            foreach ($wordsRaw as $originalWord) {
+                $word = trim((string)$originalWord);
+                // Method 1: Remove everything that is NOT an Arabic character using Unicode property
+                $cleaned = preg_replace('/[^\p{Arabic}]/u', '', $word);
+                
+                // Method 2: If Method 1 didn't work, use explicit Unicode range
+                if (empty($cleaned) || $cleaned === $word) {
+                    $cleaned = preg_replace('/[^\x{0600}-\x{06FF}]/u', '', $word);
+                }
+                
+                // Method 3: Character by character if still not working
+                if (empty($cleaned) || $cleaned === $word) {
+                    $cleaned = '';
+                    $length = mb_strlen($word, 'UTF-8');
+                    for ($i = 0; $i < $length; $i++) {
+                        $char = mb_substr($word, $i, 1, 'UTF-8');
+                        $code = mb_ord($char, 'UTF-8');
+                        // Arabic Unicode range: 0x0600-0x06FF
+                        if ($code >= 1536 && $code <= 1791) {
+                            $cleaned .= $char;
+                        }
+                    }
+                }
+                
+                // Ensure we have a cleaned word
+                $cleaned = trim($cleaned);
+                if (!empty($cleaned)) {
+                    $words[] = $cleaned;
+                } else {
+                    // Final fallback: try one more time with simpler regex
+                    $cleaned = preg_replace('/[0-9\s\-\.,;:!?()\[\]{}|\\\/\*\+<>=_~`@#$%^&]/u', '', $word);
+                    $words[] = trim($cleaned) ?: $word;
+                }
+            }
+            
+            // Also clean wordPositions array to use cleaned words for matching
+            foreach ($wordPositions as &$wp) {
+                if (isset($wp['word'])) {
+                    $cleaned = preg_replace('/[^\p{Arabic}]/u', '', $wp['word']);
+                    $wp['word'] = !empty($cleaned) ? $cleaned : $wp['word'];
+                }
+            }
+            unset($wp); // Unset reference
+        @endphp
+        @if(!empty($grid) && !empty($words))
+            <div class="game-container max-w-6xl mx-auto bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 mb-8" data-game-type="wordsearch" data-game-index="{{ $wordSearchGameIndex }}" style="display: none;" dir="rtl">
+                <div class="mb-6">
+                    @if(isset($lesson))
+                        <h2 class="text-3xl font-bold text-pink-600 mb-2" style="text-decoration: underline;" dir="rtl">{{ $lesson->title }}</h2>
+                    @endif
+                    <h3 class="text-2xl font-bold mb-2">Word Search Puzzle</h3>
+                    @if(!empty($wordSearchGame->title))
+                        <p class="text-xl font-semibold text-purple-600 mb-4" dir="rtl" style="direction: rtl; text-align: right;">
+                            <strong>عنوان:</strong> {{ $wordSearchGame->title }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Word Search Grid -->
+                    <div class="flex-1">
+                        <div id="wordSearchGrid" class="inline-block border-2 border-gray-300 bg-white p-2 rounded-lg" style="direction: ltr;">
+                            @for($row = 0; $row < $gridSize; $row++)
+                                <div class="flex">
+                                    @for($col = 0; $col < $gridSize; $col++)
+                                        <div class="word-search-cell w-10 h-10 border border-gray-200 flex items-center justify-center cursor-pointer text-lg font-semibold select-none transition-all hover:bg-blue-50" 
+                                             data-row="{{ $row }}" 
+                                             data-col="{{ $col }}"
+                                             data-letter="{{ $grid[$row][$col] ?? '' }}"
+                                             dir="rtl">
+                                            {{ $grid[$row][$col] ?? '' }}
+                                        </div>
+                                    @endfor
+                                </div>
+                            @endfor
+                        </div>
+                    </div>
+
+                    <!-- Words List -->
+                    <div class="lg:w-64">
+                        <h4 class="text-xl font-bold mb-4" dir="rtl">الكلمات المطلوبة:</h4>
+                        <div id="wordsList" class="space-y-2" dir="rtl">
+                            @foreach($words as $index => $word)
+                                <div class="word-item p-3 border-2 border-gray-300 rounded-lg bg-white transition-all flex items-center gap-2" 
+                                     data-word="{{ $word }}" 
+                                     data-word-index="{{ $index }}"
+                                     dir="rtl"
+                                     style="direction: rtl;">
+                                    <div class="word-color-box w-6 h-6 rounded border-2 border-gray-400 flex-shrink-0" style="background-color: transparent;"></div>
+                                    <span class="font-semibold text-lg flex-1" dir="rtl" style="text-align: right; direction: rtl;">{{ $word }}</span>
+                                    <span class="found-indicator hidden text-pink-600 font-bold" style="font-size: 1.5rem;">✓</span>
+                                </div>
+                            @endforeach
+                        </div>
+                        <!-- Completion Message Overlay (centered on screen) -->
+                        <div id="completionMessageOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" style="animation: fadeIn 0.3s ease;">
+                            <div id="completionMessage" class="bg-gradient-to-br from-pink-100 to-purple-100 border-4 border-pink-300 rounded-3xl p-8 text-center shadow-2xl" dir="rtl" style="max-width: 500px; transform: scale(0); opacity: 0;">
+                                <div class="text-6xl mb-4" style="animation: bounce 1s ease infinite 0.7s;">🎉</div>
+                                <p class="text-pink-800 font-bold text-2xl mb-4">أحسنت! لقد وجدت جميع الكلمات!</p>
+                                <div id="finalScore" class="text-4xl font-bold text-pink-600 mb-4" style="animation: pulse 1.5s ease infinite 1s; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);"></div>
+                                <button onclick="closeCompletionOverlay()" class="mt-4 px-6 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors font-semibold shadow-lg">موافق</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endif
+
+    <!-- 3. Scrambled Clocks Game -->
+    @if(isset($scrambledClocksGame) && $scrambledClocksGame && $scrambledClocksGame->game_data)
+        @php
+            $gameData = is_string($scrambledClocksGame->game_data) ? json_decode($scrambledClocksGame->game_data, true) : $scrambledClocksGame->game_data;
+            $words = $gameData['words'] ?? [];
+            $correctSentence = $gameData['sentence'] ?? '';
+        @endphp
+        @if(!empty($words))
+            <div class="game-container max-w-6xl mx-auto bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 mb-8" data-game-type="scrambledclocks" data-game-index="{{ $scrambledClocksGameIndex }}" style="display: none;">
+                <div class="mb-6">
+                    @if(isset($lesson))
+                        <h2 class="text-3xl font-bold text-pink-600 mb-2" style="text-decoration: underline;" dir="rtl">{{ $lesson->title }}</h2>
+                    @endif
+                    <p class="text-lg text-gray-700 mb-6" dir="rtl">
+                        أيها الفتيات المؤمنات، يجب عليكن إعادة ترتيب معنى "{{ $lesson->title ?? 'الدرس' }}" بحسب توقيت الساعات من الأدنى إلى الأعلى.
+                    </p>
+                </div>
+
+                <!-- Clocks and Words Section -->
+                <div id="clocksContainer" class="mb-8 flex flex-wrap justify-center gap-8 items-start">
+                    @php
+                        // Shuffle the words array to display in random order
+                        $shuffledWords = $words;
+                        shuffle($shuffledWords);
+                    @endphp
+                    @foreach($shuffledWords as $index => $wordData)
+                        <div class="clock-word-item flex flex-col items-center cursor-move" 
+                             data-original-index="{{ array_search($wordData, $words) }}" 
+                             data-hour="{{ $wordData['hour'] }}" 
+                             data-minute="{{ $wordData['minute'] }}" 
+                             data-word="{{ $wordData['word'] }}"
+                             draggable="true">
+                            <svg width="100" height="100" class="clock-svg mb-2">
+                                <circle cx="50" cy="50" r="45" fill="white" stroke="#333" stroke-width="2"/>
+                                <!-- Clock numbers -->
+                                @for($i = 1; $i <= 12; $i++)
+                                    @php
+                                        $angle = ($i - 3) * 30 * M_PI / 180;
+                                        $x = 50 + 35 * cos($angle);
+                                        $y = 50 + 35 * sin($angle);
+                                    @endphp
+                                    <text x="{{ $x }}" y="{{ $y + 5 }}" text-anchor="middle" font-size="10" fill="#333">{{ $i }}</text>
+                                @endfor
+                                <!-- Hour hand -->
+                                @php
+                                    $hourAngle = (($wordData['hour'] % 12) * 30 + $wordData['minute'] * 0.5 - 90) * M_PI / 180;
+                                    $hourX = 50 + 25 * cos($hourAngle);
+                                    $hourY = 50 + 25 * sin($hourAngle);
+                                @endphp
+                                <line x1="50" y1="50" x2="{{ $hourX }}" y2="{{ $hourY }}" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+                                <!-- Minute hand -->
+                                @php
+                                    $minuteAngle = ($wordData['minute'] * 6 - 90) * M_PI / 180;
+                                    $minuteX = 50 + 35 * cos($minuteAngle);
+                                    $minuteY = 50 + 35 * sin($minuteAngle);
+                                @endphp
+                                <line x1="50" y1="50" x2="{{ $minuteX }}" y2="{{ $minuteY }}" stroke="#333" stroke-width="2" stroke-linecap="round"/>
+                                <!-- Center dot -->
+                                <circle cx="50" cy="50" r="3" fill="#333"/>
+                            </svg>
+                            <!-- Arrow pointing down -->
+                            <div class="text-2xl mb-1">↓</div>
+                            <!-- Word -->
+                            <div class="word-text text-lg font-semibold text-gray-800 px-3 py-2 bg-pink-50 rounded border border-pink-200" dir="rtl">{{ $wordData['word'] }}</div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Sentence Display Area -->
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <label class="block font-semibold mb-2 text-gray-700" dir="rtl">معنى {{ $lesson->title ?? 'الدرس' }}:</label>
+                    <div id="arrangedSentence" class="text-xl font-semibold text-gray-800 min-h-[50px] p-3 bg-white rounded border-2 border-dashed border-gray-300 flex flex-wrap gap-2 items-center" dir="rtl">
+                        <span class="text-gray-400 italic">قم بترتيب الساعات من الأصغر إلى الأكبر...</span>
+                    </div>
+                </div>
+
+                <!-- Check Answer Button -->
+                <div class="flex justify-center">
+                    <button id="checkAnswerBtn" class="px-8 py-3 rounded-lg bg-green-500 text-white font-bold text-lg hover:bg-green-600 transition-colors">
+                        تحقق من الإجابة
+                    </button>
+                </div>
+
+                <!-- Result Message -->
+                <div id="resultMessage" class="mt-6 hidden p-4 rounded-lg text-center text-lg font-semibold"></div>
+            </div>
+        @endif
+    @endif
+
+    <!-- 4. Word Clock Arrangement Game -->
+    @if(isset($wordClockArrangementGame) && $wordClockArrangementGame && !empty($wordClockArrangementGame->game_data))
+        @php
+            $wordClockGameData = is_string($wordClockArrangementGame->game_data) ? json_decode($wordClockArrangementGame->game_data, true) : $wordClockArrangementGame->game_data;
+            $wordClockWords = $wordClockGameData['words'] ?? [];
+            $wordClockWord = $wordClockGameData['word'] ?? '';
+            $wordClockSentence = $wordClockGameData['full_sentence'] ?? '';
+            $wordClockCorrectOrder = $wordClockGameData['correct_order'] ?? [];
+        @endphp
+        @if(!empty($wordClockWords) && is_array($wordClockWords))
+            <div class="game-container max-w-6xl mx-auto bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 mb-8" data-game-type="wordclock" data-game-index="{{ $wordClockGameIndex }}" style="display: none;" dir="rtl">
+                <div class="mb-6">
+                    @if(isset($lesson))
+                        <h2 class="text-3xl font-bold text-pink-600 mb-2" style="text-decoration: underline;">{{ $lesson->lesson_id }}- {{ $wordClockWord }}</h2>
+                    @endif
+                    <p class="text-lg text-gray-700 mb-6" dir="rtl">
+                        عليكن أيتها الفتيات المؤمنات إعادة ترتيب معنى "{{ $wordClockWord }}" بحسب توقيت الساعات من الأدنى إلى الأعلى.
+                    </p>
+                </div>
+
+                <!-- Clocks and Words Section -->
+                <div id="wordClockArrangementContainer" class="mb-8 flex flex-wrap justify-center gap-8 items-start">
+                    @php
+                        // Shuffle the words array to display in random order
+                        $shuffledWordClockWords = $wordClockWords;
+                        shuffle($shuffledWordClockWords);
+                    @endphp
+                    @foreach($shuffledWordClockWords as $index => $wordData)
+                        <div class="word-clock-arrangement-item flex flex-col items-center cursor-move" 
+                             data-original-index="{{ array_search($wordData, $wordClockWords) }}" 
+                             data-hour="{{ $wordData['hour'] }}" 
+                             data-minute="{{ $wordData['minute'] }}" 
+                             data-word="{{ $wordData['word'] }}"
+                             draggable="true">
+                            <svg width="100" height="100" class="clock-svg mb-2">
+                                <circle cx="50" cy="50" r="45" fill="white" stroke="#333" stroke-width="2"/>
+                                <!-- Clock numbers -->
+                                @for($i = 1; $i <= 12; $i++)
+                                    @php
+                                        $angle = ($i - 3) * 30 * M_PI / 180;
+                                        $x = 50 + 35 * cos($angle);
+                                        $y = 50 + 35 * sin($angle);
+                                    @endphp
+                                    <text x="{{ $x }}" y="{{ $y + 5 }}" text-anchor="middle" font-size="10" fill="#333">{{ $i }}</text>
+                                @endfor
+                                <!-- Hour hand -->
+                                @php
+                                    $hourAngle = (($wordData['hour'] % 12) * 30 + $wordData['minute'] * 0.5 - 90) * M_PI / 180;
+                                    $hourX = 50 + 25 * cos($hourAngle);
+                                    $hourY = 50 + 25 * sin($hourAngle);
+                                @endphp
+                                <line x1="50" y1="50" x2="{{ $hourX }}" y2="{{ $hourY }}" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+                                <!-- Minute hand -->
+                                @php
+                                    $minuteAngle = ($wordData['minute'] * 6 - 90) * M_PI / 180;
+                                    $minuteX = 50 + 35 * cos($minuteAngle);
+                                    $minuteY = 50 + 35 * sin($minuteAngle);
+                                @endphp
+                                <line x1="50" y1="50" x2="{{ $minuteX }}" y2="{{ $minuteY }}" stroke="#333" stroke-width="2" stroke-linecap="round"/>
+                                <!-- Center dot -->
+                                <circle cx="50" cy="50" r="3" fill="#333"/>
+                            </svg>
+                            <!-- Arrow pointing down -->
+                            <div class="text-2xl mb-1">↓</div>
+                            <!-- Word -->
+                            <div class="word-text text-lg font-semibold text-gray-800 px-3 py-2 bg-pink-50 rounded border border-pink-200" dir="rtl">{{ $wordData['word'] }}</div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Sentence Display Area -->
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <label class="block font-semibold mb-2 text-gray-700" dir="rtl">معنى {{ $wordClockWord }}:</label>
+                    <div id="wordClockArrangedSentence" class="text-xl font-semibold text-gray-800 min-h-[50px] p-3 bg-white rounded border-2 border-dashed border-gray-300 flex flex-wrap gap-2 items-center" dir="rtl">
+                        <span class="text-gray-400 italic">قم بترتيب الساعات من الأصغر إلى الأكبر...</span>
+                    </div>
+                </div>
+
+                <!-- Check Answer Button -->
+                <div class="flex justify-center">
+                    <button id="wordClockCheckAnswerBtn" class="px-8 py-3 rounded-lg bg-green-500 text-white font-bold text-lg hover:bg-green-600 transition-colors">
+                        تحقق من الإجابة
+                    </button>
+                </div>
+
+                <!-- Result Message -->
+                <div id="wordClockResultMessage" class="mt-6 hidden p-4 rounded-lg text-center text-lg font-semibold"></div>
+            </div>
+        @endif
+    @endif
+
+    <!-- Multiple Choice Game - Show only when lesson is selected and has MCQ pairs -->
+    @if(isset($selectedLessonId) && $selectedLessonId && $hasMcqPairs)
+        <div class="game-container max-w-6xl mx-auto mb-8" data-game-type="mcq" data-game-index="{{ $mcqGameIndex }}" style="display: none;">
+            <h2 class="text-2xl font-bold mb-6">Multiple Choice Game</h2>
+            @if (!empty($error))
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{{ $error }}</div>
+            @else
+                <div id="mcqQuizProgress" class="mb-6 flex gap-2"></div>
+                <div id="mcqQuizArea" data-route="{{ route('student.games.quiz') }}" data-lesson-id="{{ $selectedLessonId ?? '' }}" data-game-type="mcq" data-save-score-route="{{ route('student.games.saveScore') }}"></div>
+            @endif
+        </div>
+    @endif
+
+    <!-- Scrambled Letters Game - Show only when lesson is selected and has Scrambled Letters pairs -->
+    @if(isset($selectedLessonId) && $selectedLessonId && $hasScramblePairs)
+        <div class="game-container max-w-6xl mx-auto mb-8" data-game-type="scramble" data-game-index="{{ $scrambleGameIndex }}" style="display: none;">
+            <h2 class="text-2xl font-bold mb-6">Scrambled Letters Game</h2>
+            @if (!empty($error))
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{{ $error }}</div>
+            @else
+                <div id="scrambleQuizProgress" class="mb-6 flex gap-2"></div>
+                <div id="scrambleQuizArea" data-route="{{ route('student.games.quiz') }}" data-lesson-id="{{ $selectedLessonId ?? '' }}" data-game-type="scramble" data-save-score-route="{{ route('student.games.saveScore') }}"></div>
+            @endif
+        </div>
+    @endif
+
+    <!-- Matching Pairs Game -->
+    @if(isset($matchingPairsGame) && $matchingPairsGame && $matchingPairsGame->pairs->count() > 0)
+        <div class="game-container max-w-6xl mx-auto bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 mb-8" data-game-type="matchingpairs" data-game-index="{{ $matchingPairsGameIndex }}" style="display: none;">
+            <div class="mb-6">
+                @if(isset($lesson))
+                    <h2 class="text-3xl font-bold text-pink-600 mb-2" style="text-decoration: underline;" dir="rtl">{{ $lesson->title }}</h2>
+                @endif
+                <h3 class="text-2xl font-bold mb-4">Matching Pairs Game</h3>
+                @if(!empty($matchingPairsGame->title))
+                    <p class="text-xl font-semibold text-purple-600 mb-4" dir="rtl">
+                        <strong>عنوان:</strong> {{ $matchingPairsGame->title }}
+                    </p>
+                @endif
+            </div>
+
+            <div id="matchingPairsGameArea" class="matching-pairs-game">
+                <div class="mb-4 flex justify-between items-center">
+                    <div class="text-lg font-semibold text-gray-700">
+                        <span id="matchingPairsScore">Pairs Matched: 0</span> / <span id="matchingPairsTotal">{{ $matchingPairsGame->pairs->count() }}</span>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="submitMatchingPairsBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold">Submit Answers</button>
+                        <button id="resetMatchingPairsBtn" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-semibold">Reset</button>
+                    </div>
+                </div>
+
+                <div class="relative mb-6">
+                    <div class="grid grid-cols-2" style="gap: 6rem;">
+                        <!-- Left Column -->
+                        <div class="left-column">
+                            <h4 class="text-xl font-bold mb-4 text-center text-pink-600">Left Column</h4>
+                            <div id="leftItems" class="space-y-4">
+                                @php
+                                    $leftItems = $matchingPairsGame->pairs->shuffle();
+                                @endphp
+                                @foreach($leftItems as $index => $pair)
+                                    <div class="matching-item left-item bg-gradient-to-br from-pink-50 to-purple-50 border-2 border-pink-300 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-105" 
+                                         data-pair-id="{{ $pair->matching_pair_id }}"
+                                         data-index="{{ $index }}">
+                                        <div class="flex items-center gap-3">
+                                            @if($pair->left_item_image)
+                                                <img src="{{ asset('storage/' . $pair->left_item_image) }}" alt="Left item" class="w-20 h-20 object-cover rounded-lg border-2 border-pink-400">
+                                            @endif
+                                            @if($pair->left_item_text)
+                                                <span class="text-lg font-semibold text-gray-800 flex-1" dir="rtl">{{ $pair->left_item_text }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="right-column">
+                            <h4 class="text-xl font-bold mb-4 text-center text-purple-600">Right Column</h4>
+                            <div id="rightItems" class="space-y-4">
+                                @php
+                                    $rightItems = $matchingPairsGame->pairs->shuffle();
+                                @endphp
+                                @foreach($rightItems as $index => $pair)
+                                    <div class="matching-item right-item bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-105" 
+                                         data-pair-id="{{ $pair->matching_pair_id }}"
+                                         data-index="{{ $index }}">
+                                        <div class="flex items-center gap-3">
+                                            @if($pair->right_item_image)
+                                                <img src="{{ asset('storage/' . $pair->right_item_image) }}" alt="Right item" class="w-20 h-20 object-cover rounded-lg border-2 border-purple-400">
+                                            @endif
+                                            @if($pair->right_item_text)
+                                                <span class="text-lg font-semibold text-gray-800 flex-1" dir="rtl">{{ $pair->right_item_text }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Connection Canvas -->
+                    <svg id="connectionCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 1;"></svg>
+                </div>
+
+                <!-- Completion Message -->
+                <div id="matchingPairsCompletionMessage" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-gradient-to-br from-pink-100 to-purple-100 border-4 border-pink-300 rounded-3xl p-8 text-center shadow-2xl" dir="rtl" style="max-width: 500px;">
+                        <div class="text-6xl mb-4">🎉</div>
+                        <p class="text-pink-800 font-bold text-2xl mb-4">أحسنت! لقد أكملت جميع المطابقات!</p>
+                        <div id="matchingPairsFinalScore" class="text-4xl font-bold text-pink-600 mb-4"></div>
+                        <button onclick="closeMatchingPairsCompletion()" class="mt-4 px-6 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors font-semibold shadow-lg">موافق</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if(isset($matchingPairsGame) && $matchingPairsGame && $matchingPairsGame->pairs->count() > 0)
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Matching Pairs Game JavaScript
+        const matchingPairsGameArea = document.getElementById('matchingPairsGameArea');
+        if (matchingPairsGameArea) {
+            let selectedLeftItem = null;
+            let selectedRightItem = null;
+            let lockedPairs = new Map(); // Store locked pairs: leftPairId -> rightPairId
+            let lockedLeftItems = new Set(); // Track which left items are locked
+            let lockedRightItems = new Set(); // Track which right items are locked
+            let totalPairs = {{ $matchingPairsGame->pairs->count() }};
+            let isSubmitted = false;
+            const connectionCanvas = document.getElementById('connectionCanvas');
+            const gridContainer = connectionCanvas ? connectionCanvas.parentElement : null;
+            
+            // Function to get connection point position for an element relative to the grid container
+            function getConnectionPoint(element, isLeftItem) {
+                if (!gridContainer) return { x: 0, y: 0 };
+                const gridRect = gridContainer.getBoundingClientRect();
+                const elementRect = element.getBoundingClientRect();
+                const relativeTop = elementRect.top - gridRect.top;
+                const relativeLeft = elementRect.left - gridRect.left;
+                const centerY = relativeTop + elementRect.height / 2;
+                
+                if (isLeftItem) {
+                    // For left items, get the right edge center (inner side facing right column)
+                    return {
+                        x: relativeLeft + elementRect.width,
+                        y: centerY
+                    };
+                } else {
+                    // For right items, get the left edge center (inner side facing left column)
+                    return {
+                        x: relativeLeft,
+                        y: centerY
+                    };
+                }
+            }
+            
+            // Function to update SVG canvas size
+            function updateCanvasSize() {
+                if (!connectionCanvas || !gridContainer) return;
+                const rect = gridContainer.getBoundingClientRect();
+                if (rect.width === 0 || rect.height === 0) return; // Don't update if container is hidden
+                connectionCanvas.setAttribute('width', rect.width);
+                connectionCanvas.setAttribute('height', rect.height);
+                connectionCanvas.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+            }
+            
+            // Function to draw a line between two items
+            function drawLine(leftItem, rightItem, pairId) {
+                if (!connectionCanvas || !gridContainer) return;
+                
+                // Ensure canvas is sized correctly
+                updateCanvasSize();
+                
+                // Wait a bit to ensure the container is visible and positioned
+                setTimeout(() => {
+                    if (!connectionCanvas || !gridContainer) return;
+                    
+                    const rect = gridContainer.getBoundingClientRect();
+                    if (rect.width === 0 || rect.height === 0) {
+                        console.warn('Grid container has zero dimensions, cannot draw line');
+                        return;
+                    }
+                    
+                    const leftPos = getConnectionPoint(leftItem, true); // Left item: right edge (inner side)
+                    const rightPos = getConnectionPoint(rightItem, false); // Right item: left edge (inner side)
+                    
+                    // Create SVG line element
+                    // Line goes FROM right box (inner edge) TO left box (inner start)
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', rightPos.x); // Start from right box inner edge (left edge)
+                    line.setAttribute('y1', rightPos.y);
+                    line.setAttribute('x2', leftPos.x); // End at left box inner start (right edge)
+                    line.setAttribute('y2', leftPos.y);
+                    line.setAttribute('stroke', '#4b5563'); // Dark grey color like in the picture
+                    line.setAttribute('stroke-width', '2');
+                    line.setAttribute('stroke-linecap', 'round');
+                    line.setAttribute('data-pair-id', pairId);
+                    
+                    connectionCanvas.appendChild(line);
+                }, 50);
+            }
+            
+            // Initialize canvas size (will only work if game is visible)
+            setTimeout(() => updateCanvasSize(), 100);
+            window.addEventListener('resize', updateCanvasSize);
+            
+            // Make updateCanvasSize available globally for the game navigation script
+            window.updateMatchingPairsCanvas = updateCanvasSize;
+            
+            // Update canvas when game becomes visible
+            const gameContainer = matchingPairsGameArea.closest('.game-container');
+            if (gameContainer) {
+                const observer = new MutationObserver(() => {
+                    if (gameContainer.style.display !== 'none') {
+                        setTimeout(() => updateCanvasSize(), 100);
+                    }
+                });
+                observer.observe(gameContainer, { attributes: true, attributeFilter: ['style'] });
+            }
+            
+            // Left items click handler
+            document.querySelectorAll('.left-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    if (isSubmitted) return; // Don't allow selection after submission
+                    const pairId = parseInt(this.dataset.pairId);
+                    if (lockedLeftItems.has(pairId)) return; // Don't allow selection of locked items
+                    
+                    // Remove previous selection (only if not locked)
+                    document.querySelectorAll('.left-item').forEach(i => {
+                        const itemPairId = parseInt(i.dataset.pairId);
+                        if (!lockedLeftItems.has(itemPairId)) {
+                            i.classList.remove('border-pink-600', 'shadow-xl', 'ring-4', 'ring-pink-400', 'selected');
+                        }
+                    });
+                    
+                    // Select this item
+                    this.classList.add('border-pink-600', 'shadow-xl', 'ring-4', 'ring-pink-400', 'selected');
+                    selectedLeftItem = this;
+                    
+                    // Lock in pair if right item is selected
+                    if (selectedRightItem) {
+                        lockPair();
+                    }
+                });
+            });
+            
+            // Right items click handler
+            document.querySelectorAll('.right-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    if (isSubmitted) return; // Don't allow selection after submission
+                    const pairId = parseInt(this.dataset.pairId);
+                    if (lockedRightItems.has(pairId)) return; // Don't allow selection of locked items
+                    
+                    // Remove previous selection (only if not locked)
+                    document.querySelectorAll('.right-item').forEach(i => {
+                        const itemPairId = parseInt(i.dataset.pairId);
+                        if (!lockedRightItems.has(itemPairId)) {
+                            i.classList.remove('border-purple-600', 'shadow-xl', 'ring-4', 'ring-purple-400', 'selected');
+                        }
+                    });
+                    
+                    // Select this item
+                    this.classList.add('border-purple-600', 'shadow-xl', 'ring-4', 'ring-purple-400', 'selected');
+                    selectedRightItem = this;
+                    
+                    // Lock in pair if left item is selected
+                    if (selectedLeftItem) {
+                        lockPair();
+                    }
+                });
+            });
+            
+            // Function to lock in a pair (without validation)
+            function lockPair() {
+                if (!selectedLeftItem || !selectedRightItem) return;
+                
+                const leftPairId = parseInt(selectedLeftItem.dataset.pairId);
+                const rightPairId = parseInt(selectedRightItem.dataset.pairId);
+                
+                // Store the locked pair
+                lockedPairs.set(leftPairId, rightPairId);
+                lockedLeftItems.add(leftPairId);
+                lockedRightItems.add(rightPairId);
+                
+                // Draw line between locked items
+                drawLine(selectedLeftItem, selectedRightItem, leftPairId);
+                
+                // Remove selection highlighting but keep items visible
+                selectedLeftItem.classList.remove('border-pink-600', 'shadow-xl', 'ring-4', 'ring-pink-400', 'selected');
+                selectedRightItem.classList.remove('border-purple-600', 'shadow-xl', 'ring-4', 'ring-purple-400', 'selected');
+                
+                // Clear selection
+                selectedLeftItem = null;
+                selectedRightItem = null;
+                
+                // Update pairs matched count
+                const scoreElement = document.getElementById('matchingPairsScore');
+                if (scoreElement) scoreElement.textContent = `Pairs Matched: ${lockedPairs.size}`;
+            }
+            
+            function checkMatch() {
+                if (!selectedLeftItem || !selectedRightItem) return;
+                
+                const leftPairId = parseInt(selectedLeftItem.dataset.pairId);
+                const rightPairId = parseInt(selectedRightItem.dataset.pairId);
+                
+                if (leftPairId === rightPairId) {
+                    // Correct match!
+                    matchedPairs.add(leftPairId);
+                    currentScore++;
+                    
+                    // Update score display
+                    const scoreElement = document.getElementById('matchingPairsScore');
+                    if (scoreElement) scoreElement.textContent = `Score: ${currentScore}`;
+                    
+                    // Mark items as matched
+                    selectedLeftItem.classList.add('opacity-75', 'cursor-not-allowed', 'bg-green-100', 'border-green-500', 'matched');
+                    selectedLeftItem.classList.remove('border-pink-600', 'cursor-pointer', 'ring-4', 'ring-pink-400', 'shadow-xl', 'selected');
+                    selectedRightItem.classList.add('opacity-75', 'cursor-not-allowed', 'bg-green-100', 'border-green-500', 'matched');
+                    selectedRightItem.classList.remove('border-purple-600', 'cursor-pointer', 'ring-4', 'ring-purple-400', 'shadow-xl', 'selected');
+                    
+                    // Draw line between matched items
+                    // Use the items before clearing selection
+                    const leftItemForLine = selectedLeftItem;
+                    const rightItemForLine = selectedRightItem;
+                    drawLine(leftItemForLine, rightItemForLine, leftPairId);
+                    
+                    // Add checkmark animation
+                    const checkmark1 = document.createElement('span');
+                    checkmark1.className = 'absolute top-2 right-2 text-green-600 text-3xl font-bold';
+                    checkmark1.textContent = '✓';
+                    checkmark1.style.animation = 'scaleIn 0.3s ease';
+                    selectedLeftItem.style.position = 'relative';
+                    selectedLeftItem.appendChild(checkmark1);
+                    
+                    const checkmark2 = document.createElement('span');
+                    checkmark2.className = 'absolute top-2 right-2 text-green-600 text-3xl font-bold';
+                    checkmark2.textContent = '✓';
+                    checkmark2.style.animation = 'scaleIn 0.3s ease';
+                    selectedRightItem.style.position = 'relative';
+                    selectedRightItem.appendChild(checkmark2);
+                    
+                    // Clear selection
+                    selectedLeftItem = null;
+                    selectedRightItem = null;
+                    
+                    // Check if all pairs are matched
+                    if (matchedPairs.size === totalPairs) {
+                        setTimeout(() => {
+                            showMatchingPairsCompletion();
+                        }, 500);
+                    }
+                } else {
+                    // Incorrect match - shake animation
+                    selectedLeftItem.style.animation = 'shake 0.5s';
+                    selectedRightItem.style.animation = 'shake 0.5s';
+                    
+                    setTimeout(() => {
+                        selectedLeftItem.style.animation = '';
+                        selectedRightItem.style.animation = '';
+                        selectedLeftItem.classList.remove('border-pink-600', 'shadow-xl', 'ring-4', 'ring-pink-400', 'selected');
+                        selectedRightItem.classList.remove('border-purple-600', 'shadow-xl', 'ring-4', 'ring-purple-400', 'selected');
+                        selectedLeftItem = null;
+                        selectedRightItem = null;
+                    }, 500);
+                }
+            }
+            
+            // Submit button
+            const submitBtn = document.getElementById('submitMatchingPairsBtn');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', function() {
+                    if (isSubmitted) return; // Prevent multiple submissions
+                    
+                    // Check if all pairs are locked
+                    if (lockedPairs.size < totalPairs) {
+                        alert(`Please match all ${totalPairs} pairs before submitting!`);
+                        return;
+                    }
+                    
+                    // Mark as submitted
+                    isSubmitted = true;
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    
+                    // Validate all pairs and calculate score
+                    let correctCount = 0;
+                    
+                    lockedPairs.forEach((rightPairId, leftPairId) => {
+                        const leftItem = document.querySelector(`.left-item[data-pair-id="${leftPairId}"]`);
+                        const rightItem = document.querySelector(`.right-item[data-pair-id="${rightPairId}"]`);
+                        
+                        if (leftItem && rightItem) {
+                            if (leftPairId === rightPairId) {
+                                // Correct match!
+                                correctCount++;
+                                leftItem.classList.add('bg-green-100', 'border-green-500');
+                                rightItem.classList.add('bg-green-100', 'border-green-500');
+                                
+                                // Update line color to green
+                                const lines = connectionCanvas.querySelectorAll(`line[data-pair-id="${leftPairId}"]`);
+                                lines.forEach(line => {
+                                    line.setAttribute('stroke', '#22c55e');
+                                    line.setAttribute('stroke-width', '3');
+                                });
+                            } else {
+                                // Incorrect match
+                                leftItem.classList.add('bg-red-100', 'border-red-500');
+                                rightItem.classList.add('bg-red-100', 'border-red-500');
+                                
+                                // Update line color to red
+                                const lines = connectionCanvas.querySelectorAll(`line[data-pair-id="${leftPairId}"]`);
+                                lines.forEach(line => {
+                                    line.setAttribute('stroke', '#ef4444');
+                                    line.setAttribute('stroke-width', '2');
+                                });
+                            }
+                            
+                            // Make items non-clickable
+                            leftItem.classList.add('cursor-not-allowed', 'opacity-75');
+                            rightItem.classList.add('cursor-not-allowed', 'opacity-75');
+                        }
+                    });
+                    
+                    // Calculate score percentage
+                    const scorePercent = Math.round((correctCount / totalPairs) * 100);
+                    
+                    // Update score display
+                    const scoreElement = document.getElementById('matchingPairsScore');
+                    if (scoreElement) scoreElement.textContent = `Score: ${correctCount} / ${totalPairs} (${scorePercent}%)`;
+                    
+                    // Show completion message
+                    showMatchingPairsCompletion(correctCount, scorePercent);
+                });
+            }
+            
+            // Reset button
+            const resetBtn = document.getElementById('resetMatchingPairsBtn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    location.reload();
+                });
+            }
+            
+            // Updated showMatchingPairsCompletion function
+            function showMatchingPairsCompletion(correctCount, scorePercent) {
+                const finalScoreElement = document.getElementById('matchingPairsFinalScore');
+                if (finalScoreElement) finalScoreElement.textContent = `Score: ${scorePercent}% (${correctCount} / ${totalPairs} correct)`;
+                
+                const overlay = document.getElementById('matchingPairsCompletionMessage');
+                if (overlay) {
+                    overlay.classList.remove('hidden');
+                    overlay.style.display = 'flex';
+                }
+                
+                // Save score
+                @if($matchingPairsGame->game)
+                const gameId = {{ $matchingPairsGame->game->game_id }};
+                if (gameId) {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    const saveScoreRoute = @json(route('student.games.saveScore'));
+                    
+                    fetch(saveScoreRoute, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken || '',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            game_id: gameId,
+                            score: scorePercent
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Matching Pairs score saved:', data);
+                        if (typeof window.gameScores !== 'undefined') {
+                            window.gameScores.matchingpairs = scorePercent;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error saving matching pairs score:', error);
+                    });
+                }
+                @endif
+            }
+            
+            // Close completion message function
+            window.closeMatchingPairsCompletion = function() {
+                const overlay = document.getElementById('matchingPairsCompletionMessage');
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                    overlay.style.display = 'none';
+                }
+                
+                // Move to next game
+                if (typeof moveToNextGame === 'function') {
+                    setTimeout(() => moveToNextGame(), 500);
+                }
+            };
+        }
+    });
+    </script>
+    @endif
+
+    <!-- Game Navigation Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const availableGames = @json($availableGames ?? []);
+        let currentGameIndex = 0;
+        
+        // Track scores for each game type
+        window.gameScores = {
+            clock: null,           // Clock game has no score (just display)
+            wordsearch: null,      // Word Search score (0-100)
+            scrambledclocks: null, // Scrambled Clocks has no score (just correct/incorrect)
+            wordclock: null,       // Word Clock Arrangement score (0-100)
+            mcq: null,             // Multiple Choice score (0-100)
+            scramble: null,        // Scrambled Letters score (0-100)
+            matchingpairs: null    // Matching Pairs score (0-100)
+        };
+        
+        // Show the first game
+        function showGame(index) {
+            // Hide all games
+            document.querySelectorAll('.game-container').forEach(container => {
+                container.style.display = 'none';
+            });
+            
+            // Show the game at the specified index
+            if (availableGames[index]) {
+                const gameType = availableGames[index].type;
+                const gameContainer = document.querySelector(`[data-game-type="${gameType}"]`);
+                if (gameContainer) {
+                    gameContainer.style.display = 'block';
+                    // Update canvas size for matching pairs game when it becomes visible
+                    if (gameType === 'matchingpairs' && typeof window.updateMatchingPairsCanvas === 'function') {
+                        setTimeout(() => {
+                            window.updateMatchingPairsCanvas();
+                        }, 100);
+                    }
+                    // Scroll to the game
+                    setTimeout(() => {
+                        gameContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            }
+        }
+        
+        // Calculate total score based on available games
+        function calculateTotalScore() {
+            let totalScore = 0;
+            let scoredGamesCount = 0;
+            
+            // Count games that have scores
+            availableGames.forEach(game => {
+                const score = window.gameScores[game.type];
+                if (score !== null && score !== undefined) {
+                    totalScore += score;
+                    scoredGamesCount++;
+                }
+            });
+            
+            // Calculate average if there are scored games
+            if (scoredGamesCount > 0) {
+                return Math.round(totalScore / scoredGamesCount);
+            }
+            return 0;
+        }
+        
+        // Initialize: show first game
+        if (availableGames.length > 0) {
+            showGame(0);
+        }
+        
+        // Function to move to next game
+        window.moveToNextGame = function() {
+            if (currentGameIndex < availableGames.length - 1) {
+                currentGameIndex++;
+                showGame(currentGameIndex);
+            } else {
+                // All games completed - calculate and show total score
+                const totalScore = calculateTotalScore();
+                const scoredGamesCount = availableGames.filter(g => window.gameScores[g.type] !== null && window.gameScores[g.type] !== undefined).length;
+                const totalGamesCount = availableGames.length;
+                
+                const completionMessage = document.createElement('div');
+                completionMessage.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                completionMessage.innerHTML = `
+                    <div class="bg-white rounded-3xl p-10 text-center max-w-md">
+                        <div class="text-6xl mb-4">🎉</div>
+                        <h2 class="text-3xl font-bold text-pink-600 mb-4">Congratulations!</h2>
+                        <p class="text-xl text-gray-700 mb-4">You have completed all ${totalGamesCount} game${totalGamesCount > 1 ? 's' : ''}!</p>
+                        ${scoredGamesCount > 0 ? `
+                            <div class="bg-pink-50 border-2 border-pink-300 rounded-lg p-4 mb-4">
+                                <div class="text-2xl font-bold text-pink-600 mb-2">Total Score</div>
+                                <div class="text-4xl font-bold text-pink-700">${totalScore}%</div>
+                                <div class="text-sm text-gray-600 mt-2">Average of ${scoredGamesCount} scored game${scoredGamesCount > 1 ? 's' : ''}</div>
+                            </div>
+                        ` : ''}
+                        <button onclick="this.closest('.fixed').remove()" class="px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors font-semibold">Close</button>
+                    </div>
+                `;
+                document.body.appendChild(completionMessage);
+            }
+        };
+        
+        // For Clock Game - add a "Continue" button that saves score (only if there are more games)
+        const clockGameContainer = document.querySelector('[data-game-type="clock"]');
+        if (clockGameContainer) {
+            const clockContent = clockGameContainer.querySelector('.flex.flex-wrap');
+            if (clockContent && !clockGameContainer.querySelector('.continue-btn-container')) {
+                @if(isset($clockGame) && $clockGame)
+                const clockGameId = @json($clockGame->game_id ?? null);
+                @else
+                const clockGameId = null;
+                @endif
+                const clockLessonId = @json($selectedLessonId ?? null);
+                const saveScoreRoute = @json(route('student.games.saveScore'));
+                
+                // Only show button if there are more games after this one
+                const clockGameIndex = availableGames.findIndex(g => g.type === 'clock');
+                const hasMoreGames = clockGameIndex !== -1 && clockGameIndex < availableGames.length - 1;
+                
+                if (hasMoreGames) {
+                    const continueBtn = document.createElement('div');
+                    continueBtn.className = 'continue-btn-container flex justify-center mt-6';
+                    
+                    const buttonHtml = `
+                        <button id="clockContinueBtn" class="px-8 py-3 rounded-lg bg-green-500 text-white font-bold text-lg hover:bg-green-600 transition-colors">
+                            Continue to Next Game →
+                        </button>
+                    `;
+                    continueBtn.innerHTML = buttonHtml;
+                    clockGameContainer.appendChild(continueBtn);
+                    
+                    // Add click handler to save score before moving to next game
+                    document.getElementById('clockContinueBtn').addEventListener('click', function() {
+                        // Save clock game as completed (100% score since it's just viewing/learning)
+                        if (clockGameId) {
+                            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                            
+                            fetch(saveScoreRoute, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrfToken || '',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    game_id: clockGameId,
+                                    score: 100 // Clock game is just viewing/learning - give full score for completion
+                                })
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    return response.json().then(err => Promise.reject(err));
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log('Clock game score saved:', data);
+                                // Update gameScores
+                                if (typeof window.gameScores !== 'undefined') {
+                                    window.gameScores.clock = 100;
+                                }
+                                moveToNextGame();
+                            })
+                            .catch(error => {
+                                console.error('Error saving clock game score:', error);
+                                // Still move to next game even if save fails
+                                moveToNextGame();
+                            });
+                        } else {
+                            // No game_id, just move to next game
+                            moveToNextGame();
+                        }
+                    });
+                } else {
+                    // Only one game (clock game) - save score and show completion message
+                    if (clockGameId) {
+                        // Auto-save clock game score when it's the only game
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                        
+                        fetch(saveScoreRoute, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken || '',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                game_id: clockGameId,
+                                score: 100
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => Promise.reject(err));
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Clock game score saved:', data);
+                            if (typeof window.gameScores !== 'undefined') {
+                                window.gameScores.clock = 100;
+                            }
+                            // Show completion message
+                            setTimeout(() => {
+                                moveToNextGame(); // This will show the completion message
+                            }, 1000);
+                        })
+                        .catch(error => {
+                            console.error('Error saving clock game score:', error);
+                        });
+                    }
+                }
+            }
+        }
+    });
+    </script>
+
+    @else
+    <!-- Show message when no lesson is selected with Hijab8 Image - Enhanced -->
+    <div class="max-w-6xl mx-auto py-16">
+        <div class="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 lg:p-12 border-2 border-pink-200/50 transform transition-all duration-500 hover:shadow-3xl">
+            <div class="flex flex-col lg:flex-row items-center justify-center gap-10 lg:gap-16">
+                <!-- Left: Hijab8 Image - Enhanced -->
+                <div class="relative flex-shrink-0 animate-float-gentle">
+                    <div class="relative">
+                        <!-- Enhanced Glow Layers -->
+                        <div class="absolute inset-0 bg-pink-300/40 rounded-full blur-3xl opacity-60 animate-pulse"></div>
+                        <div class="absolute inset-0 bg-cyan-300/40 rounded-full blur-2xl opacity-50 animate-pulse" style="animation-delay: 1s;"></div>
+                        <div class="absolute inset-0 bg-teal-300/30 rounded-full blur-xl opacity-40 animate-pulse" style="animation-delay: 2s;"></div>
+                        
+                        <!-- Enhanced Decorative Elements -->
+                        <div class="absolute -top-4 -right-4 w-12 h-12 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full flex items-center justify-center animate-bounce shadow-xl border-3 border-white backdrop-blur-sm transform hover:scale-110 transition-transform">
+                            <span class="text-xl">⭐</span>
+                        </div>
+                        <div class="absolute -bottom-4 -left-4 w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-full flex items-center justify-center animate-bounce shadow-xl border-3 border-white backdrop-blur-sm transform hover:scale-110 transition-transform" style="animation-delay: 0.5s;">
+                            <span class="text-xl">💖</span>
+                        </div>
+                        <div class="absolute top-1/2 -right-8 w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-500 rounded-full flex items-center justify-center animate-bounce shadow-xl border-3 border-white backdrop-blur-sm transform hover:scale-110 transition-transform" style="animation-delay: 1s;">
+                            <span class="text-base">✨</span>
+                        </div>
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 bg-gradient-to-br from-rose-400 to-rose-500 rounded-full flex items-center justify-center animate-bounce shadow-xl border-3 border-white backdrop-blur-sm transform hover:scale-110 transition-transform" style="animation-delay: 1.5s;">
+                            <span class="text-sm">🎮</span>
+                        </div>
+                        
+                        <!-- Enhanced Image container -->
+                        <div class="relative bg-gradient-to-br from-white to-pink-50 rounded-full p-3 shadow-2xl transform hover:scale-110 transition-transform duration-500 border-3 border-pink-300/60">
+                            <div class="absolute inset-0 bg-gradient-to-br from-pink-200/50 to-cyan-200/50 rounded-full opacity-40 blur-xl animate-pulse"></div>
+                            <div class="relative bg-white rounded-full p-1">
+                                <img src="{{ asset('storage/grade-page-design/hijab8.jpg') }}" 
+                                     alt="Hijabi Student" 
+                                     class="relative w-52 h-52 lg:w-64 lg:h-64 rounded-full object-cover border-2 border-pink-300/50 shadow-xl z-10"
+                                     style="object-position: center 20%;"
+                                     loading="lazy">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right: Enhanced Message Content -->
+                <div class="flex-1 text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2.5 bg-gradient-to-r from-pink-200/60 to-cyan-200/60 backdrop-blur-md px-5 py-2.5 rounded-full mb-5 border-2 border-pink-300/40 shadow-lg transform hover:scale-105 transition-transform">
+                        <div class="w-8 h-8 bg-gradient-to-br from-pink-400 to-cyan-400 rounded-lg flex items-center justify-center shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <span class="text-pink-700 font-black text-sm tracking-wider uppercase">Interactive Games</span>
+                    </div>
+                    <h2 class="text-4xl lg:text-5xl font-black text-gray-800 mb-4 tracking-tight leading-tight">
+                        Ready to Play?<br>
+                        <span class="bg-gradient-to-r from-pink-500 via-rose-400 to-cyan-500 bg-clip-text text-transparent animate-gradient">Select a Lesson!</span> 
+                        <span class="inline-block animate-bounce">🎮</span>
+                    </h2>
+                    <p class="text-xl text-gray-700 font-medium mb-6 leading-relaxed">
+                        Choose a lesson from the dropdown below to unlock exciting educational games and start your learning adventure!
+                    </p>
+                    
+                    <!-- Lesson Selector - Enhanced -->
+                    @if(isset($lessonsWithGames) && $lessonsWithGames->count() > 0)
+                        <div class="mb-8">
+                            <div class="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-pink-200/40 transform transition-all duration-300 hover:shadow-2xl">
+                                <form method="GET" action="{{ route('student.games') }}">
+                                    <div class="flex flex-col md:flex-row gap-5 items-end">
+                                        <div class="flex-1">
+                                            <label for="lesson_id" class="block font-black text-gray-800 mb-3 text-lg flex items-center gap-2">
+                                                <div class="w-10 h-10 bg-gradient-to-br from-pink-300 to-cyan-300 rounded-xl flex items-center justify-center shadow-md">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                    </svg>
+                                                </div>
+                                                Select Lesson:
+                                            </label>
+                                            <div class="relative">
+                                                <select name="lesson_id" id="lesson_id" 
+                                                        class="w-full bg-white border-2 border-pink-200/60 rounded-xl px-4 py-3.5 pr-12 text-gray-800 font-semibold shadow-md hover:border-pink-300 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all duration-300 appearance-none cursor-pointer"
+                                                        onchange="this.form.submit()">
+                                                    <option value="">-- Choose Lesson --</option>
+                                                    @foreach($lessonsWithGames ?? [] as $lesson)
+                                                        <option value="{{ $lesson->lesson_id }}" {{ (isset($selectedLessonId) && $selectedLessonId == $lesson->lesson_id) ? 'selected' : '' }}>{{ $lesson->title }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                                                    <svg class="h-5 w-5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
+                    <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
+                        <div class="group bg-gradient-to-br from-pink-50 to-pink-100/80 backdrop-blur-md px-6 py-4 rounded-2xl border-2 border-pink-300/50 shadow-lg transform hover:scale-105 hover:shadow-xl transition-all duration-300">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-8 h-8 bg-gradient-to-br from-pink-400 to-rose-400 rounded-lg flex items-center justify-center shadow-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div class="text-pink-600 text-xs font-black uppercase tracking-wider">Fun Learning</div>
+                            </div>
+                            <div class="text-gray-800 text-lg font-black">Interactive Games</div>
+                        </div>
+                        <div class="group bg-gradient-to-br from-cyan-50 to-cyan-100/80 backdrop-blur-md px-6 py-4 rounded-2xl border-2 border-cyan-300/50 shadow-lg transform hover:scale-105 hover:shadow-xl transition-all duration-300">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-8 h-8 bg-gradient-to-br from-cyan-400 to-teal-400 rounded-lg flex items-center justify-center shadow-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                </div>
+                                <div class="text-cyan-600 text-xs font-black uppercase tracking-wider">Educational</div>
+                            </div>
+                            <div class="text-gray-800 text-lg font-black">Engaging Content</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     @endif
 </div>
-@vite(['resources/js/quiz.js'])
+</div>
+
+@if(isset($wordClockArrangementGame) && $wordClockArrangementGame && $wordClockArrangementGame->game_data)
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const wordClockContainer = document.getElementById('wordClockArrangementContainer');
+    const wordClockArrangedSentence = document.getElementById('wordClockArrangedSentence');
+    const wordClockCheckAnswerBtn = document.getElementById('wordClockCheckAnswerBtn');
+    const wordClockResultMessage = document.getElementById('wordClockResultMessage');
+    
+    const wordClockCorrectSentence = @json($wordClockSentence);
+    const wordClockAllWords = @json($wordClockWords);
+    const wordClockCorrectOrder = @json($wordClockCorrectOrder);
+    const gameId = @json($wordClockArrangementGame->game_id ?? null);
+    const saveScoreRoute = @json(route('student.games.saveScore'));
+    
+    // Confetti animation function
+    function createConfetti() {
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe'];
+        const confettiCount = 100;
+        
+        for (let i = 0; i < confettiCount; i++) {
+            const confetti = document.createElement('div');
+            confetti.style.position = 'fixed';
+            confetti.style.width = '10px';
+            confetti.style.height = '10px';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.top = '-10px';
+            confetti.style.borderRadius = '50%';
+            confetti.style.pointerEvents = 'none';
+            confetti.style.zIndex = '9999';
+            confetti.style.opacity = '0.8';
+            
+            document.body.appendChild(confetti);
+            
+            const animationDuration = Math.random() * 3 + 2;
+            const horizontalMovement = (Math.random() - 0.5) * 200;
+            
+            confetti.animate([
+                { transform: 'translateY(0) translateX(0) rotate(0deg)', opacity: 0.8 },
+                { transform: `translateY(${window.innerHeight + 100}px) translateX(${horizontalMovement}px) rotate(720deg)`, opacity: 0 }
+            ], {
+                duration: animationDuration * 1000,
+                easing: 'cubic-bezier(0.5, 0, 0.5, 1)'
+            }).onfinish = () => confetti.remove();
+        }
+    }
+    
+    // Success animation with score display
+    function showSuccessAnimation(score) {
+        // Create confetti
+        createConfetti();
+        
+        // Create success overlay
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        overlay.style.zIndex = '9998';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.animation = 'fadeIn 0.3s ease-in';
+        
+        const successBox = document.createElement('div');
+        successBox.style.backgroundColor = 'white';
+        successBox.style.padding = '40px';
+        successBox.style.borderRadius = '20px';
+        successBox.style.textAlign = 'center';
+        successBox.style.boxShadow = '0 10px 40px rgba(0,0,0,0.3)';
+        successBox.style.animation = 'scaleIn 0.5s ease-out';
+        successBox.style.maxWidth = '400px';
+        
+        successBox.innerHTML = `
+            <div style="font-size: 80px; margin-bottom: 20px;">🎉</div>
+            <h2 style="color: #22c55e; font-size: 32px; margin-bottom: 10px; font-weight: bold;">إجابة صحيحة!</h2>
+            <div style="font-size: 48px; color: #f59e0b; font-weight: bold; margin: 20px 0;">
+                ${score} / 100
+            </div>
+            <p style="color: #666; font-size: 18px; margin-top: 10px;">أحسنت! تم حفظ النتيجة</p>
+        `;
+        
+        overlay.appendChild(successBox);
+        document.body.appendChild(overlay);
+        
+        // Remove overlay after 3 seconds
+        setTimeout(() => {
+            overlay.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => overlay.remove(), 300);
+        }, 3000);
+    }
+    
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .success-pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Drag and drop functionality for reordering clocks
+    let wordClockDraggedIndex = null;
+
+    function setupWordClockDragAndDrop() {
+        const clockItems = wordClockContainer.querySelectorAll('.word-clock-arrangement-item');
+        
+        clockItems.forEach((item) => {
+            item.addEventListener('dragstart', function(e) {
+                const items = Array.from(wordClockContainer.querySelectorAll('.word-clock-arrangement-item'));
+                wordClockDraggedIndex = items.indexOf(this);
+                this.style.opacity = '0.5';
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            item.addEventListener('dragend', function() {
+                this.style.opacity = '1';
+                const items = wordClockContainer.querySelectorAll('.word-clock-arrangement-item');
+                items.forEach(i => i.classList.remove('drag-over'));
+            });
+
+            item.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const items = Array.from(wordClockContainer.querySelectorAll('.word-clock-arrangement-item'));
+                const currentDraggedIndex = items.indexOf(document.querySelector('.word-clock-arrangement-item[draggable="true"][style*="opacity: 0.5"]'));
+                if (currentDraggedIndex !== null && items.indexOf(this) !== currentDraggedIndex) {
+                    this.classList.add('drag-over');
+                }
+            });
+
+            item.addEventListener('dragleave', function() {
+                this.classList.remove('drag-over');
+            });
+
+            item.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+
+                if (wordClockDraggedIndex !== null) {
+                    const items = Array.from(wordClockContainer.querySelectorAll('.word-clock-arrangement-item'));
+                    const draggedItem = items[wordClockDraggedIndex];
+                    const targetIndex = items.indexOf(this);
+
+                    if (wordClockDraggedIndex !== targetIndex) {
+                        // Move the dragged item to the target position
+                        if (wordClockDraggedIndex < targetIndex) {
+                            wordClockContainer.insertBefore(draggedItem, this.nextSibling);
+                        } else {
+                            wordClockContainer.insertBefore(draggedItem, this);
+                        }
+
+                        // Update sentence display
+                        updateWordClockSentenceDisplay();
+                    }
+                }
+            });
+        });
+    }
+
+    // Initialize drag and drop
+    if (wordClockContainer) {
+        setupWordClockDragAndDrop();
+    }
+
+    function updateWordClockSentenceDisplay() {
+        // Get current order from DOM (left to right)
+        const items = Array.from(wordClockContainer.querySelectorAll('.word-clock-arrangement-item'));
+        const currentOrder = items.map(item => item.dataset.word);
+        
+        if (currentOrder.length === 0) {
+            wordClockArrangedSentence.innerHTML = '<span class="text-gray-400 italic">قم بترتيب الساعات من الأصغر إلى الأكبر...</span>';
+            return;
+        }
+
+        wordClockArrangedSentence.innerHTML = currentOrder.map(word => 
+            `<span class="px-3 py-1 bg-pink-100 border border-pink-300 rounded">${word}</span>`
+        ).join('');
+    }
+
+    // Function to calculate score based on correct word positions
+    function calculateScore(userOrder, correctOrder, isTimeOrdered, isSentenceCorrect) {
+        if (isTimeOrdered && isSentenceCorrect) {
+            return {
+                total: 100,
+                timeOrderScore: 50,
+                wordPositionScore: 50,
+                timeOrderDetails: { correct: 'all', total: 'all' },
+                wordPositionDetails: { correct: userOrder.length, total: correctOrder.length }
+            };
+        }
+        
+        if (correctOrder.length === 0) {
+            return {
+                total: 0,
+                timeOrderScore: 0,
+                wordPositionScore: 0,
+                timeOrderDetails: { correct: 0, total: 0 },
+                wordPositionDetails: { correct: 0, total: 0 }
+            };
+        }
+        
+        let score = 0;
+        const totalWords = correctOrder.length;
+        let timeOrderScore = 0;
+        let wordPositionScore = 0;
+        let correctTimePairs = 0;
+        let totalTimePairs = 0;
+        let correctPositions = 0;
+        
+        // Calculate time ordering score (50% of total)
+        const items = Array.from(wordClockContainer.querySelectorAll('.word-clock-arrangement-item'));
+        if (isTimeOrdered) {
+            timeOrderScore = 50;
+            correctTimePairs = items.length > 1 ? items.length - 1 : 0;
+            totalTimePairs = items.length > 1 ? items.length - 1 : 0;
+        } else {
+            // Partial credit for time ordering - check how many consecutive pairs are correct
+            totalTimePairs = items.length > 1 ? items.length - 1 : 0;
+            for (let i = 0; i < items.length - 1; i++) {
+                const timeA = parseInt(items[i].dataset.hour) * 60 + parseInt(items[i].dataset.minute);
+                const timeB = parseInt(items[i + 1].dataset.hour) * 60 + parseInt(items[i + 1].dataset.minute);
+                if (timeA <= timeB) {
+                    correctTimePairs++;
+                }
+            }
+            if (totalTimePairs > 0) {
+                timeOrderScore = Math.round((correctTimePairs / totalTimePairs) * 50);
+            }
+        }
+        
+        // Calculate word position score (50% of total)
+        for (let i = 0; i < Math.min(userOrder.length, correctOrder.length); i++) {
+            if (userOrder[i] === correctOrder[i]) {
+                correctPositions++;
+            }
+        }
+        wordPositionScore = Math.round((correctPositions / totalWords) * 50);
+        
+        score = timeOrderScore + wordPositionScore;
+        
+        return {
+            total: Math.max(0, Math.min(100, score)),
+            timeOrderScore: timeOrderScore,
+            wordPositionScore: wordPositionScore,
+            timeOrderDetails: { correct: correctTimePairs, total: totalTimePairs },
+            wordPositionDetails: { correct: correctPositions, total: totalWords }
+        };
+    }
+
+    // Check answer - verify clocks are ordered by time, then check words
+    if (wordClockCheckAnswerBtn) {
+        wordClockCheckAnswerBtn.addEventListener('click', function() {
+            const items = Array.from(wordClockContainer.querySelectorAll('.word-clock-arrangement-item'));
+            
+            // Check if clocks are ordered by time (smallest to largest)
+            let isTimeOrdered = true;
+            for (let i = 0; i < items.length - 1; i++) {
+                const timeA = parseInt(items[i].dataset.hour) * 60 + parseInt(items[i].dataset.minute);
+                const timeB = parseInt(items[i + 1].dataset.hour) * 60 + parseInt(items[i + 1].dataset.minute);
+                if (timeA > timeB) {
+                    isTimeOrdered = false;
+                    break;
+                }
+            }
+            
+            // Get the words in current order
+            const userOrder = items.map(item => item.dataset.word);
+            
+            // Check if order matches correct sentence
+            const userSentence = userOrder.join(' ');
+            const isSentenceCorrect = userSentence.trim() === wordClockCorrectSentence.trim();
+
+            // Calculate score with detailed breakdown
+            const scoreDetails = calculateScore(userOrder, wordClockCorrectOrder, isTimeOrdered, isSentenceCorrect);
+            const score = scoreDetails.total;
+            
+            // Store score for word clock arrangement game
+            if (typeof window.gameScores !== 'undefined') {
+                window.gameScores.wordclock = score;
+            }
+
+            wordClockResultMessage.classList.remove('hidden');
+            
+            // Save score to database (always save, regardless of correctness)
+            if (gameId) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                fetch(saveScoreRoute, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken || '',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        game_id: gameId,
+                        score: score
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Score saved successfully:', data);
+                })
+                .catch(error => {
+                    console.error('Error saving score:', error);
+                });
+            }
+            
+            if (isTimeOrdered && isSentenceCorrect) {
+                // Perfect answer - show success animation
+                showSuccessAnimation(score);
+                
+                // Add pulse animation to result message
+                wordClockResultMessage.className = 'mt-6 p-4 rounded-lg text-center text-lg font-semibold bg-green-100 text-green-800 border border-green-300 success-pulse';
+                wordClockResultMessage.innerHTML = '✓ إجابة صحيحة! أحسنت! <br><span style="font-size: 24px; color: #f59e0b; font-weight: bold;">النتيجة: ' + score + ' / 100</span>';
+                
+                // Disable the check button after correct answer
+                wordClockCheckAnswerBtn.disabled = true;
+                wordClockCheckAnswerBtn.style.opacity = '0.5';
+                wordClockCheckAnswerBtn.style.cursor = 'not-allowed';
+                // Move to next game after 2 seconds
+                if (typeof moveToNextGame === 'function') {
+                    setTimeout(() => moveToNextGame(), 2000);
+                }
+            } else {
+                // Partial or incorrect answer - show detailed score breakdown
+                let errorMsg = '✗ إجابة غير صحيحة.';
+                if (!isTimeOrdered) {
+                    errorMsg += ' الساعات غير مرتبة حسب الوقت (من الأصغر إلى الأكبر).';
+                }
+                if (!isSentenceCorrect) {
+                    errorMsg += ' الإجابة الصحيحة هي: <strong>' + wordClockCorrectSentence + '</strong>';
+                }
+                
+                // Add detailed score breakdown
+                errorMsg += '<div style="margin-top: 15px; padding: 15px; background: #fef3c7; border-radius: 8px; text-align: right; direction: rtl;">';
+                errorMsg += '<div style="font-size: 22px; color: #f59e0b; font-weight: bold; margin-bottom: 10px;">النتيجة الإجمالية: ' + score + ' / 100</div>';
+                errorMsg += '<div style="font-size: 16px; color: #78350f; margin: 8px 0;">';
+                errorMsg += '• ترتيب الساعات: ' + scoreDetails.timeOrderScore + ' / 50';
+                errorMsg += ' (' + scoreDetails.timeOrderDetails.correct + ' من ' + scoreDetails.timeOrderDetails.total + ' أزواج صحيحة)';
+                errorMsg += '</div>';
+                errorMsg += '<div style="font-size: 16px; color: #78350f; margin: 8px 0;">';
+                errorMsg += '• ترتيب الكلمات: ' + scoreDetails.wordPositionScore + ' / 50';
+                errorMsg += ' (' + scoreDetails.wordPositionDetails.correct + ' من ' + scoreDetails.wordPositionDetails.total + ' كلمة في المكان الصحيح)';
+                errorMsg += '</div>';
+                errorMsg += '</div>';
+                
+                wordClockResultMessage.className = 'mt-6 p-4 rounded-lg text-center text-lg font-semibold bg-red-100 text-red-800 border border-red-300';
+                wordClockResultMessage.innerHTML = errorMsg;
+            }
+        });
+    }
+});
+</script>
+@endif
+
+@if(isset($scrambledClocksGame) && $scrambledClocksGame && $scrambledClocksGame->game_data)
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clocksContainer = document.getElementById('clocksContainer');
+    const arrangedSentence = document.getElementById('arrangedSentence');
+    const checkAnswerBtn = document.getElementById('checkAnswerBtn');
+    const resultMessage = document.getElementById('resultMessage');
+    
+    const correctSentence = @json($correctSentence);
+    const allWords = @json($words);
+    // Calculate correct order by sorting words by time (smallest to largest)
+    const correctOrder = allWords
+        .map((w, idx) => ({ word: w.word, time: w.hour * 60 + w.minute, index: idx }))
+        .sort((a, b) => a.time - b.time)
+        .map(w => w.word);
+
+    // Drag and drop functionality for reordering clocks
+    let draggedIndex = null;
+
+    function setupDragAndDrop() {
+        const clockItems = clocksContainer.querySelectorAll('.clock-word-item');
+        
+        clockItems.forEach((item) => {
+            item.addEventListener('dragstart', function(e) {
+                const items = Array.from(clocksContainer.querySelectorAll('.clock-word-item'));
+                draggedIndex = items.indexOf(this);
+                this.style.opacity = '0.5';
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            item.addEventListener('dragend', function() {
+                this.style.opacity = '1';
+                const items = clocksContainer.querySelectorAll('.clock-word-item');
+                items.forEach(i => i.classList.remove('drag-over'));
+            });
+
+        item.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const items = Array.from(clocksContainer.querySelectorAll('.clock-word-item'));
+            const currentDraggedIndex = items.indexOf(document.querySelector('.clock-word-item[draggable="true"][style*="opacity: 0.5"]'));
+            if (currentDraggedIndex !== null && items.indexOf(this) !== currentDraggedIndex) {
+                this.classList.add('drag-over');
+            }
+        });
+
+        item.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+
+        item.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            if (draggedIndex !== null) {
+                const items = Array.from(clocksContainer.querySelectorAll('.clock-word-item'));
+                const draggedItem = items[draggedIndex];
+                const targetIndex = items.indexOf(this);
+
+                if (draggedIndex !== targetIndex) {
+                    // Move the dragged item to the target position
+                    if (draggedIndex < targetIndex) {
+                        clocksContainer.insertBefore(draggedItem, this.nextSibling);
+                    } else {
+                        clocksContainer.insertBefore(draggedItem, this);
+                    }
+
+                    // Update sentence display
+                    updateSentenceDisplay();
+                }
+            }
+        });
+        });
+    }
+
+    // Initialize drag and drop
+    setupDragAndDrop();
+
+
+    function updateSentenceDisplay() {
+        // Get current order from DOM (left to right)
+        const items = Array.from(clocksContainer.querySelectorAll('.clock-word-item'));
+        const currentOrder = items.map(item => item.dataset.word);
+        
+        if (currentOrder.length === 0) {
+            arrangedSentence.innerHTML = '<span class="text-gray-400 italic">قم بترتيب الساعات من الأصغر إلى الأكبر...</span>';
+            return;
+        }
+
+        arrangedSentence.innerHTML = currentOrder.map(word => 
+            `<span class="px-3 py-1 bg-pink-100 border border-pink-300 rounded">${word}</span>`
+        ).join('');
+    }
+
+    // Check answer - verify clocks are ordered by time, then check words
+    checkAnswerBtn.addEventListener('click', function() {
+        const items = Array.from(clocksContainer.querySelectorAll('.clock-word-item'));
+        
+        // Check if clocks are ordered by time (smallest to largest)
+        let isTimeOrdered = true;
+        for (let i = 0; i < items.length - 1; i++) {
+            const timeA = parseInt(items[i].dataset.hour) * 60 + parseInt(items[i].dataset.minute);
+            const timeB = parseInt(items[i + 1].dataset.hour) * 60 + parseInt(items[i + 1].dataset.minute);
+            if (timeA > timeB) {
+                isTimeOrdered = false;
+                break;
+            }
+        }
+        
+        // Get the words in current order
+        const userOrder = items.map(item => item.dataset.word);
+        
+        // Check if order matches correct sentence
+        const userSentence = userOrder.join(' ');
+        const isSentenceCorrect = userSentence.trim() === correctSentence.trim();
+
+        resultMessage.classList.remove('hidden');
+        if (isTimeOrdered && isSentenceCorrect) {
+            resultMessage.className = 'mt-6 p-4 rounded-lg text-center text-lg font-semibold bg-green-100 text-green-800 border border-green-300';
+            resultMessage.textContent = '✓ إجابة صحيحة! أحسنت!';
+            // Move to next game after 2 seconds
+            if (typeof moveToNextGame === 'function') {
+                setTimeout(() => moveToNextGame(), 2000);
+            }
+        } else {
+            let errorMsg = '✗ إجابة غير صحيحة.';
+            if (!isTimeOrdered) {
+                errorMsg += ' الساعات غير مرتبة حسب الوقت (من الأصغر إلى الأكبر).';
+            }
+            if (!isSentenceCorrect) {
+                errorMsg += ' الإجابة الصحيحة هي: <strong>' + correctSentence + '</strong>';
+            }
+            resultMessage.className = 'mt-6 p-4 rounded-lg text-center text-lg font-semibold bg-red-100 text-red-800 border border-red-300';
+            resultMessage.innerHTML = errorMsg;
+        }
+    });
+});
+</script>
+@endif
+
+@if(isset($wordSearchGame) && $wordSearchGame && !empty($wordSearchGame->grid_data))
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const grid = @json($grid ?? []);
+    const wordPositions = @json($wordPositions ?? []);
+    const words = @json($words ?? []);
+    const gridSize = {{ $gridSize ?? 10 }};
+    
+    // Girl-friendly color palette (pinks, purples, pastels)
+    const wordColors = [
+        '#FFB6C1', // Light Pink
+        '#FFC0CB', // Pink
+        '#FF69B4', // Hot Pink
+        '#FF1493', // Deep Pink
+        '#DA70D6', // Orchid
+        '#BA55D3', // Medium Orchid
+        '#DDA0DD', // Plum
+        '#EE82EE', // Violet
+        '#DA70D6', // Orchid
+        '#C71585', // Medium Violet Red
+        '#FFB6E1', // Light Pink
+        '#FF91A4', // Pink
+        '#F0A3FF', // Lavender Pink
+        '#E6A8D7', // Pink Lavender
+        '#FFBFF9'  // Very Light Pink
+    ];
+    
+    let selectedCells = [];
+    let isSelecting = false;
+    let foundWords = new Map(); // Map of wordIndex -> color
+    let startCell = null;
+    let selectionDirection = null;
+    let score = 0;
+    const scorePerWord = Math.round(100 / (words.length || 1)); // Calculate score per word
+    
+    const gridElement = document.getElementById('wordSearchGrid');
+    const cells = gridElement.querySelectorAll('.word-search-cell');
+    const wordItems = document.querySelectorAll('.word-item');
+    const completionMessage = document.getElementById('completionMessageOverlay');
+    
+    // Function to close the completion overlay
+    window.closeCompletionOverlay = function() {
+        const overlay = document.getElementById('completionMessageOverlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+            overlay.style.display = 'none';
+            // Move to next game after closing (only if there are more games)
+            if (typeof moveToNextGame === 'function') {
+                const wordSearchIndex = availableGames.findIndex(g => g.type === 'wordsearch');
+                // Only move to next game if word search is not the last game
+                if (wordSearchIndex !== -1 && wordSearchIndex < availableGames.length - 1) {
+                    setTimeout(() => moveToNextGame(), 500);
+                } else if (wordSearchIndex !== -1 && wordSearchIndex === availableGames.length - 1) {
+                    // This is the last game, show completion message
+                    setTimeout(() => moveToNextGame(), 500);
+                }
+            }
+        }
+    };
+    
+    // Initialize color boxes
+    wordItems.forEach((item, index) => {
+        const colorBox = item.querySelector('.word-color-box');
+        if (colorBox) {
+            colorBox.style.backgroundColor = wordColors[index % wordColors.length];
+            colorBox.style.borderColor = wordColors[index % wordColors.length];
+        }
+    });
+    
+    // Initialize cell event listeners
+    cells.forEach(cell => {
+        cell.addEventListener('mousedown', startSelection);
+        cell.addEventListener('mouseenter', continueSelection);
+        cell.addEventListener('mouseup', endSelection);
+        cell.addEventListener('touchstart', startSelection, { passive: false });
+        cell.addEventListener('touchmove', continueSelection, { passive: false });
+        cell.addEventListener('touchend', endSelection, { passive: false });
+    });
+    
+    function startSelection(e) {
+        e.preventDefault();
+        isSelecting = true;
+        selectedCells = [];
+        startCell = e.target.closest('.word-search-cell');
+        // Allow selection even if cell is already found (words can share letters)
+        if (startCell) {
+            selectedCells.push(startCell);
+            // Add selected class even if found (will show temporary selection)
+            if (!startCell.classList.contains('selected')) {
+                startCell.classList.add('selected');
+            }
+            selectionDirection = null;
+        }
+    }
+    
+    function continueSelection(e) {
+        if (!isSelecting || !startCell) return;
+        e.preventDefault();
+        
+        const cell = e.target.closest('.word-search-cell');
+        // Allow selection through found cells (words can share letters and cross)
+        if (!cell || cell === startCell) return;
+        
+        // Determine direction from start cell
+        if (selectedCells.length === 1) {
+            selectionDirection = getDirection(
+                parseInt(startCell.dataset.row),
+                parseInt(startCell.dataset.col),
+                parseInt(cell.dataset.row),
+                parseInt(cell.dataset.col)
+            );
+        }
+        
+        // Check if cell is in the same direction (allowing both forward and backward)
+        if (selectionDirection) {
+            const startRow = parseInt(startCell.dataset.row);
+            const startCol = parseInt(startCell.dataset.col);
+            const cellRow = parseInt(cell.dataset.row);
+            const cellCol = parseInt(cell.dataset.col);
+            
+            const dRow = cellRow - startRow;
+            const dCol = cellCol - startCol;
+            
+            // Check if cell is in the determined direction (much more forgiving for diagonals)
+            let inDirection = false;
+            if (selectionDirection.row === 0) {
+                // Horizontal: check if same row and correct column direction
+                inDirection = cellRow === startRow && Math.sign(dCol) === Math.sign(selectionDirection.col);
+            } else if (selectionDirection.col === 0) {
+                // Vertical: check if same column and correct row direction
+                inDirection = cellCol === startCol && Math.sign(dRow) === Math.sign(selectionDirection.row);
+            } else {
+                // Diagonal: MUCH more forgiving - use the same logic as isValidDirection
+                const absRow = Math.abs(dRow);
+                const absCol = Math.abs(dCol);
+                const maxDiff = Math.max(absRow, absCol);
+                const minDiff = Math.min(absRow, absCol);
+                const ratio = maxDiff > 0 ? minDiff / maxDiff : 0;
+                
+                // Check direction signs match (must go in same general direction)
+                const correctDirection = Math.sign(dRow) === Math.sign(selectionDirection.row) && 
+                                       Math.sign(dCol) === Math.sign(selectionDirection.col);
+                
+                if (correctDirection) {
+                    // Allow perfect diagonal, near-diagonal (up to 40% deviation), or short distances
+                    if (absRow === absCol) {
+                        // Perfect diagonal
+                        inDirection = true;
+                    } else if (ratio >= 0.6) {
+                        // Near-diagonal (very forgiving - up to 40% deviation)
+                        inDirection = true;
+                    } else if (maxDiff <= 3) {
+                        // For short selections, be very forgiving
+                        inDirection = true;
+                    }
+                }
+            }
+            
+            if (inDirection) {
+                // Clear previous selection except the start
+                // Allow clearing even if found (temporary selection state)
+                selectedCells.slice(1).forEach(c => {
+                    // Only remove 'selected' class, keep 'found' class if present
+                    c.classList.remove('selected');
+                });
+                selectedCells = [startCell];
+                
+                // Build selection path in the determined direction
+                // Include found cells - words can share letters
+                const path = buildPath(startCell, cell, selectionDirection);
+                path.forEach(c => {
+                    if (!selectedCells.includes(c)) {
+                        selectedCells.push(c);
+                        // Add selected class for visual feedback (even if already found)
+                        if (!c.classList.contains('selected')) {
+                            c.classList.add('selected');
+                        }
+                    }
+                });
+            }
+        }
+    }
+    
+    function endSelection(e) {
+        if (!isSelecting) return;
+        e.preventDefault();
+        isSelecting = false;
+        
+        if (selectedCells.length >= 2) {
+            checkWord();
+        }
+        clearSelection();
+        startCell = null;
+        selectionDirection = null;
+    }
+    
+    function getDirection(startRow, startCol, endRow, endCol) {
+        const dRow = endRow - startRow;
+        const dCol = endCol - startCol;
+        
+        if (dRow === 0 && dCol === 0) return null;
+        
+        const absRow = Math.abs(dRow);
+        const absCol = Math.abs(dCol);
+        const maxDiff = Math.max(absRow, absCol);
+        const minDiff = Math.min(absRow, absCol);
+        const ratio = minDiff / maxDiff; // Ratio to determine how close to diagonal
+        
+        // Make diagonal detection MUCH more forgiving (up to 40% deviation)
+        // This makes diagonal selection much easier
+        const diagonalThreshold = 0.6; // Allow up to 40% deviation from perfect diagonal
+        
+        if (absRow === 0) {
+            // Perfect horizontal
+            return { row: 0, col: dCol > 0 ? 1 : -1 };
+        } else if (absCol === 0) {
+            // Perfect vertical
+            return { row: dRow > 0 ? 1 : -1, col: 0 };
+        } else if (ratio >= diagonalThreshold || maxDiff <= 2) {
+            // Diagonal or near-diagonal (much more forgiving)
+            // If ratio is high enough (close to 1:1) OR if the distance is small, treat as diagonal
+            return { 
+                row: dRow > 0 ? 1 : -1, 
+                col: dCol > 0 ? 1 : -1 
+            };
+        } else if (absRow > absCol * 2) {
+            // Much more vertical than horizontal
+            return { row: dRow > 0 ? 1 : -1, col: 0 };
+        } else if (absCol > absRow * 2) {
+            // Much more horizontal than vertical
+            return { row: 0, col: dCol > 0 ? 1 : -1 };
+        } else {
+            // Still treat as diagonal if reasonably close
+            return { 
+                row: dRow > 0 ? 1 : -1, 
+                col: dCol > 0 ? 1 : -1 
+            };
+        }
+    }
+    
+    function isValidDirection(cell, direction) {
+        if (!startCell || selectedCells.length < 1) return false;
+        
+        const startRow = parseInt(startCell.dataset.row);
+        const startCol = parseInt(startCell.dataset.col);
+        const cellRow = parseInt(cell.dataset.row);
+        const cellCol = parseInt(cell.dataset.col);
+        
+        const dRow = cellRow - startRow;
+        const dCol = cellCol - startCol;
+        
+        // Check if cell is in the same direction (much more tolerant for diagonals)
+        if (direction.row === 0) {
+            // Horizontal: must be same row, correct column direction
+            return dRow === 0 && Math.sign(dCol) === Math.sign(direction.col);
+        } else if (direction.col === 0) {
+            // Vertical: must be same column, correct row direction
+            return dCol === 0 && Math.sign(dRow) === Math.sign(direction.row);
+        } else {
+            // Diagonal: MUCH more forgiving - allow significant deviations
+            const absRow = Math.abs(dRow);
+            const absCol = Math.abs(dCol);
+            const maxDiff = Math.max(absRow, absCol);
+            const minDiff = Math.min(absRow, absCol);
+            const ratio = minDiff / maxDiff;
+            
+            // Check direction signs match (must go in same general direction)
+            const correctDirection = Math.sign(dRow) === Math.sign(direction.row) && 
+                                   Math.sign(dCol) === Math.sign(direction.col);
+            
+            if (!correctDirection) return false;
+            
+            // For diagonal, be very forgiving:
+            // - Perfect diagonal (1:1 ratio)
+            // - Near-diagonal (ratio >= 0.6, meaning up to 40% deviation)
+            // - Small distances (allow more deviation for shorter selections)
+            if (absRow === absCol) {
+                // Perfect diagonal
+                return true;
+            } else if (ratio >= 0.6) {
+                // Near-diagonal (very forgiving - up to 40% deviation)
+                return true;
+            } else if (maxDiff <= 3) {
+                // For very short selections, be even more forgiving
+                return true;
+            }
+            
+            return false;
+        }
+    }
+    
+    function buildPath(startCell, endCell, direction) {
+        const path = [];
+        const startRow = parseInt(startCell.dataset.row);
+        const startCol = parseInt(startCell.dataset.col);
+        const endRow = parseInt(endCell.dataset.row);
+        const endCol = parseInt(endCell.dataset.col);
+        
+        // Calculate actual distance to end cell
+        const totalRowDiff = endRow - startRow;
+        const totalColDiff = endCol - startCol;
+        const absRowDiff = Math.abs(totalRowDiff);
+        const absColDiff = Math.abs(totalColDiff);
+        
+        // For diagonals, use the maximum distance to ensure we reach the end cell
+        // This makes diagonal selection much smoother
+        let distance;
+        if (direction.row === 0) {
+            // Horizontal
+            distance = absColDiff;
+        } else if (direction.col === 0) {
+            // Vertical
+            distance = absRowDiff;
+        } else {
+            // Diagonal - use maximum to ensure smooth path to end
+            distance = Math.max(absRowDiff, absColDiff);
+        }
+        
+        // Build path from start to end, following the direction smoothly
+        for (let i = 1; i <= distance; i++) {
+            let row, col;
+            
+            if (direction.row === 0) {
+                // Horizontal
+                row = startRow;
+                col = startCol + (direction.col * i);
+            } else if (direction.col === 0) {
+                // Vertical
+                row = startRow + (direction.row * i);
+                col = startCol;
+            } else {
+                // Diagonal - use smooth interpolation for near-diagonals
+                // This makes selection much easier and smoother
+                const progress = i / distance;
+                
+                // Interpolate based on actual end position for smoother paths
+                row = Math.round(startRow + (totalRowDiff * progress));
+                col = Math.round(startCol + (totalColDiff * progress));
+                
+                // For perfect diagonals, ensure we use direction properly
+                if (absRowDiff === absColDiff) {
+                    // Perfect diagonal: use direction directly
+                    row = startRow + (direction.row * i);
+                    col = startCol + (direction.col * i);
+                }
+            }
+            
+            // Check bounds
+            if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) break;
+            
+            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            // Include found cells in path - words can share letters
+            if (cell) {
+                path.push(cell);
+            }
+        }
+        
+        return path;
+    }
+    
+    function clearSelection() {
+        selectedCells.forEach(cell => {
+            // Remove selected class, but keep found class if present
+            // This allows words to share letters - each word keeps its own color
+            cell.classList.remove('selected');
+        });
+        selectedCells = [];
+    }
+    
+    function checkWord() {
+        if (selectedCells.length < 2) return;
+        
+        // Sort selected cells by position to ensure correct reading order
+        // For RTL horizontal: sort by column descending (right to left)
+        // For LTR horizontal: sort by column ascending (left to right)
+        // For vertical: sort by row
+        // For diagonal: sort based on direction
+        const sortedCells = [...selectedCells].sort((a, b) => {
+            const aRow = parseInt(a.dataset.row);
+            const aCol = parseInt(a.dataset.col);
+            const bRow = parseInt(b.dataset.row);
+            const bCol = parseInt(b.dataset.col);
+            
+            // Determine if selection is horizontal, vertical, or diagonal
+            const rowDiff = Math.abs(aRow - bRow);
+            const colDiff = Math.abs(aCol - bCol);
+            
+            if (rowDiff === 0) {
+                // Horizontal: for RTL, sort by column descending (right to left)
+                // Check if selection goes right to left (RTL) or left to right (LTR)
+                const isRTL = selectedCells[0] && selectedCells[selectedCells.length - 1] &&
+                    parseInt(selectedCells[0].dataset.col) > parseInt(selectedCells[selectedCells.length - 1].dataset.col);
+                return isRTL ? bCol - aCol : aCol - bCol;
+            } else if (colDiff === 0) {
+                // Vertical: sort by row
+                return aRow - bRow;
+            } else {
+                // Diagonal: sort by the primary direction
+                // Determine direction from the cells themselves
+                const firstRow = parseInt(selectedCells[0].dataset.row);
+                const firstCol = parseInt(selectedCells[0].dataset.col);
+                
+                // Calculate direction based on distance from first cell
+                const aDistRow = aRow - firstRow;
+                const aDistCol = aCol - firstCol;
+                const bDistRow = bRow - firstRow;
+                const bDistCol = bCol - firstCol;
+                
+                // For diagonal, use the maximum distance (row or col) to sort
+                // This ensures proper ordering along the diagonal line
+                const aMaxDist = Math.max(Math.abs(aDistRow), Math.abs(aDistCol));
+                const bMaxDist = Math.max(Math.abs(bDistRow), Math.abs(bDistCol));
+                
+                // Sort by maximum distance from start
+                if (aMaxDist !== bMaxDist) {
+                    return aMaxDist - bMaxDist;
+                }
+                
+                // If same distance, sort by row (or could use col)
+                return aRow - bRow;
+            }
+        });
+        
+        // Get positions in sorted order
+        const selectedPositions = sortedCells.map(cell => ({
+            row: parseInt(cell.dataset.row),
+            col: parseInt(cell.dataset.col)
+        }));
+        
+        // Get word from sorted cells to ensure correct letter order
+        // For RTL: letters should be read from right to left (ا on right, ة on left)
+        const selectedWord = sortedCells.map(cell => cell.dataset.letter).join('');
+        // Also check reversed (in case user selected in opposite direction)
+        const selectedWordReversed = selectedWord.split('').reverse().join('');
+        
+        // Check if it matches any word in the list
+        words.forEach((word, index) => {
+            if (foundWords.has(index)) return; // Already found
+            
+            // For Arabic words, check both the selected order and reversed
+            // This handles both RTL selection (right to left) and LTR selection (left to right)
+            let wordMatches = false;
+            
+            // Check if selected word matches (forward or reverse)
+            if (selectedWord === word || selectedWordReversed === word) {
+                wordMatches = true;
+            }
+            
+            if (wordMatches) {
+                // Check if the selection matches the word's position
+                const wordPos = wordPositions.find(wp => wp.word === word);
+                if (wordPos && wordPos.positions) {
+                    // Check if positions match (allowing for reverse and different directions)
+                    const matches = checkPositionsMatch(selectedPositions, wordPos.positions);
+                    
+                    if (matches) {
+                        markWordAsFound(index, wordPos);
+                        return; // Stop checking once found
+                    } else {
+                        // If word matches but positions don't exactly match, still accept it
+                        // This handles cases where grid was regenerated or positions are slightly off
+                        markWordAsFound(index, wordPos);
+                        return;
+                    }
+                } else {
+                    // If no position data, just check the word (for backward compatibility)
+                    markWordAsFound(index, null);
+                    return; // Stop checking once found
+                }
+            }
+        });
+    }
+    
+    function checkPositionsMatch(selectedPos, wordPos) {
+        if (selectedPos.length !== wordPos.length) {
+            return false;
+        }
+        
+        // Create sets of positions for comparison
+        const wordPosSet = new Set(wordPos.map(p => `${p.row},${p.col}`));
+        const selectedPosSet = new Set(selectedPos.map(p => `${p.row},${p.col}`));
+        
+        // Check if all positions match (allowing for any order)
+        const allMatch = wordPosSet.size === selectedPosSet.size && 
+            [...wordPosSet].every(p => selectedPosSet.has(p));
+        
+        if (allMatch) {
+            return true;
+        }
+        
+        // Check reverse order
+        const reversedSelected = [...selectedPos].reverse();
+        const reversedSelectedSet = new Set(reversedSelected.map(p => `${p.row},${p.col}`));
+        
+        const reverseMatch = wordPosSet.size === reversedSelectedSet.size && 
+            [...wordPosSet].every(p => reversedSelectedSet.has(p));
+        
+        return reverseMatch;
+    }
+    
+    function createSparkleAnimation(element) {
+        const sparkles = 20;
+        for (let i = 0; i < sparkles; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.style.position = 'absolute';
+            sparkle.style.width = '6px';
+            sparkle.style.height = '6px';
+            sparkle.style.backgroundColor = wordColors[Math.floor(Math.random() * wordColors.length)];
+            sparkle.style.borderRadius = '50%';
+            sparkle.style.pointerEvents = 'none';
+            sparkle.style.zIndex = '9999';
+            
+            const rect = element.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            
+            sparkle.style.left = x + 'px';
+            sparkle.style.top = y + 'px';
+            
+            document.body.appendChild(sparkle);
+            
+            const angle = (Math.PI * 2 * i) / sparkles;
+            const distance = 50 + Math.random() * 30;
+            const endX = x + Math.cos(angle) * distance;
+            const endY = y + Math.sin(angle) * distance;
+            
+            sparkle.animate([
+                { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                { transform: `translate(${endX - x}px, ${endY - y}px) scale(0)`, opacity: 0 }
+            ], {
+                duration: 600,
+                easing: 'ease-out'
+            }).onfinish = () => sparkle.remove();
+        }
+    }
+    
+    function createConfetti() {
+        const colors = wordColors;
+        const confettiCount = 150;
+        const duration = 3000;
+        
+        for (let i = 0; i < confettiCount; i++) {
+            const confetti = document.createElement('div');
+            confetti.style.position = 'fixed';
+            confetti.style.width = '10px';
+            confetti.style.height = '10px';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.top = '-10px';
+            confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+            confetti.style.pointerEvents = 'none';
+            confetti.style.zIndex = '9999';
+            confetti.style.opacity = '0.9';
+            
+            document.body.appendChild(confetti);
+            
+            const animationDuration = Math.random() * 2 + 1.5;
+            const horizontalMovement = (Math.random() - 0.5) * 300;
+            const rotation = Math.random() * 720;
+            
+            confetti.animate([
+                { transform: 'translateY(0) translateX(0) rotate(0deg)', opacity: 0.9 },
+                { transform: `translateY(${window.innerHeight + 100}px) translateX(${horizontalMovement}px) rotate(${rotation}deg)`, opacity: 0 }
+            ], {
+                duration: animationDuration * 1000,
+                easing: 'cubic-bezier(0.5, 0, 0.5, 1)'
+            }).onfinish = () => confetti.remove();
+        }
+    }
+    
+    function markWordAsFound(wordIndex, wordPos) {
+        const color = wordColors[wordIndex % wordColors.length];
+        foundWords.set(wordIndex, color);
+        
+        // Add score for finding a word
+        score += scorePerWord;
+        
+        // Highlight cells with the word's color with animation
+        const positionsToHighlight = wordPos && wordPos.positions 
+            ? wordPos.positions 
+            : selectedCells.map(cell => ({
+                row: parseInt(cell.dataset.row),
+                col: parseInt(cell.dataset.col)
+            }));
+        
+        let animationDelay = 0;
+        positionsToHighlight.forEach((pos, idx) => {
+            const cell = document.querySelector(`[data-row="${pos.row}"][data-col="${pos.col}"]`);
+            if (cell) {
+                // Allow cells to be part of multiple words (words can share letters)
+                cell.classList.add('found');
+                
+                // Animate cell highlight
+                setTimeout(() => {
+                    cell.style.transition = 'all 0.3s ease';
+                    cell.style.backgroundColor = color;
+                    cell.style.borderColor = color;
+                    cell.style.borderWidth = '2px';
+                    cell.style.transform = 'scale(1.1)';
+                    
+                    // Create sparkle animation on each cell
+                    createSparkleAnimation(cell);
+                    
+                    setTimeout(() => {
+                        cell.style.transform = 'scale(1)';
+                    }, 300);
+                }, animationDelay);
+                
+                animationDelay += 50; // Stagger animations
+                cell.classList.remove('selected');
+                
+                // Store which words this cell belongs to
+                if (!cell.dataset.foundWords) {
+                    cell.dataset.foundWords = '';
+                }
+                cell.dataset.foundWords += (cell.dataset.foundWords ? ',' : '') + wordIndex;
+            }
+        });
+        
+        // Mark word in list with animation
+        const wordItem = document.querySelector(`[data-word-index="${wordIndex}"]`);
+        if (wordItem) {
+            wordItem.style.transition = 'all 0.5s ease';
+            wordItem.classList.add('bg-pink-100', 'border-pink-500');
+            wordItem.style.transform = 'scale(1.05)';
+            
+            const indicator = wordItem.querySelector('.found-indicator');
+            if (indicator) {
+                indicator.classList.remove('hidden');
+                indicator.style.animation = 'bounce 0.6s ease';
+            }
+            
+            // Create sparkle animation on word item
+            setTimeout(() => {
+                createSparkleAnimation(wordItem);
+                wordItem.style.transform = 'scale(1)';
+            }, 300);
+        }
+        
+        // Check if all words are found
+        if (foundWords.size === words.length) {
+                // Calculate final score
+                const finalScore = Math.min(100, score);
+                
+                // Store score for word search game
+                if (typeof window.gameScores !== 'undefined') {
+                    window.gameScores.wordsearch = finalScore;
+                }
+                
+                setTimeout(() => {
+                    // Show completion message overlay (centered on screen)
+                    const overlay = document.getElementById('completionMessageOverlay');
+                    const completionMessageBox = document.getElementById('completionMessage');
+                    const finalScoreEl = document.getElementById('finalScore');
+                    
+                    if (overlay && completionMessageBox && finalScoreEl) {
+                        // Set score text
+                        finalScoreEl.textContent = `النتيجة: ${finalScore} / 100`;
+                        
+                        // Show overlay
+                        overlay.classList.remove('hidden');
+                        overlay.style.display = 'flex';
+                        
+                        // Reset transform and trigger animation
+                        completionMessageBox.style.transform = 'scale(0)';
+                        completionMessageBox.style.opacity = '0';
+                        setTimeout(() => {
+                            completionMessageBox.style.animation = 'scaleInBounce 0.6s ease forwards';
+                            completionMessageBox.style.transform = '';
+                            completionMessageBox.style.opacity = '';
+                        }, 10);
+                    }
+
+                    // Create confetti celebration
+                    createConfetti();
+                    
+                    // Save score
+                    const gameId = @json($wordSearchGame->game_id ?? null);
+                    const saveScoreRoute = @json(route('student.games.saveScore'));
+                    if (gameId) {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                        fetch(saveScoreRoute, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken || '',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                game_id: gameId,
+                                score: finalScore
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => Promise.reject(err));
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Word Search score saved successfully:', data);
+                            // Update gameScores
+                            if (typeof window.gameScores !== 'undefined') {
+                                window.gameScores.wordsearch = finalScore;
+                            }
+                            // Check if this is the last game - if so, show completion message
+                            const wordSearchIndex = availableGames.findIndex(g => g.type === 'wordsearch');
+                            if (wordSearchIndex !== -1 && wordSearchIndex === availableGames.length - 1) {
+                                // This is the last game, show completion message after closing overlay
+                                setTimeout(() => {
+                                    if (typeof moveToNextGame === 'function') {
+                                        moveToNextGame(); // This will show the completion message
+                                    }
+                                }, 500);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error saving Word Search score:', error);
+                        });
+                    } else {
+                        console.error('Word Search game_id is null - cannot save score');
+                    }
+                }, animationDelay + 200);
+        }
+    }
+    
+    // Prevent text selection while dragging
+    document.addEventListener('selectstart', function(e) {
+        if (isSelecting) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+<style>
+.word-search-cell {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+.word-search-cell.found {
+    border-width: 2px !important;
+    transition: all 0.3s ease !important;
+}
+.word-search-cell.selected {
+    background-color: #FFB6E1 !important;
+    border-color: #FF69B4 !important;
+    border-width: 2px !important;
+}
+/* Allow selected class to show on found cells (for words that share letters) */
+.word-search-cell.found.selected {
+    /* Show selection border on top of found background */
+    box-shadow: inset 0 0 0 2px #FF69B4;
+    border-color: #FF69B4 !important;
+}
+
+/* Animations */
+@keyframes scaleIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleInBounce {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 0.9;
+    }
+    75% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.word-color-box {
+    transition: all 0.3s ease;
+}
+.word-item.bg-pink-100 .word-color-box {
+    border-width: 3px;
+    box-shadow: 0 2px 8px rgba(255, 105, 180, 0.3);
+    animation: pulse 1s ease infinite;
+}
+.word-color-box {
+    transition: all 0.3s ease;
+}
+.word-item.bg-green-100 .word-color-box {
+    border-width: 3px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+</style>
+@endif
+
+@if(isset($selectedLessonId) && $selectedLessonId && $hasMcqPairs)
+@vite(['resources/js/mcq-quiz.js'])
+@endif
+@if(isset($selectedLessonId) && $selectedLessonId && $hasScramblePairs)
+@vite(['resources/js/scramble-quiz.js'])
+@endif
+
 <style>
     .quiz-progress-btn { min-width: 2.5rem; min-height: 2.5rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; }
     .quiz-progress-btn.active { border: 2px solid #2563eb; background: #dbeafe; }
     .quiz-progress-btn.correct { background: #bbf7d0; color: #15803d; border: 2px solid #22c55e; }
     .quiz-progress-btn.wrong { background: #fecaca; color: #b91c1c; border: 2px solid #ef4444; }
     #scrambleBtn { background-color: #FC8EAC !important; color: white !important; }
+    .clock-word-item:hover { transform: scale(1.05); transition: transform 0.2s; }
+    .clock-word-item:active { transform: scale(0.95); }
+    .clock-word-item.drag-over { border: 2px dashed #10b981; border-radius: 8px; padding: 4px; }
+    .word-clock-arrangement-item:hover { transform: scale(1.05); transition: transform 0.2s; }
+    .word-clock-arrangement-item:active { transform: scale(0.95); }
+    .word-clock-arrangement-item.drag-over { border: 2px dashed #10b981; border-radius: 8px; padding: 4px; }
+    
+    /* Matching Pairs Game Styles */
+    .matching-item {
+        transition: all 0.3s ease;
+        min-height: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+    
+    .matching-item .flex {
+        width: 100%;
+        height: 100%;
+        align-items: center;
+    }
+    
+    .matching-item:hover {
+        transform: scale(1.05);
+    }
+    
+    .matching-item img {
+        flex-shrink: 0;
+    }
+    
+    .matching-item span {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+    }
+    
+    #connectionCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+    
+    /* Enhanced UI Animations */
+    @keyframes gradient-shift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+    
+    .animate-gradient {
+        background-size: 200% 200%;
+        animation: gradient-shift 3s ease infinite;
+    }
+    
+    @keyframes float-gentle {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-10px) rotate(2deg); }
+    }
+    
+    .animate-float-gentle {
+        animation: float-gentle 4s ease-in-out infinite;
+    }
+    
+    @keyframes glow-pulse {
+        0%, 100% { opacity: 0.5; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    
+    /* Enhanced Select Dropdown Styling */
+    select:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+    }
+    
+    /* Smooth transitions for all interactive elements */
+    * {
+        transition-property: transform, opacity, box-shadow, border-color;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Enhanced card hover effects */
+    .hover-lift {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    /* Custom scrollbar for better aesthetics */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: rgba(255, 182, 193, 0.1);
+        border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(to bottom, #f9a8d4, #67e8f9);
+        border-radius: 10px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(to bottom, #f472b6, #22d3ee);
+    }
 </style>
 @endsection
