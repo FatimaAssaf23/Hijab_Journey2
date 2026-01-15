@@ -1,7 +1,5 @@
 <?php
-// Level name update (admin)
-use App\Http\Controllers\LevelController;
-Route::post('/admin/levels/update-name', [LevelController::class, 'updateName'])->name('admin.levels.updateName');
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\ProfileController;
@@ -9,6 +7,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TeacherRequestController;
 use App\Http\Controllers\TeacherLessonController;
 use App\Http\Controllers\TeacherClassesController;
+use App\Http\Controllers\LevelController;
 use App\Models\Level;
 use App\Models\Student;
 use App\Models\ClassLessonVisibility;
@@ -96,7 +95,16 @@ Route::get('/student/dashboard', function () {
 
 // Teacher dashboard route
 Route::get('/teacher/dashboard', function () {
-    return view('teacher.dashboard');
+    // Get all levels with their lesson counts (same as lesson management)
+    $levels = \App\Models\Level::with('lessons')->orderBy('level_id')->get();
+    
+    // Prepare data for the chart - start with 0, then add levels
+    $levelNames = array_merge(['0'], $levels->pluck('level_name')->toArray());
+    $lessonCounts = array_merge([0], $levels->map(function($level) {
+        return $level->lessons->count();
+    })->toArray());
+    
+    return view('teacher.dashboard', compact('levels', 'levelNames', 'lessonCounts'));
 })->middleware(['auth', 'verified', 'can:isTeacher'])->name('teacher.dashboard');
 
 use App\Http\Controllers\LessonPublicController;
@@ -121,6 +129,8 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     Route::get('/profile', [AdminController::class, 'profile'])->name('admin.profile');
     Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
     Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
+    // Level name update
+    Route::post('/levels/update-name', [LevelController::class, 'updateName'])->name('admin.levels.updateName');
     // Lessons
     Route::get('/lessons', [AdminController::class, 'lessons'])->name('admin.lessons');
     Route::get('/lessons/create', [AdminController::class, 'createLesson'])->name('admin.lessons.create');
@@ -235,11 +245,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\GroupChatController;
+use App\Http\Controllers\MeetingController;
 
 // Teacher assignments (upload & list)
 Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+});
+
+// Group Chat Routes (Students and Teachers)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/group-chat/{classId?}', [GroupChatController::class, 'index'])->name('group-chat.index');
+    Route::post('/group-chat/messages', [GroupChatController::class, 'store'])->name('group-chat.store');
+    Route::get('/group-chat/{classId}/messages', [GroupChatController::class, 'getMessages'])->name('group-chat.messages');
+    Route::post('/group-chat/messages/{messageId}/reaction', [GroupChatController::class, 'addReaction'])->name('group-chat.reaction');
+    Route::delete('/group-chat/messages/{messageId}', [GroupChatController::class, 'deleteMessage'])->name('group-chat.delete');
 });
 
 // Student assignments (view & submission)
@@ -289,3 +310,14 @@ Route::post('/lessons/{lesson}/complete', function ($lessonId) {
     $progress->save();
     return redirect()->back()->with('success', 'Lesson marked as completed!');
 })->middleware(['auth', 'verified'])->name('student.lesson.complete');
+
+// Meeting routes
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
+    Route::get('/meetings/create', [MeetingController::class, 'create'])->name('meetings.create');
+    Route::post('/meetings', [MeetingController::class, 'store'])->name('meetings.store');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/meetings', [MeetingController::class, 'index'])->name('meetings.index');
+    Route::get('/meetings/{meeting:meeting_id}', [MeetingController::class, 'show'])->name('meetings.show');
+});

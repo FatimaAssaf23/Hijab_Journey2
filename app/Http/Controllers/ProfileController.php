@@ -12,11 +12,21 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
         if ($user->role === 'teacher') {
-            $teacherProfile = \App\Models\TeacherProfile::firstOrCreate(['user_id' => $user->user_id]);
+            // Always fetch fresh from database
+            $teacherProfile = \App\Models\TeacherProfile::where('user_id', $user->user_id)->first();
+            if (!$teacherProfile) {
+                $teacherProfile = \App\Models\TeacherProfile::create(['user_id' => $user->user_id]);
+            }
+            // Build the URL - use asset() for better compatibility
+            $profilePhotoUrl = $teacherProfile->profile_photo_path 
+                ? asset('storage/' . $teacherProfile->profile_photo_path) 
+                : asset('images/default-profile.png');
             return view('profile.photo', [
-                'profilePhotoUrl' => $teacherProfile->profile_photo_path ? asset('storage/' . $teacherProfile->profile_photo_path) : asset('images/default-profile.png'),
+                'profilePhotoUrl' => $profilePhotoUrl,
             ]);
         }
+        // Refresh user to get latest data
+        $user = $user->fresh();
         return view('profile.photo', [
             'profilePhotoUrl' => $user->profile_photo_url,
         ]);
@@ -40,6 +50,8 @@ class ProfileController extends Controller
             }
             $teacherProfile->profile_photo_path = $path;
             $teacherProfile->save();
+            // Refresh the model to ensure we have the latest data
+            $teacherProfile->refresh();
         } else {
             // Delete old photo if exists
             if ($user->profile_photo_path) {
@@ -47,6 +59,7 @@ class ProfileController extends Controller
             }
             $user->profile_photo_path = $path;
             $user->save();
+            $user->refresh();
         }
 
         return redirect()->route('profile.photo.form')->with('success', 'Profile picture updated successfully.');

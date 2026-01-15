@@ -712,10 +712,22 @@
 
                 <div class="hero-buttons">
                     @auth
-                        <a href="{{ route('student.dashboard') }}" class="btn btn-primary">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
-                            Go to Dashboard
-                        </a>
+                        @if(Auth::user()->role === 'teacher')
+                            <a href="{{ route('teacher.dashboard') }}" class="btn btn-primary">
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+                                Go to Dashboard
+                            </a>
+                        @elseif(Auth::user()->role === 'admin')
+                            <a href="{{ route('admin.dashboard') }}" class="btn btn-primary">
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+                                Go to Dashboard
+                            </a>
+                        @else
+                            <a href="{{ route('student.dashboard') }}" class="btn btn-primary">
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+                                Go to Dashboard
+                            </a>
+                        @endif
                     @else
                         <a href="{{ route('login') }}" class="btn btn-primary">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
@@ -836,7 +848,13 @@
             </p>
             <div class="cta-buttons">
                 @auth
-                    <a href="{{ route('student.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+                    @if(Auth::user()->role === 'teacher')
+                        <a href="{{ route('teacher.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+                    @elseif(Auth::user()->role === 'admin')
+                        <a href="{{ route('admin.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+                    @else
+                        <a href="{{ route('student.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+                    @endif
                 @else
                     <a href="{{ route('register') }}" class="btn btn-primary">
                         <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>

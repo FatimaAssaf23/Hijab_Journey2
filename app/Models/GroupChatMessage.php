@@ -15,6 +15,7 @@ class GroupChatMessage extends Model
         'class_id',
         'sender_id',
         'content',
+        'reply_to_message_id',
         'sent_at',
         'is_deleted',
     ];
@@ -41,5 +42,29 @@ class GroupChatMessage extends Model
     public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id', 'user_id');
+    }
+
+    /**
+     * Get the message this is a reply to.
+     */
+    public function replyTo()
+    {
+        return $this->belongsTo(GroupChatMessage::class, 'reply_to_message_id', 'message_id');
+    }
+
+    /**
+     * Get all replies to this message.
+     */
+    public function replies()
+    {
+        return $this->hasMany(GroupChatMessage::class, 'reply_to_message_id', 'message_id');
+    }
+
+    /**
+     * Get all reactions to this message.
+     */
+    public function reactions()
+    {
+        return $this->hasMany(ChatMessageReaction::class, 'message_id', 'message_id');
     }
 }

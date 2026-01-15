@@ -14,7 +14,7 @@
                                     </button>
                                     <div class="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
                                         <a href="/meetings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Meeting</a>
-                                        <a href="/group-chat" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Group Chat</a>
+                                        <a href="{{ route('group-chat.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Group Chat</a>
                                         <a href="/contact-instructor" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Contact Instructor</a>
                                     </div>
                                 </div>
@@ -249,6 +249,10 @@
                 <a href="/group-chat" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Contacts</a>
                 <a href="/inbox" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Inbox</a>
             @else
+                <a href="{{ route('student.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Home / Dashboard</a>
+                <a href="/levels" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">My Class / Levels</a>
+                <a href="/lessons" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Lessons</a>
+                <a href="/grades" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Reward / Grades</a>
                 <a href="{{ route('student.dashboard') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>

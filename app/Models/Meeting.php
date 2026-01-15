@@ -18,6 +18,8 @@ class Meeting extends Model
         'description',
         'google_meet_link',
         'scheduled_at',
+        'start_time',
+        'end_time',
         'duration_minutes',
         'status',
     ];
@@ -26,6 +28,8 @@ class Meeting extends Model
     {
         return [
             'scheduled_at' => 'datetime',
+            'start_time' => 'datetime',
+            'end_time' => 'datetime',
             'duration_minutes' => 'integer',
         ];
     }

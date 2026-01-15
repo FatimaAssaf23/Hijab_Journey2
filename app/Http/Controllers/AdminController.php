@@ -133,6 +133,42 @@ class AdminController extends Controller
         6 => 'from-amber-400 to-yellow-400',
     ];
 
+    /**
+     * Generate a secure random password
+     * 
+     * @param int $length The length of the password (default 10, minimum 8)
+     * @return string A secure password with uppercase, lowercase, numbers, and special characters
+     */
+    private function generateSecurePassword($length = 10)
+    {
+        // Ensure minimum length of 8 for security, but respect maximum of 10
+        $length = max(8, min(10, $length));
+        
+        // Define character sets
+        $uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Excluding I and O to avoid confusion
+        $lowercase = 'abcdefghjkmnpqrstuvwxyz'; // Excluding i, l, o to avoid confusion
+        $numbers = '23456789'; // Excluding 0, 1 to avoid confusion with O, I
+        $special = '!@#$%^&*()_+-=[]{}|;:,.<>?'; // Common special characters
+        
+        // Ensure we have at least one character from each set
+        $password = '';
+        $password .= $uppercase[random_int(0, strlen($uppercase) - 1)];
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $numbers[random_int(0, strlen($numbers) - 1)];
+        $password .= $special[random_int(0, strlen($special) - 1)];
+        
+        // Combine all character sets
+        $allChars = $uppercase . $lowercase . $numbers . $special;
+        
+        // Fill the rest randomly up to the desired length
+        for ($i = strlen($password); $i < $length; $i++) {
+            $password .= $allChars[random_int(0, strlen($allChars) - 1)];
+        }
+        
+        // Shuffle the password to randomize character positions
+        return str_shuffle($password);
+    }
+
 
     /**
      * Get teachers from database
@@ -262,6 +298,23 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Calculate class status counts
+        $fullClassesCount = StudentClass::where(function($query) {
+            $query->where('status', 'full')
+                  ->orWhereColumn('current_enrollment', '>=', 'capacity');
+        })->count();
+        
+        $activeClassesCount = StudentClass::where('status', 'active')
+            ->whereColumn('current_enrollment', '<', 'capacity')
+            ->where('current_enrollment', '>', 0)
+            ->count();
+        
+        $emptyClassesCount = StudentClass::where('current_enrollment', 0)->count();
+
+        // Get approved and rejected teacher counts
+        $approvedTeachersCount = TeacherRequest::where('status', 'approved')->count();
+        $rejectedTeachersCount = TeacherRequest::where('status', 'rejected')->count();
+
         return view('admin.dashboard', [
             'lessonsCount' => Lesson::count(),
             'classesCount' => StudentClass::count(),
@@ -269,8 +322,13 @@ class AdminController extends Controller
             'emergencyCasesCount' => TeacherSubstitution::where('status', 'active')->count(),
             'studentsCount' => Student::count(),
             'teachersCount' => User::where('role', 'teacher')->count(),
+            'fullClassesCount' => $fullClassesCount,
+            'activeClassesCount' => $activeClassesCount,
+            'emptyClassesCount' => $emptyClassesCount,
             'unreadRequests' => $unreadRequests,
             'unreadRequestsCount' => $unreadRequests->count(),
+            'approvedTeachersCount' => $approvedTeachersCount,
+            'rejectedTeachersCount' => $rejectedTeachersCount,
         ]);
     }
 
@@ -482,12 +540,31 @@ class AdminController extends Controller
         return redirect()->route('admin.lessons')->with('success', 'Lesson deleted successfully!');
     }
 
+    /**
+     * Get unenrolled students from database
+     */
+    private function getUnenrolledStudents()
+    {
+        return Student::whereNull('class_id')
+            ->with('user')
+            ->get()
+            ->map(function ($student) {
+                $user = $student->user;
+                return [
+                    'id' => $student->student_id,
+                    'name' => $user ? ($user->first_name . ' ' . $user->last_name) : 'Unknown',
+                    'email' => $user ? $user->email : '',
+                ];
+            })->toArray();
+    }
+
     // CLASSES
     public function classes()
     {
         return view('admin.classes.index', [
             'classes' => $this->getClassesFromDb(),
             'teachers' => $this->getTeachersFromDb(),
+            'unenrolledStudents' => $this->getUnenrolledStudents(),
         ]);
     }
 
@@ -507,6 +584,14 @@ class AdminController extends Controller
             'teacherId' => 'nullable|integer',
             'color' => 'required|string|in:pink-dark,pink-light,cream,turquoise,teal,tan,beige,ivory,blush,coral,rose',
         ]);
+
+        // Check if a class with the same name already exists (prevent duplicates)
+        $existingClass = StudentClass::where('class_name', $request->name)->first();
+        if ($existingClass) {
+            return redirect()->route('admin.classes.create')
+                ->withInput()
+                ->withErrors(['name' => 'A class with this name already exists. Please choose a different name.']);
+        }
 
         StudentClass::create([
             'class_name' => $request->name,
@@ -610,8 +695,8 @@ class AdminController extends Controller
             $teacherRequest->save();
             \Log::info('TeacherRequest status set to approved for id: ' . $id);
 
-            // Generate a random password
-            $generatedPassword = Str::random(10);
+            // Generate a secure random password (10 characters max)
+            $generatedPassword = $this->generateSecurePassword(10);
             $teacherEmail = $teacherRequest->email;
             $teacherName = $teacherRequest->full_name;
 
@@ -673,12 +758,21 @@ class AdminController extends Controller
                 ]);
             }
 
-            // Send approval email with credentials
-            Mail::to($teacherEmail)->send(new TeacherApprovedMail(
-                $teacherName,
-                $teacherEmail,
-                $generatedPassword
-            ));
+            // Send approval email with credentials (send immediately, not queued)
+            try {
+                $mailSent = Mail::to($teacherEmail)->send(new TeacherApprovedMail(
+                    $teacherName,
+                    $teacherEmail,
+                    $generatedPassword
+                ));
+                \Log::info('Approval email sent to: ' . $teacherEmail . ' with password for request ID: ' . $id);
+                \Log::info('Mail configuration - MAIL_MAILER: ' . config('mail.default'));
+            } catch (\Exception $mailException) {
+                \Log::error('Failed to send approval email to ' . $teacherEmail . ': ' . $mailException->getMessage());
+                \Log::error('Email exception details: ' . $mailException->getTraceAsString());
+                \Log::error('Mail configuration - MAIL_MAILER: ' . config('mail.default') . ', MAIL_HOST: ' . config('mail.mailers.smtp.host'));
+                // Continue even if email fails, but log it
+            }
 
             DB::commit();
             \Log::info('TeacherRequest approval completed for id: ' . $id);
@@ -719,17 +813,23 @@ class AdminController extends Controller
             }
         }
 
-        // Send rejection email with reason
+        // Send rejection email with reason (send immediately, not queued)
         if ($teacherEmail) {
             try {
                 Mail::to($teacherEmail)->send(new TeacherRejectedMail(
                     $teacherName ?? 'Applicant',
                     $rejectionReason
                 ));
+                \Log::info('Rejection email sent to: ' . $teacherEmail . ' for request ID: ' . $id);
+                \Log::info('Mail configuration - MAIL_MAILER: ' . config('mail.default'));
             } catch (\Exception $e) {
                 // Log the error but don't fail the rejection
-                \Log::error('Failed to send rejection email: ' . $e->getMessage());
+                \Log::error('Failed to send rejection email to ' . $teacherEmail . ': ' . $e->getMessage());
+                \Log::error('Email exception details: ' . $e->getTraceAsString());
+                \Log::error('Mail configuration - MAIL_MAILER: ' . config('mail.default') . ', MAIL_HOST: ' . config('mail.mailers.smtp.host'));
             }
+        } else {
+            \Log::warning('Cannot send rejection email: No email address found for teacher request ID: ' . $id);
         }
 
         return redirect()->route('admin.requests')->with('success', 'Teacher request rejected. Notification email has been sent.');
@@ -1317,19 +1417,86 @@ class AdminController extends Controller
             $teacherRequest->status = 'approved';
             $teacherRequest->approved_by_admin_id = Auth::id();
             $teacherRequest->processed_date = now();
+            $teacherRequest->is_read = true;
             $teacherRequest->save();
 
-            // Update the user's role to teacher
-            $user = User::find($teacherRequest->user_id);
-            if ($user) {
-                $user->role = 'teacher';
-                $user->save();
+            // Generate a secure random password (10 characters max)
+            $generatedPassword = $this->generateSecurePassword(10);
+            $teacherEmail = $teacherRequest->email;
+            $teacherName = $teacherRequest->full_name;
 
-                // Create a teacher record if it doesn't exist
-                Teacher::firstOrCreate(
-                    ['user_id' => $user->user_id],
-                    ['user_id' => $user->user_id]
-                );
+            // Split full name into first and last name (fallback to empty string if not present)
+            $nameParts = preg_split('/\s+/', trim($teacherName), 2);
+            $firstName = $nameParts[0] ?? '';
+            $lastName = isset($nameParts[1]) ? $nameParts[1] : '';
+
+            // Check if this is a guest application (no user_id) or existing user
+            if ($teacherRequest->user_id) {
+                // Existing user - update their role
+                $user = User::find($teacherRequest->user_id);
+                if ($user) {
+                    $user->role = 'teacher';
+                    $user->save();
+
+                    Teacher::firstOrCreate(
+                        ['user_id' => $user->user_id],
+                        ['user_id' => $user->user_id]
+                    );
+
+                    // Use existing email if not set in request
+                    $teacherEmail = $teacherRequest->email ?? $user->email;
+                    $teacherName = $teacherRequest->full_name ?? $user->name;
+
+                    // Update password for existing user
+                    $user->password = Hash::make($generatedPassword);
+                    $user->save();
+                }
+            } else {
+                // Guest application - check if user already exists by email
+                $user = User::where('email', $teacherEmail)->first();
+                if ($user) {
+                    // User exists, update role and password
+                    $user->role = 'teacher';
+                    $user->first_name = $firstName;
+                    $user->last_name = $lastName;
+                    $user->password = Hash::make($generatedPassword);
+                    $user->save();
+                } else {
+                    // Create new user
+                    $user = User::create([
+                        'name' => $teacherName,
+                        'first_name' => $firstName,
+                        'last_name' => $lastName,
+                        'email' => $teacherEmail,
+                        'password' => Hash::make($generatedPassword),
+                        'role' => 'teacher',
+                    ]);
+                }
+
+                // Link the request to the user
+                $teacherRequest->user_id = $user->user_id;
+                $teacherRequest->save();
+
+                // Create teacher record if not exists
+                Teacher::firstOrCreate([
+                    'user_id' => $user->user_id,
+                ]);
+            }
+
+            // Send approval email with credentials (send immediately, not queued)
+            try {
+                $mailSent = Mail::to($teacherEmail)->send(new TeacherApprovedMail(
+                    $teacherName,
+                    $teacherEmail,
+                    $generatedPassword
+                ));
+                \Log::info('Approval email sent to: ' . $teacherEmail . ' with password for request ID: ' . $id);
+                \Log::info('Mail configuration - MAIL_MAILER: ' . config('mail.default'));
+            } catch (\Exception $mailException) {
+                \Log::error('Failed to send approval email to ' . $teacherEmail . ': ' . $mailException->getMessage());
+                \Log::error('Email exception details: ' . $mailException->getTraceAsString());
+                \Log::error('Mail configuration - MAIL_MAILER: ' . config('mail.default') . ', MAIL_HOST: ' . config('mail.mailers.smtp.host'));
+                // Continue even if email fails, but log it
             }
 
             DB::commit();
@@ -1337,21 +1504,22 @@ class AdminController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Teacher request approved successfully!',
+                    'message' => 'Teacher request approved successfully! Login credentials have been sent to ' . $teacherEmail,
                     'request' => $teacherRequest->fresh()
                 ]);
             }
 
-            return redirect()->route('admin.requests')->with('success', 'Teacher request approved!');
+            return redirect()->route('admin.requests')->with('success', 'Teacher request approved successfully! Login credentials have been sent to ' . $teacherEmail);
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Failed to approve teacher request: ' . $e->getMessage());
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to approve teacher request: ' . $e->getMessage()
                 ], 500);
             }
-            return back()->withErrors(['error' => 'Failed to approve teacher request']);
+            return back()->withErrors(['error' => 'Failed to approve teacher request: ' . $e->getMessage()]);
         }
     }
 
@@ -1389,18 +1557,51 @@ class AdminController extends Controller
         $teacherRequest->status = 'rejected';
         $teacherRequest->approved_by_admin_id = Auth::id();
         $teacherRequest->processed_date = now();
-        $teacherRequest->rejection_reason = $validated['rejection_reason'] ?? null;
+        $teacherRequest->rejection_reason = $validated['rejection_reason'] ?? 'Application rejected by admin';
+        $teacherRequest->is_read = true;
         $teacherRequest->save();
+
+        // Get teacher info for email
+        $teacherEmail = $teacherRequest->email;
+        $teacherName = $teacherRequest->full_name;
+
+        // If this was from an existing user, get their info
+        if ($teacherRequest->user_id && !$teacherEmail) {
+            $user = User::find($teacherRequest->user_id);
+            if ($user) {
+                $teacherEmail = $user->email;
+                $teacherName = $teacherName ?? $user->name;
+            }
+        }
+
+        // Send rejection email with reason (send immediately, not queued)
+        if ($teacherEmail) {
+            try {
+                Mail::to($teacherEmail)->send(new TeacherRejectedMail(
+                    $teacherName ?? 'Applicant',
+                    $teacherRequest->rejection_reason
+                ));
+                \Log::info('Rejection email sent to: ' . $teacherEmail . ' for request ID: ' . $id);
+                \Log::info('Mail configuration - MAIL_MAILER: ' . config('mail.default'));
+            } catch (\Exception $e) {
+                // Log the error but don't fail the rejection
+                \Log::error('Failed to send rejection email to ' . $teacherEmail . ': ' . $e->getMessage());
+                \Log::error('Email exception details: ' . $e->getTraceAsString());
+                \Log::error('Mail configuration - MAIL_MAILER: ' . config('mail.default') . ', MAIL_HOST: ' . config('mail.mailers.smtp.host'));
+            }
+        } else {
+            \Log::warning('Cannot send rejection email: No email address found for teacher request ID: ' . $id);
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Teacher request rejected.',
+                'message' => 'Teacher request rejected. Notification email has been sent to ' . $teacherEmail,
                 'request' => $teacherRequest->fresh()
             ]);
         }
 
-        return redirect()->route('admin.requests')->with('success', 'Teacher request rejected.');
+        return redirect()->route('admin.requests')->with('success', 'Teacher request rejected. Notification email has been sent to ' . ($teacherEmail ?? 'the applicant'));
     }
 
     // --------------------------

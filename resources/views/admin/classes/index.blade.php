@@ -145,11 +145,12 @@ window.renderManageStudents = renderManageStudents;
 function addStudentToClass() {
     const select = document.getElementById('newStudentSelect');
     const studentId = select.value;
-    const studentName = select.options[select.selectedIndex].text;
     if (!studentId) {
         alert('Please select a student');
         return;
     }
+    const option = select.options[select.selectedIndex];
+    const studentName = option.text.split(' (')[0]; // Extract name from "Name (email)" format
     const students = studentsData[currentClassId] || [];
     if (students.find(s => s.id == studentId)) {
         alert('Student is already in this class');
@@ -168,16 +169,21 @@ function addStudentToClass() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Extract email from option text
+            const emailMatch = option.text.match(/\(([^)]+)\)/);
+            const email = emailMatch ? emailMatch[1] : '';
             const newStudent = {
                 id: parseInt(studentId),
                 name: studentName,
-                email: studentName.toLowerCase().replace(' ', '') + '@student.com'
+                email: email
             };
             if (!studentsData[currentClassId]) {
                 studentsData[currentClassId] = [];
             }
             studentsData[currentClassId].push(newStudent);
             renderManageStudents(studentsData[currentClassId]);
+            // Remove the option from the dropdown
+            option.remove();
             select.value = '';
             alert('Student added successfully!');
         } else {
@@ -475,6 +481,25 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
                 <button onclick="closeManageClass()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
             
+
+            <!-- Add Unenrolled Students -->
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                <h3 class="text-lg font-bold text-gray-800 mb-3">➕ Add Unenrolled Students</h3>
+                <div class="flex gap-2">
+                    <select id="newStudentSelect" class="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500">
+                        <option value="">Select a student to add...</option>
+                        @foreach($unenrolledStudents ?? [] as $student)
+                            <option value="{{ $student['id'] }}">{{ $student['name'] }} ({{ $student['email'] }})</option>
+                        @endforeach
+                    </select>
+                    <button onclick="addStudentToClass()" class="bg-gradient-to-r from-blue-500 to-purple-500 hover:shadow-lg text-white font-semibold px-6 py-2 rounded-lg transition-all">
+                        Add
+                    </button>
+                </div>
+                @if(empty($unenrolledStudents))
+                    <p class="text-sm text-gray-500 mt-2">No unenrolled students found.</p>
+                @endif
+            </div>
 
             <!-- Current Students List -->
             <div>

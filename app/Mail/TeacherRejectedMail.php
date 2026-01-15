@@ -31,6 +31,10 @@ class TeacherRejectedMail extends Mailable
     {
         return new Envelope(
             subject: 'Update on Your Teacher Application - Hijab Journey',
+            from: new \Illuminate\Mail\Mailables\Address(
+                config('mail.from.address'),
+                config('mail.from.name', 'Hijab Journey')
+            ),
         );
     }
 

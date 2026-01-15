@@ -114,7 +114,7 @@
                     <a href="{{ route('admin.classes') }}" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 rounded-lg transition-all text-center">
                         Cancel
                     </a>
-                    <button type="submit" class="flex-1 bg-gradient-to-r from-pink-500 to-teal-400 hover:shadow-lg text-white font-semibold py-3 rounded-lg transition-all">
+                    <button type="submit" id="submit-btn" class="flex-1 bg-gradient-to-r from-pink-500 to-teal-400 hover:shadow-lg text-white font-semibold py-3 rounded-lg transition-all">
                         Create Class
                     </button>
                 </div>
@@ -122,4 +122,22 @@
         </div>
     </div>
 </div>
+
+<script>
+// Prevent double submission
+document.querySelector('form').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn.disabled) {
+        e.preventDefault();
+        return false;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating...';
+    // Re-enable after 5 seconds as a safety measure
+    setTimeout(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Class';
+    }, 5000);
+});
+</script>
 @endsection

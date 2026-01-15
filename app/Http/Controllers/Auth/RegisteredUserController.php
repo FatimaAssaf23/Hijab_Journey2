@@ -54,18 +54,39 @@ class RegisteredUserController extends Controller
         ]);
 
         // Always create a student record for the new user
-        $studentClass = \App\Models\StudentClass::whereRaw('capacity > current_enrollment')->orderBy('class_id')->first();
+        // Try to find a class with available capacity (active status preferred)
+        $studentClass = \App\Models\StudentClass::where('status', 'active')
+            ->whereColumn('current_enrollment', '<', 'capacity')
+            ->orderBy('class_id')
+            ->first();
+        
+        // If no active class found, try any class with available capacity
+        if (!$studentClass) {
+            $studentClass = \App\Models\StudentClass::whereColumn('current_enrollment', '<', 'capacity')
+                ->orderBy('class_id')
+                ->first();
+        }
+        
         $student = \App\Models\Student::create([
             'user_id' => $user->user_id,
             'class_id' => $studentClass ? $studentClass->class_id : null,
         ]);
+        
         if ($studentClass) {
             $studentClass->increment('current_enrollment');
+            // Refresh to get updated enrollment count
+            $studentClass->refresh();
+            
             // If class is now full, update status
             if ($studentClass->current_enrollment >= $studentClass->capacity) {
                 $studentClass->status = 'full';
                 $studentClass->save();
+            } elseif ($studentClass->status === 'full' && $studentClass->current_enrollment < $studentClass->capacity) {
+                // If status was 'full' but now has space, set back to 'active'
+                $studentClass->status = 'active';
+                $studentClass->save();
             }
+            
             // Store class info in session for dashboard display
             session(['enrolled_class_id' => $studentClass->class_id]);
         }
