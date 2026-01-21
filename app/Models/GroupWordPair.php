@@ -8,10 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 class GroupWordPair extends Model
 {
     use HasFactory;
-    protected $fillable = ['lesson_group_id', 'word', 'definition'];
+    protected $fillable = ['lesson_group_id', 'lesson_id', 'game_type', 'word', 'definition'];
 
     public function group()
     {
         return $this->belongsTo(LessonGroup::class, 'lesson_group_id');
+    }
+
+    public function lesson()
+    {
+        return $this->belongsTo(Lesson::class, 'lesson_id', 'lesson_id');
     }
 }

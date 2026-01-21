@@ -15,11 +15,13 @@ use App\Models\Comment;
 use App\Models\Grade;
 use App\Models\Quiz;
 use App\Models\Teacher;
+use App\Models\TeacherProfile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Mail\TeacherRejectedMail;
 use App\Mail\TeacherApprovedMail;
 
@@ -404,6 +406,8 @@ class AdminController extends Controller
             'new_level_name' => 'nullable|string|max:255',
             'new_level_number' => 'nullable|integer',
             'new_level_description' => 'nullable|string|max:255',
+            'content_url' => 'nullable|url|max:500',
+            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:102400',
         ]);
 
         // Always ensure the selected level exists in the DB (for dropdown 1-10)
@@ -429,13 +433,15 @@ class AdminController extends Controller
             $levelId = $level->level_id;
         }
 
-        // Handle file upload (save to public/lessons)
+        // Handle content: URL or file upload (file takes priority if both provided)
         $contentUrl = null;
         if ($request->hasFile('content_file')) {
             $file = $request->file('content_file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('lessons'), $filename);
             $contentUrl = '/lessons/' . $filename;
+        } elseif ($request->filled('content_url')) {
+            $contentUrl = $request->content_url;
         }
 
         // Get the next lesson order for this level
@@ -505,18 +511,35 @@ class AdminController extends Controller
             'skills' => 'required|integer|min:0',
             'icon' => 'required|string|max:10',
             'levelId' => 'required|integer',
-            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:51200',
+            'content_url' => 'nullable|url|max:500',
+            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:102400',
         ]);
 
         $lesson = Lesson::find($id);
         if (!$lesson) abort(404);
 
-        // Handle file upload (save to public/lessons)
+        // Handle content: URL or file upload (file takes priority if both provided)
         if ($request->hasFile('content_file')) {
+            // Delete old file if it exists and is a local file
+            if ($lesson->content_url && !filter_var($lesson->content_url, FILTER_VALIDATE_URL)) {
+                $oldFilePath = public_path($lesson->content_url);
+                if (file_exists($oldFilePath)) {
+                    unlink($oldFilePath);
+                }
+            }
             $file = $request->file('content_file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('lessons'), $filename);
             $lesson->content_url = '/lessons/' . $filename;
+        } elseif ($request->filled('content_url')) {
+            // Delete old file if it exists and is a local file
+            if ($lesson->content_url && !filter_var($lesson->content_url, FILTER_VALIDATE_URL)) {
+                $oldFilePath = public_path($lesson->content_url);
+                if (file_exists($oldFilePath)) {
+                    unlink($oldFilePath);
+                }
+            }
+            $lesson->content_url = $request->content_url;
         }
 
         $lesson->title = $request->title;
@@ -886,13 +909,13 @@ class AdminController extends Controller
             'skills' => 'required|integer|min:0',
             'icon' => 'nullable|string|max:10',
             'description' => 'nullable|string',
-            'content_url' => 'nullable|string|max:255',
+            'content_url' => 'nullable|url|max:500',
             'duration_minutes' => 'nullable|integer|min:1',
             'is_visible' => 'nullable|boolean',
-            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:51200',
+            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:102400',
         ]);
 
-        // Handle file upload
+        // Handle content: URL or file upload (file takes priority if both provided)
         $contentUrl = $validated['content_url'] ?? null;
         if ($request->hasFile('content_file')) {
             $file = $request->file('content_file');
@@ -952,22 +975,27 @@ class AdminController extends Controller
             'skills' => 'nullable|integer|min:0',
             'icon' => 'nullable|string|max:10',
             'description' => 'nullable|string',
-            'content_url' => 'nullable|string|max:255',
+            'content_url' => 'nullable|url|max:500',
             'duration_minutes' => 'nullable|integer|min:1',
             'is_visible' => 'nullable|boolean',
             'lesson_order' => 'nullable|integer|min:1',
-            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:51200',
+            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:102400',
         ]);
 
-        // Handle file upload
+        // Handle content: URL or file upload (file takes priority if both provided)
         if ($request->hasFile('content_file')) {
-            // Delete old file if exists
-            if ($lesson->content_url && Storage::disk('public')->exists($lesson->content_url)) {
+            // Delete old file if exists and is a local file
+            if ($lesson->content_url && !filter_var($lesson->content_url, FILTER_VALIDATE_URL) && Storage::disk('public')->exists($lesson->content_url)) {
                 Storage::disk('public')->delete($lesson->content_url);
             }
             $file = $request->file('content_file');
             $filename = time() . '_' . $file->getClientOriginalName();
             $validated['content_url'] = $file->storeAs('lessons', $filename, 'public');
+        } elseif ($request->filled('content_url')) {
+            // Delete old file if exists and is a local file
+            if ($lesson->content_url && !filter_var($lesson->content_url, FILTER_VALIDATE_URL) && Storage::disk('public')->exists($lesson->content_url)) {
+                Storage::disk('public')->delete($lesson->content_url);
+            }
         }
 
         $lesson->update($validated);
@@ -1797,5 +1825,333 @@ class AdminController extends Controller
             'success' => true,
             'requests' => $requests
         ]);
+    }
+
+    /**
+     * Display all students page
+     * 
+     * @return \Illuminate\View\View
+     */
+    public function students()
+    {
+        $students = Student::with(['user', 'studentClass'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.students.index', compact('students'));
+    }
+
+    /**
+     * Show individual student profile
+     * 
+     * @param int $id
+     * @return \Illuminate\View\View
+     */
+    public function showStudent($id)
+    {
+        $student = Student::with(['user', 'studentClass', 'studentClass.teacher'])
+            ->findOrFail($id);
+
+        // Get student progress data
+        $lessonProgress = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)->count();
+        $completedLessons = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)
+            ->whereNotNull('completed_at')
+            ->count();
+        
+        $quizAttempts = \App\Models\QuizAttempt::where('student_id', $student->student_id)->count();
+        $assignmentSubmissions = \App\Models\AssignmentSubmission::where('student_id', $student->student_id)->count();
+        
+        // Get grades/averages
+        $grades = \App\Models\Grade::where('student_id', $student->student_id)->get();
+        $averageGrade = $grades->whereNotNull('percentage')->avg('percentage');
+        
+        // Get payments
+        $payments = \App\Models\Payment::where('student_id', $student->student_id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.students.show', compact(
+            'student',
+            'lessonProgress',
+            'completedLessons',
+            'quizAttempts',
+            'assignmentSubmissions',
+            'grades',
+            'averageGrade',
+            'payments'
+        ));
+    }
+
+    /**
+     * Export students to Excel
+     * 
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse
+     */
+    public function exportStudents()
+    {
+        $students = Student::with(['user', 'studentClass'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $filename = 'students_export_' . date('Y-m-d_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0'
+        ];
+
+        // Add BOM for UTF-8 Excel compatibility
+        $callback = function() use ($students) {
+            $file = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Headers
+            fputcsv($file, [
+                'ID',
+                'First Name',
+                'Last Name',
+                'Email',
+                'Phone',
+                'Date of Birth',
+                'City',
+                'Country',
+                'Class',
+                'Total Score',
+                'Plan Type',
+                'Subscription Status',
+                'Subscription Expires',
+                'Language',
+                'Date Joined'
+            ]);
+
+            // Data rows
+            foreach ($students as $student) {
+                $user = $student->user;
+                fputcsv($file, [
+                    $student->student_id,
+                    $user->first_name ?? '',
+                    $user->last_name ?? '',
+                    $user->email ?? '',
+                    $user->phone_number ?? '',
+                    $student->date_of_birth ? $student->date_of_birth->format('Y-m-d') : '',
+                    $student->city ?? '',
+                    $user->country ?? '',
+                    $student->studentClass ? $student->studentClass->class_name : 'No Class',
+                    $student->total_score ?? 0,
+                    $student->plan_type ?? 'basic',
+                    $student->subscription_status ?? 'inactive',
+                    $student->subscription_expires_at ? $student->subscription_expires_at->format('Y-m-d H:i:s') : '',
+                    $student->language ?? '',
+                    $user->date_joined ? $user->date_joined->format('Y-m-d') : ''
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Display all teachers page
+     * 
+     * @return \Illuminate\View\View
+     */
+    public function teachers()
+    {
+        // Get all teachers with their users and filter out those without users
+        $teachers = Teacher::with('user')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->filter(function ($teacher) {
+                return $teacher->user !== null;
+            });
+
+        // Get all teacher profiles in one query
+        $userIds = $teachers->pluck('user_id')->filter();
+        $profiles = TeacherProfile::whereIn('user_id', $userIds)
+            ->get()
+            ->keyBy('user_id');
+
+        // Get all teacher requests for language data
+        $teacherRequests = \App\Models\TeacherRequest::whereIn('user_id', $userIds)
+            ->get()
+            ->keyBy('user_id');
+
+        // Map teachers with classes count, profiles, and language
+        $teachers = $teachers->map(function ($teacher) use ($profiles, $teacherRequests) {
+            $user = $teacher->user;
+            if ($user) {
+                $teacher->classes_count = $user->taughtClasses()->count();
+                // Attach profile if exists
+                $teacher->user->teacherProfile = $profiles->get($user->user_id);
+                // Attach language from teacher request
+                $teacherRequest = $teacherRequests->get($user->user_id);
+                $teacher->user->language = $teacherRequest ? $teacherRequest->language : null;
+            } else {
+                $teacher->classes_count = 0;
+            }
+            return $teacher;
+        });
+
+        return view('admin.teachers.index', compact('teachers'));
+    }
+
+    /**
+     * Export teachers to CSV
+     * 
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse
+     */
+    public function exportTeachers()
+    {
+        // Get all teachers with their users and filter out those without users
+        $teachers = Teacher::with('user')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->filter(function ($teacher) {
+                return $teacher->user !== null;
+            });
+
+        // Get all teacher profiles in one query
+        $userIds = $teachers->pluck('user_id')->filter();
+        $profiles = TeacherProfile::whereIn('user_id', $userIds)
+            ->get()
+            ->keyBy('user_id');
+
+        // Get all teacher requests for language data
+        $teacherRequests = \App\Models\TeacherRequest::whereIn('user_id', $userIds)
+            ->get()
+            ->keyBy('user_id');
+
+        // Map teachers with classes count, profiles, and language
+        $teachers = $teachers->map(function ($teacher) use ($profiles, $teacherRequests) {
+            $user = $teacher->user;
+            if ($user) {
+                $teacher->classes_count = $user->taughtClasses()->count();
+                $teacher->user->teacherProfile = $profiles->get($user->user_id);
+                $teacherRequest = $teacherRequests->get($user->user_id);
+                $teacher->user->language = $teacherRequest ? $teacherRequest->language : null;
+                $teacher->user->specialization = $teacherRequest ? $teacherRequest->specialization : null;
+                $teacher->user->experience_years = $teacherRequest ? $teacherRequest->experience_years : null;
+            } else {
+                $teacher->classes_count = 0;
+            }
+            return $teacher;
+        });
+
+        $filename = 'teachers_export_' . date('Y-m-d_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0'
+        ];
+
+        // Add BOM for UTF-8 Excel compatibility
+        $callback = function() use ($teachers) {
+            $file = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Headers
+            fputcsv($file, [
+                'ID',
+                'First Name',
+                'Last Name',
+                'Email',
+                'Phone',
+                'Language',
+                'Specialization',
+                'Experience Years',
+                'Classes Count',
+                'Bio',
+                'Date Joined'
+            ]);
+
+            // Data rows
+            foreach ($teachers as $teacher) {
+                $user = $teacher->user;
+                $profile = $user ? ($user->teacherProfile ?? null) : null;
+                
+                fputcsv($file, [
+                    $teacher->teacher_id,
+                    $user->first_name ?? '',
+                    $user->last_name ?? '',
+                    $user->email ?? '',
+                    $user->phone_number ?? '',
+                    $user->language ?? '',
+                    $user->specialization ?? '',
+                    $user->experience_years ?? '',
+                    $teacher->classes_count ?? 0,
+                    $profile && $profile->bio ? $profile->bio : '',
+                    $user->date_joined ? $user->date_joined->format('Y-m-d') : ''
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Show individual teacher profile
+     * 
+     * @param int $id
+     * @return \Illuminate\View\View
+     */
+    public function showTeacher($id)
+    {
+        $teacher = Teacher::with('user')
+            ->findOrFail($id);
+        
+        $user = $teacher->user;
+        if (!$user) {
+            abort(404, 'Teacher user not found');
+        }
+
+        // Get teacher profile
+        $profile = TeacherProfile::where('user_id', $user->user_id)->first();
+
+        // Get teacher statistics
+        $classes = $user->taughtClasses()->with('students')->get();
+        $classesCount = $classes->count();
+        $totalStudents = $classes->sum(function($class) {
+            return $class->students()->count();
+        });
+        
+        $assignments = \App\Models\Assignment::where('teacher_id', $user->user_id)->count();
+        $quizzes = \App\Models\Quiz::where('teacher_id', $user->user_id)->count();
+        $gradesGiven = \App\Models\Grade::where('teacher_id', $user->user_id)->count();
+        
+        // Get meetings
+        $meetings = \App\Models\Meeting::where('teacher_id', $user->user_id)
+            ->orderBy('scheduled_at', 'desc')
+            ->get();
+        
+        // Get teacher request (if available)
+        $teacherRequest = \App\Models\TeacherRequest::where('user_id', $user->user_id)->first();
+
+        return view('admin.teachers.show', compact(
+            'teacher',
+            'user',
+            'profile',
+            'classes',
+            'classesCount',
+            'totalStudents',
+            'assignments',
+            'quizzes',
+            'gradesGiven',
+            'meetings',
+            'teacherRequest'
+        ));
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
@@ -31,7 +32,33 @@ use App\Http\Controllers\StudentGameController;
 Route::middleware(['auth', 'verified'])->prefix('student')->group(function () {
     Route::get('/games', [StudentGameController::class, 'index'])->name('student.games');
     Route::get('/games/quiz', [StudentGameController::class, 'quiz'])->name('student.games.quiz');
+    Route::post('/games/save-score', [StudentGameController::class, 'saveScore'])->name('student.games.saveScore');
+    Route::get('/grades', [App\Http\Controllers\StudentGradeController::class, 'index'])->name('student.grades');
 });
+
+// Student Progress Route
+use App\Http\Controllers\StudentProgressController;
+Route::middleware(['auth', 'verified'])->get('/progress', [StudentProgressController::class, 'index'])->name('student.progress');
+
+// Clock Game Save Route (Teacher)
+use App\Http\Controllers\ClockGameController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/clock', [ClockGameController::class, 'store'])->name('teacher.games.clock.store');
+
+// Scrambled Clocks Game Save Route (Teacher)
+use App\Http\Controllers\ScrambledClocksGameController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/scrambled-clocks', [ScrambledClocksGameController::class, 'store'])->name('teacher.games.scrambled-clocks.store');
+
+// Word Clock Arrangement Game Save Route (Teacher)
+use App\Http\Controllers\WordClockArrangementController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/word-clock-arrangement', [WordClockArrangementController::class, 'store'])->name('teacher.games.word-clock-arrangement.store');
+
+// Word Search Game Save Route (Teacher)
+use App\Http\Controllers\WordSearchGameController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/word-search', [WordSearchGameController::class, 'store'])->name('teacher.games.word-search.store');
+
+// Matching Pairs Game Save Route (Teacher)
+use App\Http\Controllers\MatchingPairsGameController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/teacher/games/matching-pairs', [MatchingPairsGameController::class, 'store'])->name('teacher.games.matching-pairs.store');
 
 
 // Profile photo upload
@@ -61,8 +88,12 @@ Route::get('/', function () {
 
 Route::get('/student/dashboard', function () {
     $user = Auth::user();
-    if ($user && ($user->role === 'teacher' || $user->role === 'admin')) {
+    if (!$user) {
         abort(403, 'Unauthorized');
+    }
+    // Only allow students to access student dashboard
+    if ($user->role !== 'student') {
+        abort(403, 'Unauthorized. Only students can access this page.');
     }
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('student.dashboard');
@@ -172,7 +203,13 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     Route::post('/classes/{classId}/capacity', [AdminController::class, 'assignClassCapacity'])->name('admin.classes.capacity');
     
     // Student Management
+    Route::get('/students', [AdminController::class, 'students'])->name('admin.students.index');
+    Route::get('/students/{id}', [AdminController::class, 'showStudent'])->name('admin.students.show');
+    Route::get('/students/export', [AdminController::class, 'exportStudents'])->name('admin.students.export');
     Route::post('/students/{studentId}/change-class', [AdminController::class, 'changeStudentClass'])->name('admin.students.changeClass');
+    
+    // Teacher Management
+    Route::get('/teachers', [AdminController::class, 'teachers'])->name('admin.teachers.index');
     
     // Teacher Requests
     Route::get('/requests', [AdminController::class, 'teacherRequests'])->name('admin.requests');
@@ -240,14 +277,39 @@ Route::get('/levels', function () {
 // Student Lesson View Route
 Route::get('/lessons/{lesson}/view', function ($lessonId) {
     $lesson = \App\Models\Lesson::findOrFail($lessonId);
-    return view('lesson-view', compact('lesson'));
+    $user = Auth::user();
+    $student = $user->student;
+    
+    // Get student progress for this lesson
+    $progress = null;
+    $hasGame = false;
+    $isVideoCompleted = false;
+    $isGameCompleted = false;
+    
+    if ($student) {
+        $progress = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)
+            ->where('lesson_id', $lessonId)
+            ->first();
+        
+        $hasGame = \App\Models\Game::where('lesson_id', $lessonId)->exists();
+        $isVideoCompleted = $progress && ($progress->video_completed ?? false);
+        
+        if ($hasGame && $student) {
+            $game = \App\Models\Game::where('lesson_id', $lessonId)->first();
+            $gameProgress = \App\Models\StudentGameProgress::where('student_id', $student->student_id)
+                ->where('game_id', $game->game_id)
+                ->where('status', 'completed')
+                ->first();
+            $isGameCompleted = $gameProgress !== null;
+        }
+    }
+    
+    return view('lesson-view', compact('lesson', 'progress', 'hasGame', 'isVideoCompleted', 'isGameCompleted'));
 })->middleware(['auth', 'verified'])->name('student.lesson.view');
 
 require __DIR__.'/auth.php';
 
 // Games page for teachers
-use Illuminate\Support\Facades\Auth;
-
 use App\Http\Controllers\GameWordController;
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/games', [GameWordController::class, 'index'])->name('teacher.games');
@@ -283,8 +345,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/student/assignment/delete/{submission}', [AssignmentSubmissionController::class, 'destroy'])->name('student.assignment.delete');
 });
 
+// Teacher quizzes
+use App\Http\Controllers\QuizController;
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
+    Route::get('/quizzes', [QuizController::class, 'index'])->name('quizzes.index');
+    Route::get('/quizzes/create', [QuizController::class, 'create'])->name('quizzes.create');
+    Route::post('/quizzes', [QuizController::class, 'store'])->name('quizzes.store');
+    Route::get('/quizzes/{id}', [QuizController::class, 'show'])->name('quizzes.show');
+    Route::get('/quizzes/{id}/edit', [QuizController::class, 'edit'])->name('quizzes.edit');
+    Route::put('/quizzes/{id}', [QuizController::class, 'update'])->name('quizzes.update');
+    Route::delete('/quizzes/{id}', [QuizController::class, 'destroy'])->name('quizzes.destroy');
+    Route::put('/quizzes/{quizId}/questions/{questionId}', [QuizController::class, 'updateQuestion'])->name('quizzes.questions.update');
+    Route::delete('/quizzes/{quizId}/questions/{questionId}', [QuizController::class, 'deleteQuestion'])->name('quizzes.questions.delete');
+});
+
+// Student quizzes
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/student/quizzes', [QuizController::class, 'studentIndex'])->name('student.quizzes');
+    Route::get('/student/quizzes/{id}', [QuizController::class, 'studentShow'])->name('student.quizzes.show');
+    Route::post('/student/quizzes/{id}/submit', [QuizController::class, 'submit'])->name('student.quizzes.submit');
+    Route::get('/student/quizzes/result/{attemptId}', [QuizController::class, 'result'])->name('student.quizzes.result');
+});
+
 // Student marks lesson as completed
 use App\Models\StudentLessonProgress;
+
+// Student video progress tracking routes
+Route::middleware(['auth', 'verified'])->prefix('api/lessons')->group(function () {
+    Route::post('/{lessonId}/video/track', [App\Http\Controllers\StudentProgressController::class, 'trackVideoProgress'])->name('api.lessons.video.track');
+    Route::get('/{lessonId}/video/progress', [App\Http\Controllers\StudentProgressController::class, 'getVideoProgress'])->name('api.lessons.video.progress');
+});
 
 Route::post('/lessons/{lesson}/complete', function ($lessonId) {
     $user = Auth::user();

@@ -67,10 +67,10 @@
                                     </svg>
                                 </button>
                                 <div class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
-                                    <a href="#" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
+                                    <a href="{{ route('admin.students.index') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
                                         <span>👧</span> Students
                                     </a>
-                                    <a href="#" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
+                                    <a href="{{ route('admin.teachers.index') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
                                         <span>👩‍🏫</span> Teachers
                                     </a>
                                 </div>
@@ -191,6 +191,12 @@
                         </a>
                         <a href="{{ route('admin.classes') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
                             <span>🎓</span> Classes
+                        </a>
+                        <a href="{{ route('admin.students.index') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
+                            <span>👧</span> Students
+                        </a>
+                        <a href="{{ route('admin.teachers.index') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
+                            <span>👩‍🏫</span> Teachers
                         </a>
                         <a href="{{ route('admin.requests') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
                             <span>📝</span> Teacher Requests

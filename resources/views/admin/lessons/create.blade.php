@@ -133,12 +133,12 @@
                         @error('description') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Content File Upload -->
+                    <!-- Content URL (YouTube or other URL) -->
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Lesson Content (PDF or Video)</label>
-                        <input type="file" name="content_file" accept=".pdf,.mp4,.mov,.avi" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100">
-                        <p class="text-gray-500 text-xs mt-1">Accepted formats: PDF, MP4, MOV, AVI (Max 50MB)</p>
-                        @error('content_file') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Lesson Content URL (YouTube or other link) <span class="text-gray-400 font-normal">(Optional)</span></label>
+                        <input type="url" name="content_url" value="{{ old('content_url') }}" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/...">
+                        <p class="text-gray-500 text-xs mt-1">Enter a YouTube link or any other content URL.</p>
+                        @error('content_url') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                     </div>
 
                     <!-- Duration -->

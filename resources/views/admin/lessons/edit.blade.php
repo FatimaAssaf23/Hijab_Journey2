@@ -112,13 +112,32 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Current Lesson Content</label>
                         @if(isset($lesson['content_url']) && $lesson['content_url'])
                             @php
+                                $isYouTube = strpos($lesson['content_url'], 'youtube.com') !== false || strpos($lesson['content_url'], 'youtu.be') !== false;
                                 $fileExtension = pathinfo($lesson['content_url'], PATHINFO_EXTENSION);
                                 $isVideo = in_array(strtolower($fileExtension), ['mp4', 'mov', 'avi', 'webm']);
                                 $isPdf = strtolower($fileExtension) === 'pdf';
                             @endphp
                             
                             <div class="bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-4 border-2 border-pink-200">
-                                @if($isVideo)
+                                @if($isYouTube)
+                                    <div class="mb-3">
+                                        <p class="font-semibold text-gray-800 mb-2">YouTube Video</p>
+                                        @php
+                                            // Extract YouTube video ID
+                                            $videoId = null;
+                                            if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/', $lesson['content_url'], $matches)) {
+                                                $videoId = $matches[1];
+                                            }
+                                        @endphp
+                                        @if($videoId)
+                                            <div class="aspect-video w-full">
+                                                <iframe width="100%" height="100%" src="https://www.youtube.com/embed/{{ $videoId }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded-lg"></iframe>
+                                            </div>
+                                        @else
+                                            <a href="{{ $lesson['content_url'] }}" target="_blank" class="text-pink-500 hover:text-pink-600 text-sm font-medium">Open YouTube Link →</a>
+                                        @endif
+                                    </div>
+                                @elseif($isVideo)
                                     <div class="mb-3">
                                         <video controls class="w-full rounded-lg max-h-64">
                                             <source src="{{ asset('storage/' . $lesson['content_url']) }}" type="video/{{ $fileExtension }}">
@@ -133,8 +152,16 @@
                                             <a href="{{ asset('storage/' . $lesson['content_url']) }}" target="_blank" class="text-pink-500 hover:text-pink-600 text-sm font-medium">View PDF →</a>
                                         </div>
                                     </div>
+                                @else
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <span class="text-4xl">🔗</span>
+                                        <div>
+                                            <p class="font-semibold text-gray-800">External Link</p>
+                                            <a href="{{ $lesson['content_url'] }}" target="_blank" class="text-pink-500 hover:text-pink-600 text-sm font-medium">Open Link →</a>
+                                        </div>
+                                    </div>
                                 @endif
-                                <p class="text-sm text-gray-600">📁 {{ basename($lesson['content_url']) }}</p>
+                                <p class="text-sm text-gray-600">📁 {{ $isYouTube ? $lesson['content_url'] : basename($lesson['content_url']) }}</p>
                             </div>
                         @else
                             <div class="bg-gray-100 rounded-lg p-4 border-2 border-dashed border-gray-300 text-center">
@@ -144,11 +171,29 @@
                         @endif
                     </div>
 
+                    <!-- Content URL (YouTube or other URL) -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Lesson Content URL (YouTube or other link) <span class="text-gray-400 font-normal">(Optional)</span></label>
+                        @php
+                            $isYouTubeUrl = isset($lesson['content_url']) && $lesson['content_url'] && (strpos($lesson['content_url'], 'youtube.com') !== false || strpos($lesson['content_url'], 'youtu.be') !== false);
+                            $isFileExtension = isset($lesson['content_url']) && $lesson['content_url'] && (
+                                str_ends_with($lesson['content_url'], '.pdf') ||
+                                str_ends_with($lesson['content_url'], '.mp4') ||
+                                str_ends_with($lesson['content_url'], '.mov') ||
+                                str_ends_with($lesson['content_url'], '.avi')
+                            );
+                            $displayUrl = isset($lesson['content_url']) && $lesson['content_url'] && !$isFileExtension ? $lesson['content_url'] : '';
+                        @endphp
+                        <input type="url" name="content_url" value="{{ old('content_url', $displayUrl) }}" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/...">
+                        <p class="text-gray-500 text-xs mt-1">Enter a YouTube link or any other content URL. Leave empty if uploading a file below or to keep current file.</p>
+                        @error('content_url') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
                     <!-- Content File Upload -->
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">{{ isset($lesson['content_url']) && $lesson['content_url'] ? 'Replace Lesson Content' : 'Upload Lesson Content' }} (PDF or Video)</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">OR Upload Lesson Content File <span class="text-gray-400 font-normal">(Optional)</span></label>
                         <input type="file" name="content_file" accept=".pdf,.mp4,.mov,.avi" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100">
-                        <p class="text-gray-500 text-xs mt-1">{{ isset($lesson['content_url']) && $lesson['content_url'] ? 'Leave empty to keep current file.' : '' }} Accepted formats: PDF, MP4, MOV, AVI (Max 50MB)</p>
+                        <p class="text-gray-500 text-xs mt-1">{{ isset($lesson['content_url']) && $lesson['content_url'] && !$isYouTubeUrl ? 'Leave empty to keep current file.' : '' }} Accepted formats: PDF, MP4, MOV, AVI (Max 100MB). Use either URL above or file upload, not both.</p>
                         @error('content_file') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                     </div>
 

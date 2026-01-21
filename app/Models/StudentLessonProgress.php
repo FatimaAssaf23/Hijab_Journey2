@@ -20,6 +20,12 @@ class StudentLessonProgress extends Model
         'completed_at',
         'score',
         'time_spent_minutes',
+        'watched_seconds',
+        'watched_percentage',
+        'last_position',
+        'max_watched_time',
+        'last_watched_at',
+        'video_completed',
     ];
 
     protected function casts(): array
@@ -27,8 +33,14 @@ class StudentLessonProgress extends Model
         return [
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'last_watched_at' => 'datetime',
             'score' => 'integer',
             'time_spent_minutes' => 'integer',
+            'watched_seconds' => 'integer',
+            'watched_percentage' => 'decimal:2',
+            'last_position' => 'decimal:2',
+            'max_watched_time' => 'decimal:2',
+            'video_completed' => 'boolean',
         ];
     }
 
