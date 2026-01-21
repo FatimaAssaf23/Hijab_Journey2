@@ -11,9 +11,16 @@ use Illuminate\Support\Facades\Auth;
 class AssignmentController extends Controller
 {
     // Show upload form and list for teachers
-    public function index()
+    public function index(Request $request)
     {
-        $assignments = Assignment::where('teacher_id', Auth::id())->latest()->get();
+        $query = Assignment::where('teacher_id', Auth::id());
+        
+        // Filter by class if provided
+        if ($request->has('class_id') && $request->class_id) {
+            $query->where('class_id', $request->class_id);
+        }
+        
+        $assignments = $query->latest()->get();
         $levels = Level::all();
         $classes = StudentClass::where('teacher_id', Auth::id())->get();
 
@@ -60,9 +67,18 @@ class AssignmentController extends Controller
     {
         $user = Auth::user();
         $student = $user->student;
-        $assignments = Assignment::with(['submissions' => function($q) use ($student) {
-            $q->where('student_id', $student ? $student->student_id : 0);
-        }])->latest()->get();
+        
+        // Only show assignments for the student's class
+        if ($student && $student->class_id) {
+            $assignments = Assignment::where('class_id', $student->class_id)
+                ->with(['submissions' => function($q) use ($student) {
+                    $q->where('student_id', $student->student_id);
+                }])->latest()->get();
+        } else {
+            // If student doesn't have a class, show empty list
+            $assignments = collect();
+        }
+        
         return view('assignments.student', compact('assignments', 'student'));
     }
     // Set Dead Time for an assignment

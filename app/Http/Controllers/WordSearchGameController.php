@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Game;
 use App\Models\WordSearchGame;
+use App\Models\ClassLessonVisibility;
 
 class WordSearchGameController extends Controller
 {
@@ -12,6 +14,7 @@ class WordSearchGameController extends Controller
     {
         $request->validate([
             'word_search_lesson_id' => 'required|integer',
+            'class_id' => 'nullable|exists:student_classes,class_id',
             'word_search_words' => 'required|array|min:1',
             'word_search_words.*' => 'required|string',
             'word_search_title' => 'nullable|string|max:255',
@@ -77,6 +80,18 @@ class WordSearchGameController extends Controller
                     'grid_size' => $gridSize,
                     'grid_data' => $gridData,
                 ]);
+            }
+
+            // If class_id is provided, make the lesson visible for that class
+            if ($request->class_id) {
+                ClassLessonVisibility::firstOrCreate(
+                    [
+                        'lesson_id' => $request->word_search_lesson_id,
+                        'class_id' => $request->class_id,
+                        'teacher_id' => Auth::id(),
+                    ],
+                    ['is_visible' => true]
+                )->update(['is_visible' => true]);
             }
 
             \Log::info('Word Search Game saved', [

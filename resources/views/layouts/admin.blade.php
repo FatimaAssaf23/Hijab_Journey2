@@ -15,7 +15,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         
         <!-- ApexCharts -->
-        <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+        <script src="https://unpkg.com/apexcharts@3.44.0/dist/apexcharts.min.js" crossorigin="anonymous"></script>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen flex flex-col bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
@@ -104,13 +104,13 @@
                                     </svg>
                                 </button>
                                 <div class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
-                                    <a href="#" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
+                                    <a href="{{ route('admin.assignments') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 {{ request()->routeIs('admin.assignments*') ? 'bg-pink-100' : '' }}">
                                         <span>📄</span> Assignments
                                     </a>
-                                    <a href="#" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
+                                    <a href="{{ route('admin.quizzes') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 {{ request()->routeIs('admin.quizzes*') ? 'bg-pink-100' : '' }}">
                                         <span>❓</span> Quizzes
                                     </a>
-                                    <a href="#" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
+                                    <a href="{{ route('admin.games') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 {{ request()->routeIs('admin.games*') ? 'bg-pink-100' : '' }}">
                                         <span>🎮</span> Games
                                     </a>
                                     <hr class="my-2 border-gray-200">
@@ -151,10 +151,10 @@
                                             <div class="text-sm text-gray-700 text-center mt-2">{{ $adminProfile->bio }}</div>
                                         @endif
                                     </div>
-                                    <a href="{{ route('admin.profile') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
+                                    <a href="{{ route('admin.profile') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 {{ request()->routeIs('admin.profile') ? 'bg-pink-100' : '' }}">
                                         <span>👤</span> Profile
                                     </a>
-                                    <a href="#" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
+                                    <a href="{{ route('admin.settings') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 {{ request()->routeIs('admin.settings') ? 'bg-pink-100' : '' }}">
                                         <span>⚙️</span> Settings
                                     </a>
                                     <hr class="my-2 border-gray-200">

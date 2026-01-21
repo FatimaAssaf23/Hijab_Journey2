@@ -8,11 +8,20 @@
         <div class="absolute top-1/2 -right-40 w-[400px] h-[400px] bg-cyan-200/40 rounded-full opacity-20 blur-3xl animate-pulse" style="animation-delay: 1.5s;"></div>
     </div>
     
-<div class="container mx-auto py-8 relative z-10">
+<div class="container mx-auto pt-2 pb-8 relative z-10">
     <!-- Lesson Selector - Show at top when lesson is selected -->
     @if(isset($selectedLessonId) && $selectedLessonId && isset($lessonsWithGames) && $lessonsWithGames->count() > 0)
         <div class="max-w-6xl mx-auto mb-8">
             <div class="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-pink-200/40 transform transition-all duration-300 hover:shadow-2xl">
+                <!-- Go Back Button inside the lesson selector section -->
+                <div class="mb-4">
+                    <a href="{{ route('student.dashboard') }}" class="inline-flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Go Back
+                    </a>
+                </div>
                 <form method="GET" action="{{ route('student.games') }}">
                     <div class="flex flex-col md:flex-row gap-5 items-end">
                         <div class="flex-1">
@@ -61,24 +70,36 @@
         $scrambleGameIndex = null;
         $matchingPairsGameIndex = null;
         
+        // Helper function to check if a game is completed
+        $checkGameCompleted = function($gameType) use ($gameTypeToGameIdMap, $completedGameIds) {
+            if (!isset($gameTypeToGameIdMap[$gameType])) {
+                return false;
+            }
+            return in_array($gameTypeToGameIdMap[$gameType], $completedGameIds);
+        };
+        
         if (isset($clockGame) && $clockGame && !empty($clockGame->words)) {
+            $isCompleted = $checkGameCompleted('clock');
             $clockGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'clock', 'index' => $gameIndex];
+            $availableGames[] = ['type' => 'clock', 'index' => $gameIndex, 'completed' => $isCompleted];
             $gameIndex++;
         }
         if (isset($wordSearchGame) && $wordSearchGame && !empty($wordSearchGame->grid_data)) {
+            $isCompleted = $checkGameCompleted('wordsearch');
             $wordSearchGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'wordsearch', 'index' => $gameIndex];
+            $availableGames[] = ['type' => 'wordsearch', 'index' => $gameIndex, 'completed' => $isCompleted];
             $gameIndex++;
         }
         if (isset($scrambledClocksGame) && $scrambledClocksGame && $scrambledClocksGame->game_data) {
+            $isCompleted = $checkGameCompleted('scrambledclocks');
             $scrambledClocksGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'scrambledclocks', 'index' => $gameIndex];
+            $availableGames[] = ['type' => 'scrambledclocks', 'index' => $gameIndex, 'completed' => $isCompleted];
             $gameIndex++;
         }
         if (isset($wordClockArrangementGame) && $wordClockArrangementGame && !empty($wordClockArrangementGame->game_data)) {
+            $isCompleted = $checkGameCompleted('wordclock');
             $wordClockGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'wordclock', 'index' => $gameIndex];
+            $availableGames[] = ['type' => 'wordclock', 'index' => $gameIndex, 'completed' => $isCompleted];
             $gameIndex++;
         }
         // Check for MCQ pairs
@@ -87,8 +108,9 @@
             $hasMcqPairs = $mcqPairs->count() > 0;
         }
         if ($hasMcqPairs) {
+            $isCompleted = $checkGameCompleted('mcq');
             $mcqGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'mcq', 'index' => $gameIndex];
+            $availableGames[] = ['type' => 'mcq', 'index' => $gameIndex, 'completed' => $isCompleted];
             $gameIndex++;
         }
         // Check for Scrambled Letters pairs
@@ -97,14 +119,16 @@
             $hasScramblePairs = $scramblePairs->count() > 0;
         }
         if ($hasScramblePairs) {
+            $isCompleted = $checkGameCompleted('scramble');
             $scrambleGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'scramble', 'index' => $gameIndex];
+            $availableGames[] = ['type' => 'scramble', 'index' => $gameIndex, 'completed' => $isCompleted];
             $gameIndex++;
         }
         // Check for Matching Pairs game
         if (isset($matchingPairsGame) && $matchingPairsGame && $matchingPairsGame->pairs->count() > 0) {
+            $isCompleted = $checkGameCompleted('matchingpairs');
             $matchingPairsGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'matchingpairs', 'index' => $gameIndex];
+            $availableGames[] = ['type' => 'matchingpairs', 'index' => $gameIndex, 'completed' => $isCompleted];
             $gameIndex++;
         }
     @endphp
@@ -330,14 +354,14 @@
                                 @endfor
                                 <!-- Hour hand -->
                                 @php
-                                    $hourAngle = (($wordData['hour'] % 12) * 30 + $wordData['minute'] * 0.5 - 90) * M_PI / 180;
+                                    $hourAngle = (($wordHour % 12) * 30 + $wordMinute * 0.5 - 90) * M_PI / 180;
                                     $hourX = 50 + 25 * cos($hourAngle);
                                     $hourY = 50 + 25 * sin($hourAngle);
                                 @endphp
                                 <line x1="50" y1="50" x2="{{ $hourX }}" y2="{{ $hourY }}" stroke="#333" stroke-width="3" stroke-linecap="round"/>
                                 <!-- Minute hand -->
                                 @php
-                                    $minuteAngle = ($wordData['minute'] * 6 - 90) * M_PI / 180;
+                                    $minuteAngle = ($wordMinute * 6 - 90) * M_PI / 180;
                                     $minuteX = 50 + 35 * cos($minuteAngle);
                                     $minuteY = 50 + 35 * sin($minuteAngle);
                                 @endphp
@@ -348,7 +372,7 @@
                             <!-- Arrow pointing down -->
                             <div class="text-2xl mb-1">↓</div>
                             <!-- Word -->
-                            <div class="word-text text-lg font-semibold text-gray-800 px-3 py-2 bg-pink-50 rounded border border-pink-200" dir="rtl">{{ $wordData['word'] }}</div>
+                            <div class="word-text text-lg font-semibold text-gray-800 px-3 py-2 bg-pink-50 rounded border border-pink-200" dir="rtl">{{ $wordText }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -377,13 +401,31 @@
     <!-- 4. Word Clock Arrangement Game -->
     @if(isset($wordClockArrangementGame) && $wordClockArrangementGame && !empty($wordClockArrangementGame->game_data))
         @php
-            $wordClockGameData = is_string($wordClockArrangementGame->game_data) ? json_decode($wordClockArrangementGame->game_data, true) : $wordClockArrangementGame->game_data;
+            // Parse game_data - handle both string and array formats
+            $wordClockGameData = $wordClockArrangementGame->game_data;
+            if (is_string($wordClockGameData)) {
+                $wordClockGameData = json_decode($wordClockGameData, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $wordClockGameData = [];
+                }
+            }
+            
+            // Ensure it's an array
+            if (!is_array($wordClockGameData)) {
+                $wordClockGameData = [];
+            }
+            
             $wordClockWords = $wordClockGameData['words'] ?? [];
             $wordClockWord = $wordClockGameData['word'] ?? '';
             $wordClockSentence = $wordClockGameData['full_sentence'] ?? '';
             $wordClockCorrectOrder = $wordClockGameData['correct_order'] ?? [];
+            
+            // Ensure words is an array
+            if (!is_array($wordClockWords)) {
+                $wordClockWords = [];
+            }
         @endphp
-        @if(!empty($wordClockWords) && is_array($wordClockWords))
+        @if(!empty($wordClockWords) && is_array($wordClockWords) && count($wordClockWords) > 0)
             <div class="game-container max-w-6xl mx-auto bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 mb-8" data-game-type="wordclock" data-game-index="{{ $wordClockGameIndex }}" style="display: none;" dir="rtl">
                 <div class="mb-6">
                     @if(isset($lesson))
@@ -402,11 +444,35 @@
                         shuffle($shuffledWordClockWords);
                     @endphp
                     @foreach($shuffledWordClockWords as $index => $wordData)
+                        @php
+                            // Ensure wordData is an array and has required fields
+                            if (!is_array($wordData)) {
+                                continue;
+                            }
+                            $wordText = $wordData['word'] ?? '';
+                            $wordHour = isset($wordData['hour']) ? (int)$wordData['hour'] : 0;
+                            $wordMinute = isset($wordData['minute']) ? (int)$wordData['minute'] : 0;
+                            
+                            // Skip if word is empty
+                            if (empty($wordText)) {
+                                continue;
+                            }
+                            
+                            // Find original index
+                            $originalIndex = 0;
+                            foreach ($wordClockWords as $idx => $w) {
+                                if (is_array($w) && isset($w['word']) && $w['word'] === $wordText) {
+                                    $originalIndex = $idx;
+                                    break;
+                                }
+                            }
+                        @endphp
+                        @if(!empty($wordText))
                         <div class="word-clock-arrangement-item flex flex-col items-center cursor-move" 
-                             data-original-index="{{ array_search($wordData, $wordClockWords) }}" 
-                             data-hour="{{ $wordData['hour'] }}" 
-                             data-minute="{{ $wordData['minute'] }}" 
-                             data-word="{{ $wordData['word'] }}"
+                             data-original-index="{{ $originalIndex }}" 
+                             data-hour="{{ $wordHour }}" 
+                             data-minute="{{ $wordMinute }}" 
+                             data-word="{{ $wordText }}"
                              draggable="true">
                             <svg width="100" height="100" class="clock-svg mb-2">
                                 <circle cx="50" cy="50" r="45" fill="white" stroke="#333" stroke-width="2"/>
@@ -421,14 +487,14 @@
                                 @endfor
                                 <!-- Hour hand -->
                                 @php
-                                    $hourAngle = (($wordData['hour'] % 12) * 30 + $wordData['minute'] * 0.5 - 90) * M_PI / 180;
+                                    $hourAngle = (($wordHour % 12) * 30 + $wordMinute * 0.5 - 90) * M_PI / 180;
                                     $hourX = 50 + 25 * cos($hourAngle);
                                     $hourY = 50 + 25 * sin($hourAngle);
                                 @endphp
                                 <line x1="50" y1="50" x2="{{ $hourX }}" y2="{{ $hourY }}" stroke="#333" stroke-width="3" stroke-linecap="round"/>
                                 <!-- Minute hand -->
                                 @php
-                                    $minuteAngle = ($wordData['minute'] * 6 - 90) * M_PI / 180;
+                                    $minuteAngle = ($wordMinute * 6 - 90) * M_PI / 180;
                                     $minuteX = 50 + 35 * cos($minuteAngle);
                                     $minuteY = 50 + 35 * sin($minuteAngle);
                                 @endphp
@@ -439,9 +505,24 @@
                             <!-- Arrow pointing down -->
                             <div class="text-2xl mb-1">↓</div>
                             <!-- Word -->
-                            <div class="word-text text-lg font-semibold text-gray-800 px-3 py-2 bg-pink-50 rounded border border-pink-200" dir="rtl">{{ $wordData['word'] }}</div>
+                            <div class="word-text text-lg font-semibold text-gray-800 px-3 py-2 bg-pink-50 rounded border border-pink-200" dir="rtl">{{ $wordText }}</div>
                         </div>
+                        @endif
                     @endforeach
+                    
+                    @php
+                        $validWordsCount = 0;
+                        foreach ($shuffledWordClockWords as $w) {
+                            if (is_array($w) && !empty($w['word'] ?? '')) {
+                                $validWordsCount++;
+                            }
+                        }
+                    @endphp
+                    @if($validWordsCount === 0)
+                        <div class="w-full text-center p-8 bg-yellow-50 rounded-lg border border-yellow-300">
+                            <p class="text-yellow-700 font-semibold">No valid word data found. Please check the game configuration.</p>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Sentence Display Area -->
@@ -462,6 +543,20 @@
                 <!-- Result Message -->
                 <div id="wordClockResultMessage" class="mt-6 hidden p-4 rounded-lg text-center text-lg font-semibold"></div>
             </div>
+        @else
+            <!-- Debug: Show if word clock game exists but has no words -->
+            @if(isset($wordClockArrangementGame) && $wordClockArrangementGame)
+                <div class="game-container max-w-6xl mx-auto bg-yellow-50/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-yellow-300 mb-8" data-game-type="wordclock" data-game-index="{{ $wordClockGameIndex }}" style="display: none;" dir="rtl">
+                    <div class="text-center">
+                        <h3 class="text-2xl font-bold text-yellow-800 mb-3">Word Clock Arrangement Game</h3>
+                        <p class="text-lg text-yellow-700 mb-4">No game content available. The game data may be missing or incomplete.</p>
+                        <p class="text-sm text-yellow-600">Game Data Status: {{ !empty($wordClockArrangementGame->game_data) ? 'Present' : 'Missing' }}</p>
+                        @if(!empty($wordClockArrangementGame->game_data))
+                            <p class="text-sm text-yellow-600 mt-2">Words Count: {{ is_array($wordClockWords) ? count($wordClockWords) : 'Not an array' }}</p>
+                        @endif
+                    </div>
+                </div>
+            @endif
         @endif
     @endif
 
@@ -943,7 +1038,12 @@
                             score: scorePercent
                         })
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => Promise.reject(err));
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         console.log('Matching Pairs score saved:', data);
                         if (typeof window.gameScores !== 'undefined') {
@@ -952,6 +1052,15 @@
                     })
                     .catch(error => {
                         console.error('Error saving matching pairs score:', error);
+                        if (error.already_completed) {
+                            alert('You have already played this game. You cannot play the same game more than once.');
+                            // Mark as completed in the availableGames array
+                            const gameIndex = availableGames.findIndex(g => g.type === 'matchingpairs');
+                            if (gameIndex !== -1) {
+                                availableGames[gameIndex].completed = true;
+                                showGame(currentGameIndex);
+                            }
+                        }
                     });
                 }
                 @endif
@@ -994,27 +1103,68 @@
         
         // Show the first game
         function showGame(index) {
-            // Hide all games
+            // Hide all games and completed messages
             document.querySelectorAll('.game-container').forEach(container => {
                 container.style.display = 'none';
+            });
+            document.querySelectorAll('.game-completed-message').forEach(msg => {
+                msg.style.display = 'none';
             });
             
             // Show the game at the specified index
             if (availableGames[index]) {
-                const gameType = availableGames[index].type;
-                const gameContainer = document.querySelector(`[data-game-type="${gameType}"]`);
-                if (gameContainer) {
-                    gameContainer.style.display = 'block';
-                    // Update canvas size for matching pairs game when it becomes visible
-                    if (gameType === 'matchingpairs' && typeof window.updateMatchingPairsCanvas === 'function') {
+                const game = availableGames[index];
+                const gameType = game.type;
+                
+                // Check if game is already completed
+                if (game.completed) {
+                    // Show completed message instead of game
+                    const gameContainer = document.querySelector(`[data-game-type="${gameType}"]`);
+                    if (gameContainer) {
+                        // Create or show completed message
+                        let completedMsg = gameContainer.querySelector('.game-completed-message');
+                        if (!completedMsg) {
+                            completedMsg = document.createElement('div');
+                            completedMsg.className = 'game-completed-message max-w-6xl mx-auto bg-gradient-to-br from-yellow-50 to-orange-50 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border-2 border-yellow-300 mb-8';
+                            completedMsg.innerHTML = `
+                                <div class="text-center">
+                                    <div class="mb-4">
+                                        <svg class="mx-auto h-16 w-16 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 class="text-2xl font-bold text-yellow-800 mb-3">You Have Already Played This Game</h3>
+                                    <p class="text-lg text-yellow-700 mb-6">You cannot play the same game more than once. Please try another game.</p>
+                                    <button onclick="moveToNextGame()" class="px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-xl shadow-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200">
+                                        Continue to Next Game
+                                    </button>
+                                </div>
+                            `;
+                            gameContainer.parentNode.insertBefore(completedMsg, gameContainer.nextSibling);
+                        }
+                        completedMsg.style.display = 'block';
+                        
+                        // Scroll to the message
                         setTimeout(() => {
-                            window.updateMatchingPairsCanvas();
+                            completedMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }, 100);
                     }
-                    // Scroll to the game
-                    setTimeout(() => {
-                        gameContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
+                } else {
+                    // Show the game normally
+                    const gameContainer = document.querySelector(`[data-game-type="${gameType}"]`);
+                    if (gameContainer) {
+                        gameContainer.style.display = 'block';
+                        // Update canvas size for matching pairs game when it becomes visible
+                        if (gameType === 'matchingpairs' && typeof window.updateMatchingPairsCanvas === 'function') {
+                            setTimeout(() => {
+                                window.updateMatchingPairsCanvas();
+                            }, 100);
+                        }
+                        // Scroll to the game
+                        setTimeout(() => {
+                            gameContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
+                    }
                 }
             }
         }
@@ -1040,15 +1190,37 @@
             return 0;
         }
         
-        // Initialize: show first game
+        // Initialize: show first non-completed game
         if (availableGames.length > 0) {
-            showGame(0);
+            let firstNonCompletedIndex = 0;
+            while (firstNonCompletedIndex < availableGames.length && availableGames[firstNonCompletedIndex].completed) {
+                firstNonCompletedIndex++;
+            }
+            if (firstNonCompletedIndex < availableGames.length) {
+                currentGameIndex = firstNonCompletedIndex;
+                showGame(currentGameIndex);
+            } else {
+                // All games already completed - show message
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'max-w-6xl mx-auto bg-gradient-to-br from-green-50 to-emerald-50 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border-2 border-green-300 mb-8 text-center';
+                messageDiv.innerHTML = `
+                    <h3 class="text-2xl font-bold text-green-800 mb-3">All Games Completed!</h3>
+                    <p class="text-lg text-green-700">You have already played all available games for this lesson.</p>
+                `;
+                document.querySelector('.container').appendChild(messageDiv);
+            }
         }
         
         // Function to move to next game
         window.moveToNextGame = function() {
-            if (currentGameIndex < availableGames.length - 1) {
-                currentGameIndex++;
+            // Find next non-completed game
+            let nextIndex = currentGameIndex + 1;
+            while (nextIndex < availableGames.length && availableGames[nextIndex].completed) {
+                nextIndex++;
+            }
+            
+            if (nextIndex < availableGames.length) {
+                currentGameIndex = nextIndex;
                 showGame(currentGameIndex);
             } else {
                 // All games completed - calculate and show total score
@@ -1194,9 +1366,18 @@
 
     @else
     <!-- Show message when no lesson is selected with Hijab8 Image - Enhanced -->
-    <div class="max-w-6xl mx-auto py-16">
-        <div class="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 lg:p-12 border-2 border-pink-200/50 transform transition-all duration-500 hover:shadow-3xl">
-            <div class="flex flex-col lg:flex-row items-center justify-center gap-10 lg:gap-16">
+    <div class="max-w-5xl mx-auto py-2">
+        <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-6 lg:p-8 border-2 border-pink-200/50 transform transition-all duration-500 hover:shadow-2xl">
+            <!-- Go Back Button inside the section -->
+            <div class="mb-4">
+                <a href="{{ route('student.dashboard') }}" class="inline-flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2.5 rounded-lg font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Go Back
+                </a>
+            </div>
+            <div class="flex flex-col lg:flex-row items-center justify-center gap-7 lg:gap-12">
                 <!-- Left: Hijab8 Image - Enhanced -->
                 <div class="relative flex-shrink-0 animate-float-gentle">
                     <div class="relative">
@@ -1206,26 +1387,26 @@
                         <div class="absolute inset-0 bg-teal-300/30 rounded-full blur-xl opacity-40 animate-pulse" style="animation-delay: 2s;"></div>
                         
                         <!-- Enhanced Decorative Elements -->
-                        <div class="absolute -top-4 -right-4 w-12 h-12 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full flex items-center justify-center animate-bounce shadow-xl border-3 border-white backdrop-blur-sm transform hover:scale-110 transition-transform">
-                            <span class="text-xl">⭐</span>
+                        <div class="absolute -top-2 -right-2 w-10 h-10 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full flex items-center justify-center animate-bounce shadow-lg border-2 border-white backdrop-blur-sm transform hover:scale-110 transition-transform">
+                            <span class="text-base">⭐</span>
                         </div>
-                        <div class="absolute -bottom-4 -left-4 w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-full flex items-center justify-center animate-bounce shadow-xl border-3 border-white backdrop-blur-sm transform hover:scale-110 transition-transform" style="animation-delay: 0.5s;">
-                            <span class="text-xl">💖</span>
+                        <div class="absolute -bottom-2 -left-2 w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-full flex items-center justify-center animate-bounce shadow-lg border-2 border-white backdrop-blur-sm transform hover:scale-110 transition-transform" style="animation-delay: 0.5s;">
+                            <span class="text-base">💖</span>
                         </div>
-                        <div class="absolute top-1/2 -right-8 w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-500 rounded-full flex items-center justify-center animate-bounce shadow-xl border-3 border-white backdrop-blur-sm transform hover:scale-110 transition-transform" style="animation-delay: 1s;">
-                            <span class="text-base">✨</span>
+                        <div class="absolute top-1/2 -right-6 w-9 h-9 bg-gradient-to-br from-teal-400 to-teal-500 rounded-full flex items-center justify-center animate-bounce shadow-lg border-2 border-white backdrop-blur-sm transform hover:scale-110 transition-transform" style="animation-delay: 1s;">
+                            <span class="text-sm">✨</span>
                         </div>
-                        <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 bg-gradient-to-br from-rose-400 to-rose-500 rounded-full flex items-center justify-center animate-bounce shadow-xl border-3 border-white backdrop-blur-sm transform hover:scale-110 transition-transform" style="animation-delay: 1.5s;">
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 bg-gradient-to-br from-rose-400 to-rose-500 rounded-full flex items-center justify-center animate-bounce shadow-lg border-2 border-white backdrop-blur-sm transform hover:scale-110 transition-transform" style="animation-delay: 1.5s;">
                             <span class="text-sm">🎮</span>
                         </div>
                         
                         <!-- Enhanced Image container -->
-                        <div class="relative bg-gradient-to-br from-white to-pink-50 rounded-full p-3 shadow-2xl transform hover:scale-110 transition-transform duration-500 border-3 border-pink-300/60">
+                        <div class="relative bg-gradient-to-br from-white to-pink-50 rounded-full p-3.5 shadow-xl transform hover:scale-110 transition-transform duration-500 border-2 border-pink-300/60">
                             <div class="absolute inset-0 bg-gradient-to-br from-pink-200/50 to-cyan-200/50 rounded-full opacity-40 blur-xl animate-pulse"></div>
-                            <div class="relative bg-white rounded-full p-1">
+                            <div class="relative bg-white rounded-full p-1.5">
                                 <img src="{{ asset('storage/grade-page-design/hijab8.jpg') }}" 
                                      alt="Hijabi Student" 
-                                     class="relative w-52 h-52 lg:w-64 lg:h-64 rounded-full object-cover border-2 border-pink-300/50 shadow-xl z-10"
+                                     class="relative w-40 h-40 lg:w-48 lg:h-48 rounded-full object-cover border-2 border-pink-300/50 shadow-lg z-10"
                                      style="object-position: center 20%;"
                                      loading="lazy">
                             </div>
@@ -1235,7 +1416,7 @@
                 
                 <!-- Right: Enhanced Message Content -->
                 <div class="flex-1 text-center lg:text-left">
-                    <div class="inline-flex items-center gap-2.5 bg-gradient-to-r from-pink-200/60 to-cyan-200/60 backdrop-blur-md px-5 py-2.5 rounded-full mb-5 border-2 border-pink-300/40 shadow-lg transform hover:scale-105 transition-transform">
+                    <div class="inline-flex items-center gap-2.5 bg-gradient-to-r from-pink-200/60 to-cyan-200/60 backdrop-blur-md px-5 py-3 rounded-full mb-4 border-2 border-pink-300/40 shadow-md transform hover:scale-105 transition-transform">
                         <div class="w-8 h-8 bg-gradient-to-br from-pink-400 to-cyan-400 rounded-lg flex items-center justify-center shadow-md">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -1244,24 +1425,24 @@
                         </div>
                         <span class="text-pink-700 font-black text-sm tracking-wider uppercase">Interactive Games</span>
                     </div>
-                    <h2 class="text-4xl lg:text-5xl font-black text-gray-800 mb-4 tracking-tight leading-tight">
+                    <h2 class="text-2xl lg:text-3xl font-black text-gray-800 mb-3.5 tracking-tight leading-tight">
                         Ready to Play?<br>
                         <span class="bg-gradient-to-r from-pink-500 via-rose-400 to-cyan-500 bg-clip-text text-transparent animate-gradient">Select a Lesson!</span> 
-                        <span class="inline-block animate-bounce">🎮</span>
+                        <span class="inline-block animate-bounce text-xl">🎮</span>
                     </h2>
-                    <p class="text-xl text-gray-700 font-medium mb-6 leading-relaxed">
+                    <p class="text-base text-gray-700 font-medium mb-5 leading-relaxed">
                         Choose a lesson from the dropdown below to unlock exciting educational games and start your learning adventure!
                     </p>
                     
                     <!-- Lesson Selector - Enhanced -->
                     @if(isset($lessonsWithGames) && $lessonsWithGames->count() > 0)
-                        <div class="mb-8">
-                            <div class="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-pink-200/40 transform transition-all duration-300 hover:shadow-2xl">
+                        <div class="mb-5">
+                            <div class="bg-white/80 backdrop-blur-md rounded-xl shadow-lg p-5 border border-pink-200/40 transform transition-all duration-300 hover:shadow-xl">
                                 <form method="GET" action="{{ route('student.games') }}">
-                                    <div class="flex flex-col md:flex-row gap-5 items-end">
+                                    <div class="flex flex-col md:flex-row gap-4 items-end">
                                         <div class="flex-1">
-                                            <label for="lesson_id" class="block font-black text-gray-800 mb-3 text-lg flex items-center gap-2">
-                                                <div class="w-10 h-10 bg-gradient-to-br from-pink-300 to-cyan-300 rounded-xl flex items-center justify-center shadow-md">
+                                            <label for="lesson_id" class="block font-black text-gray-800 mb-3 text-base flex items-center gap-2">
+                                                <div class="w-10 h-10 bg-gradient-to-br from-pink-300 to-cyan-300 rounded-lg flex items-center justify-center shadow-md">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                                     </svg>
@@ -1270,7 +1451,7 @@
                                             </label>
                                             <div class="relative">
                                                 <select name="lesson_id" id="lesson_id" 
-                                                        class="w-full bg-white border-2 border-pink-200/60 rounded-xl px-4 py-3.5 pr-12 text-gray-800 font-semibold shadow-md hover:border-pink-300 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all duration-300 appearance-none cursor-pointer"
+                                                        class="w-full bg-white border-2 border-pink-200/60 rounded-lg px-4 py-3 pr-12 text-gray-800 font-semibold shadow-md hover:border-pink-300 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all duration-300 appearance-none cursor-pointer"
                                                         onchange="this.form.submit()">
                                                     <option value="">-- Choose Lesson --</option>
                                                     @foreach($lessonsWithGames ?? [] as $lesson)
@@ -1290,7 +1471,7 @@
                         </div>
                     @endif
                     <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
-                        <div class="group bg-gradient-to-br from-pink-50 to-pink-100/80 backdrop-blur-md px-6 py-4 rounded-2xl border-2 border-pink-300/50 shadow-lg transform hover:scale-105 hover:shadow-xl transition-all duration-300">
+                        <div class="group bg-gradient-to-br from-pink-50 to-pink-100/80 backdrop-blur-md px-5 py-4 rounded-xl border-2 border-pink-300/50 shadow-md transform hover:scale-105 hover:shadow-lg transition-all duration-300">
                             <div class="flex items-center gap-3 mb-2">
                                 <div class="w-8 h-8 bg-gradient-to-br from-pink-400 to-rose-400 rounded-lg flex items-center justify-center shadow-md">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1299,9 +1480,9 @@
                                 </div>
                                 <div class="text-pink-600 text-xs font-black uppercase tracking-wider">Fun Learning</div>
                             </div>
-                            <div class="text-gray-800 text-lg font-black">Interactive Games</div>
+                            <div class="text-gray-800 text-base font-black">Interactive Games</div>
                         </div>
-                        <div class="group bg-gradient-to-br from-cyan-50 to-cyan-100/80 backdrop-blur-md px-6 py-4 rounded-2xl border-2 border-cyan-300/50 shadow-lg transform hover:scale-105 hover:shadow-xl transition-all duration-300">
+                        <div class="group bg-gradient-to-br from-cyan-50 to-cyan-100/80 backdrop-blur-md px-5 py-4 rounded-xl border-2 border-cyan-300/50 shadow-md transform hover:scale-105 hover:shadow-lg transition-all duration-300">
                             <div class="flex items-center gap-3 mb-2">
                                 <div class="w-8 h-8 bg-gradient-to-br from-cyan-400 to-teal-400 rounded-lg flex items-center justify-center shadow-md">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1310,7 +1491,7 @@
                                 </div>
                                 <div class="text-cyan-600 text-xs font-black uppercase tracking-wider">Educational</div>
                             </div>
-                            <div class="text-gray-800 text-lg font-black">Engaging Content</div>
+                            <div class="text-gray-800 text-base font-black">Engaging Content</div>
                         </div>
                     </div>
                 </div>
@@ -1321,7 +1502,36 @@
 </div>
 </div>
 
-@if(isset($wordClockArrangementGame) && $wordClockArrangementGame && $wordClockArrangementGame->game_data)
+@if(isset($wordClockArrangementGame) && $wordClockArrangementGame && !empty($wordClockArrangementGame->game_data))
+    @php
+        // Ensure variables are set for JavaScript even if the game container condition fails
+        if (!isset($wordClockGameData)) {
+            $wordClockGameData = $wordClockArrangementGame->game_data;
+            if (is_string($wordClockGameData)) {
+                $wordClockGameData = json_decode($wordClockGameData, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $wordClockGameData = [];
+                }
+            }
+            if (!is_array($wordClockGameData)) {
+                $wordClockGameData = [];
+            }
+        }
+        if (!isset($wordClockWords)) {
+            $wordClockWords = $wordClockGameData['words'] ?? [];
+        }
+        if (!isset($wordClockWord)) {
+            $wordClockWord = $wordClockGameData['word'] ?? '';
+        }
+        if (!isset($wordClockSentence)) {
+            $wordClockSentence = $wordClockGameData['full_sentence'] ?? '';
+        }
+        if (!isset($wordClockCorrectOrder)) {
+            $wordClockCorrectOrder = $wordClockGameData['correct_order'] ?? [];
+        }
+    @endphp
+    
+    @if(!empty($wordClockWords) && is_array($wordClockWords) && count($wordClockWords) > 0)
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const wordClockContainer = document.getElementById('wordClockArrangementContainer');
@@ -1329,9 +1539,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const wordClockCheckAnswerBtn = document.getElementById('wordClockCheckAnswerBtn');
     const wordClockResultMessage = document.getElementById('wordClockResultMessage');
     
-    const wordClockCorrectSentence = @json($wordClockSentence);
-    const wordClockAllWords = @json($wordClockWords);
-    const wordClockCorrectOrder = @json($wordClockCorrectOrder);
+    if (!wordClockContainer || !wordClockArrangedSentence || !wordClockCheckAnswerBtn) {
+        console.error('Word Clock game elements not found');
+        return;
+    }
+    
+    const wordClockCorrectSentence = @json($wordClockSentence ?? '');
+    const wordClockAllWords = @json($wordClockWords ?? []);
+    const wordClockCorrectOrder = @json($wordClockCorrectOrder ?? []);
     const gameId = @json($wordClockArrangementGame->game_id ?? null);
     const saveScoreRoute = @json(route('student.games.saveScore'));
     
@@ -1838,6 +2053,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+    @endif
 @endif
 
 @if(isset($wordSearchGame) && $wordSearchGame && !empty($wordSearchGame->grid_data))

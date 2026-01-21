@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\GameWordPair;
 use App\Models\WordSearchGame;
+use App\Models\ClassLessonVisibility;
 
 class GameWordController extends Controller
 {
@@ -29,6 +30,9 @@ class GameWordController extends Controller
             $query->where('teacher_id', $user->user_id)
                   ->orWhereNotNull('uploaded_by_admin_id');
         })->get();
+
+        // Get all classes for this teacher
+        $classes = \App\Models\StudentClass::where('teacher_id', $user->user_id)->get();
 
         // Get selected lesson from request
         $selectedLessonId = $request->input('lesson_id');
@@ -61,13 +65,19 @@ class GameWordController extends Controller
             $matchingPairsGame = \App\Models\MatchingPairsGame::where('lesson_id', $selectedLessonId)->with('pairs')->first();
         }
 
-        return view('games', compact('lessons', 'scramblePairs', 'selectedLessonId', 'clockGame', 'scrambledClocksGame', 'wordClockArrangementGame', 'wordSearchGame', 'matchingPairsGame'));
+        return view('games', compact('lessons', 'scramblePairs', 'selectedLessonId', 'clockGame', 'scrambledClocksGame', 'wordClockArrangementGame', 'wordSearchGame', 'matchingPairsGame', 'classes'));
     }
 
     public function store(Request $request)
     {
         // Handle saving word/definition pairs directly for a lesson with game_type
         if ($request->has('lesson_id') && $request->has('words') && $request->has('definitions') && $request->has('game_type')) {
+            $request->validate([
+                'lesson_id' => 'required|integer',
+                'class_id' => 'nullable|exists:student_classes,class_id',
+                'game_type' => 'required|string',
+            ]);
+
             $lessonId = $request->input('lesson_id');
             $gameType = $request->input('game_type'); // 'mcq' or 'scramble'
             $words = $request->input('words');
@@ -85,6 +95,19 @@ class GameWordController extends Controller
                     'definition' => $pair['definition'],
                 ]);
             }
+            
+            // If class_id is provided, make the lesson visible for that class
+            if ($request->class_id) {
+                ClassLessonVisibility::firstOrCreate(
+                    [
+                        'lesson_id' => $lessonId,
+                        'class_id' => $request->class_id,
+                        'teacher_id' => Auth::id(),
+                    ],
+                    ['is_visible' => true]
+                )->update(['is_visible' => true]);
+            }
+            
             // Redirect to show the lesson and its pairs
             return redirect()->route('teacher.games', ['lesson_id' => $lessonId])
                 ->with('success', 'Word pairs saved successfully!');

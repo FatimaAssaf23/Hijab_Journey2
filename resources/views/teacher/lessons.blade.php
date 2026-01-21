@@ -2,10 +2,21 @@
 
 @section('content')
 <div class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl mb-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex items-center">
-        <span class="text-5xl mr-4 align-middle">📚</span>
-        <div>
-            <h1 class="text-4xl font-extrabold text-white mb-2">Lessons Management</h1>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <!-- Go Back Button -->
+            <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
+                    class="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-2 border-white/30" 
+                    style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px);">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Go Back
+            </button>
+            <span class="text-5xl align-middle">📚</span>
+            <div>
+                <h1 class="text-4xl font-extrabold text-white mb-2">Lessons Management</h1>
+            </div>
         </div>
     </div>
 </div>

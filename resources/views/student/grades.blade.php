@@ -39,7 +39,7 @@
             <p x-show="activeTab === null" x-cloak class="text-lg text-pink-600 font-bold mt-3">Choose What You'd Like to View</p>
             
             <!-- Chibi Hijab Girl Image -->
-            <div class="absolute right-8 top-8 hidden md:flex items-center justify-center z-10">
+            <div class="absolute right-8 top-8 hidden md:flex items-center justify-center z-0" x-show="activeTab === null">
                 <img src="{{ asset('storage/grade-page-design/hijab6.jpg') }}" alt="Chibi Hijab Girl" class="chibi-girl-image w-48 h-48 rounded-full object-cover border-4 border-white shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-110" loading="lazy">
             </div>
         </div>
@@ -136,7 +136,7 @@
         </div>
 
         <!-- Quizzes Section -->
-        <div x-show="activeTab === 'quizzes'" x-cloak class="mb-12">
+        <div x-show="activeTab === 'quizzes'" x-cloak class="mt-8 md:mt-16 lg:mt-20 mb-12">
             @php
                 $hasQuizGrades = isset($quizGrades) && is_array($quizGrades) && count($quizGrades) > 0;
                 $quizCount = isset($quizGrades) && is_array($quizGrades) ? count($quizGrades) : 0;
@@ -158,7 +158,8 @@
                             $bestScore = $quizData['best_score'];
                             $latestScore = $quizData['latest_score'];
                             $attemptsCount = $quizData['attempts_count'];
-                            $passingScore = $quiz->passing_score ?? 60;
+                            // Always use 60% as the passing score for all quizzes (standardized)
+                            $passingScore = 60;
                             $passed = $latestScore >= $passingScore;
                             
                             // Determine score color
@@ -267,7 +268,7 @@
         </div>
 
         <!-- Games Section -->
-        <div x-show="activeTab === 'games'" x-cloak>
+        <div x-show="activeTab === 'games'" x-cloak class="mt-8 md:mt-16 lg:mt-20">
             @php
                 $hasGameScores = isset($lessonScores) && is_array($lessonScores) && count($lessonScores) > 0;
                 $gameCount = isset($lessonScores) && is_array($lessonScores) ? count($lessonScores) : 0;
