@@ -2,6 +2,17 @@
 
 @section('content')
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        <!-- Go Back Button -->
+        <div class="mt-8 mb-4">
+            <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
+                    class="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" 
+                    style="background: linear-gradient(135deg, #FC8EAC, #6EC6C5);">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Go Back
+            </button>
+        </div>
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-8 mt-8">
             <h2 class="font-semibold text-2xl text-gray-800 dark:text-gray-200 mb-6">My Classes</h2>
             @if($classes->count())

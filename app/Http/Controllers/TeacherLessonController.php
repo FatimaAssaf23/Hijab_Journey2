@@ -61,9 +61,15 @@ class TeacherLessonController extends Controller
     }
 
     // View lesson content
-    public function view($lesson_id)
+    public function view($lesson)
     {
-        $lesson = \App\Models\Lesson::findOrFail($lesson_id);
+        // Get lesson by ID (route parameter)
+        if (is_numeric($lesson)) {
+            $lesson = \App\Models\Lesson::findOrFail($lesson);
+        } elseif (!$lesson instanceof \App\Models\Lesson) {
+            $lesson = \App\Models\Lesson::findOrFail($lesson);
+        }
+        
         return view('teacher.lesson-view', compact('lesson'));
     }
 }

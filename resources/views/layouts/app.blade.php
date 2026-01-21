@@ -33,6 +33,25 @@
                 @yield('content')
             </main>
         </div>
+        <script>
+            // Go Back function that checks if there's history, otherwise redirects
+            function goBackOrRedirect(fallbackUrl) {
+                // Get current origin and full URL for comparison
+                const currentOrigin = window.location.origin;
+                const currentUrl = window.location.href;
+                
+                // Check if there's a referrer from the same origin and it's different from current page
+                if (document.referrer && 
+                    document.referrer.startsWith(currentOrigin) && 
+                    document.referrer !== currentUrl) {
+                    // We have a valid referrer from the same origin, go back
+                    window.history.back();
+                } else {
+                    // No valid referrer or same page, redirect to fallback URL
+                    window.location.href = fallbackUrl;
+                }
+            }
+        </script>
         @stack('scripts')
     </body>
 </html>

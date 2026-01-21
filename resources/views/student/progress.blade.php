@@ -543,6 +543,12 @@
                                 <span class="text-gray-600">Pending:</span>
                                 <span class="font-bold" style="color: #F59E0B;">{{ $assignmentsStats['pending'] ?? 0 }}</span>
                             </div>
+                            @if(isset($assignmentsStats['average_grade']) && $assignmentsStats['average_grade'] > 0)
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Avg Grade:</span>
+                                <span class="font-bold gradient-text">{{ number_format($assignmentsStats['average_grade'], 1) }}%</span>
+                            </div>
+                            @endif
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Completion:</span>
                                 <span class="font-bold gradient-text">{{ $assignmentsStats['completed_percentage'] ?? 0 }}%</span>

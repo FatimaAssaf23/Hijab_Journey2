@@ -20,6 +20,9 @@ class Lesson extends Model
         'icon',
         'description',
         'content_url',
+        'video_size',
+        'video_format',
+        'video_duration_seconds',
         'duration_minutes',
         'lesson_order',
         'is_visible',
@@ -34,6 +37,8 @@ class Lesson extends Model
             'lesson_order' => 'integer',
             'is_visible' => 'boolean',
             'upload_date' => 'datetime',
+            'video_size' => 'integer',
+            'video_duration_seconds' => 'integer',
         ];
     }
 

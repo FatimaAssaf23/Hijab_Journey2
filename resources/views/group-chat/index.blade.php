@@ -79,7 +79,7 @@
                         >
                         <button 
                             type="submit" 
-                            class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition font-semibold"
+                            class="px-6 py-3 bg-[#FDB5C8] text-white rounded-lg hover:bg-[#FC8EAC] transition font-semibold"
                         >
                             Send
                         </button>
@@ -170,8 +170,8 @@ function addMessageToDOM(message) {
     if (message.reply_to) {
         const replySenderName = message.reply_to.sender ? (message.reply_to.sender.first_name + ' ' + message.reply_to.sender.last_name) : 'Unknown';
         replyHtml = `
-            <div class="mb-2 p-2 bg-${isCurrentUser ? 'pink-400' : 'gray-100'} border-l-4 border-${isCurrentUser ? 'pink-300' : 'gray-400'} rounded text-sm">
-                <p class="font-semibold ${isCurrentUser ? 'text-pink-50' : 'text-gray-600'}">${replySenderName}</p>
+            <div class="mb-2 p-2 ${isCurrentUser ? 'bg-[#FC8EAC]' : 'bg-gray-100'} border-l-4 ${isCurrentUser ? 'border-[#FDB5C8]' : 'border-gray-400'} rounded text-sm">
+                <p class="font-semibold ${isCurrentUser ? 'text-white' : 'text-gray-600'}">${replySenderName}</p>
                 <p class="${isCurrentUser ? 'text-white' : 'text-gray-700'}">${escapeHtml(message.reply_to.content.substring(0, 50))}${message.reply_to.content.length > 50 ? '...' : ''}</p>
             </div>
         `;
@@ -203,7 +203,7 @@ function addMessageToDOM(message) {
     
     messageDiv.innerHTML = `
         <div class="flex ${isCurrentUser ? 'justify-end' : 'justify-start'}">
-            <div class="max-w-md ${isCurrentUser ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' : 'bg-white border border-gray-200'} rounded-2xl p-4 shadow-sm">
+            <div class="max-w-md ${isCurrentUser ? 'bg-[#FDB5C8] text-white' : 'bg-white border border-gray-200'} rounded-2xl p-4 shadow-sm">
                 ${!isCurrentUser ? `<div class="flex items-center gap-2 mb-2">
                     <span class="font-semibold ${isTeacher ? 'text-purple-600' : 'text-gray-700'}">${escapeHtml(senderName)}</span>
                     ${isTeacher ? '<span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Teacher</span>' : ''}
@@ -211,11 +211,11 @@ function addMessageToDOM(message) {
                 ${replyHtml}
                 <p class="text-sm ${isCurrentUser ? 'text-white' : 'text-gray-800'}">${escapeHtml(message.content)}</p>
                 <div class="flex items-center justify-between mt-2">
-                    <span class="text-xs ${isCurrentUser ? 'text-pink-100' : 'text-gray-500'}">Just now</span>
+                    <span class="text-xs ${isCurrentUser ? 'text-pink-50' : 'text-gray-500'}">Just now</span>
                     <div class="flex gap-2">
                         <button onclick="showEmojiPicker(${message.message_id})" class="text-lg hover:scale-125 transition">😊</button>
                         ${!isCurrentUser ? `<button onclick="replyToMessage(${message.message_id}, '${escapeHtml(message.content.substring(0, 50))}')" class="text-sm ${isCurrentUser ? 'text-pink-100' : 'text-gray-500'} hover:underline">Reply</button>` : ''}
-                        ${isCurrentUser ? `<button onclick="deleteMessage(${message.message_id})" class="text-sm text-red-300 hover:text-red-100">Delete</button>` : ''}
+                        ${isCurrentUser ? `<button onclick="deleteMessage(${message.message_id})" class="text-sm text-pink-50 hover:text-white">Delete</button>` : ''}
                     </div>
                 </div>
                 ${reactionsHtml}

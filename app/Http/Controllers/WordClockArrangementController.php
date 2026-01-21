@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Game;
+use App\Models\ClassLessonVisibility;
 
 class WordClockArrangementController extends Controller
 {
@@ -22,6 +24,7 @@ class WordClockArrangementController extends Controller
         
         $request->validate([
             'word_clock_lesson_id' => 'required|integer',
+            'class_id' => 'nullable|exists:student_classes,class_id',
             'word_clock_word' => 'required|string',
             'word_clock_sentence' => 'required|string',
             'word_clock_words' => 'required|array|min:1',
@@ -98,6 +101,18 @@ class WordClockArrangementController extends Controller
                     'game_id' => $game->game_id,
                     'lesson_id' => $request->word_clock_lesson_id
                 ]);
+            }
+
+            // If class_id is provided, make the lesson visible for that class
+            if ($request->class_id) {
+                ClassLessonVisibility::firstOrCreate(
+                    [
+                        'lesson_id' => $request->word_clock_lesson_id,
+                        'class_id' => $request->class_id,
+                        'teacher_id' => Auth::id(),
+                    ],
+                    ['is_visible' => true]
+                )->update(['is_visible' => true]);
             }
 
             return redirect()->route('teacher.games', ['lesson_id' => $request->word_clock_lesson_id])

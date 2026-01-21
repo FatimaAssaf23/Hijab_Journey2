@@ -45,7 +45,11 @@
                         {{ $quiz->timer_minutes }} min
                     </span>
                     @if($isCompleted && $score !== null)
-                        <span class="px-3 py-1 rounded-full {{ $score >= ($quiz->passing_score ?? 60) ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200' }} font-bold border">
+                        @php
+                            // Always use 60% as the passing score for all quizzes (standardized)
+                            $passingScorePercent = 60;
+                        @endphp
+                        <span class="px-3 py-1 rounded-full {{ $score >= $passingScorePercent ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200' }} font-bold border">
                             Score: {{ $score }}%
                         </span>
                     @endif
@@ -55,7 +59,7 @@
                         <a href="{{ route('student.quizzes.result', $attempt->attempt_id) }}" class="block text-center bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-xl font-bold hover:from-green-500 hover:to-green-700 transition">
                             View Results
                         </a>
-                        <p class="text-xs text-center text-gray-500 mt-2">You have already taken this quiz</p>
+                        <p class="text-xs text-center text-gray-500 mt-2 font-semibold">You have already taken this quiz. You cannot retake it.</p>
                     @else
                         <a href="{{ route('student.quizzes.show', $quiz->quiz_id) }}" class="block text-center bg-gradient-to-r from-pink-400 to-pink-600 text-white px-4 py-2 rounded-xl font-bold hover:from-pink-500 hover:to-pink-700 transition">
                             Take Quiz

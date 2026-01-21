@@ -23,6 +23,7 @@ class Student extends Model
         'plan_type',
         'subscription_status',
         'subscription_expires_at',
+        'is_read',
     ];
 
     protected function casts(): array

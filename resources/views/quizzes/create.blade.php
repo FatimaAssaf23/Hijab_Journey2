@@ -96,6 +96,18 @@
                     @enderror
                 </div>
                 <div>
+                    <label class="block font-bold text-pink-700 mb-2">Class</label>
+                    <select name="class_id" class="border-2 border-pink-200 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-pink-200 bg-white" required>
+                        <option value="">Select Class</option>
+                        @foreach($classes as $class)
+                            <option value="{{ $class->class_id }}" {{ old('class_id') == $class->class_id ? 'selected' : '' }}>{{ $class->class_name }}</option>
+                        @endforeach
+                    </select>
+                    @error('class_id')
+                        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div>
                     <label class="block font-bold text-pink-700 mb-2">Timer (minutes)</label>
                     <input type="number" name="timer_minutes" value="{{ old('timer_minutes', 30) }}" min="1" class="border-2 border-pink-200 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-pink-200 bg-white" required>
                     @error('timer_minutes')

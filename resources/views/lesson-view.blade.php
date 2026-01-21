@@ -154,45 +154,30 @@
                 @if($lesson->content_url)
                     <div class="mt-8">
                         @php
-                            $isYouTube = strpos($lesson->content_url, 'youtube.com') !== false || strpos($lesson->content_url, 'youtu.be') !== false;
+                            $fileExtension = strtolower(pathinfo($lesson->content_url, PATHINFO_EXTENSION));
+                            $isVideo = in_array($fileExtension, ['mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'webm']);
+                            $isPdf = $fileExtension === 'pdf';
+                            // Remove leading slash if present to avoid double slashes in URL
+                            $contentUrl = ltrim($lesson->content_url, '/');
+                            $storageUrl = asset('storage/' . $contentUrl);
                         @endphp
-                        @if($isYouTube)
-                            @php
-                                // Extract YouTube video ID
-                                $videoId = null;
-                                if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/', $lesson->content_url, $matches)) {
-                                    $videoId = $matches[1];
-                                }
-                            @endphp
-                            @if($videoId)
-                                <div class="aspect-video w-full rounded-xl border border-pink-100 shadow overflow-hidden">
-                                    <iframe width="100%" height="100%" src="https://www.youtube.com/embed/{{ $videoId }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded-xl"></iframe>
-                                </div>
-                            @else
-                                <a href="{{ $lesson->content_url }}" class="inline-block bg-pink-100 text-pink-700 px-4 py-2 rounded-lg shadow hover:bg-pink-200 transition text-base font-semibold mt-2" target="_blank">Open YouTube Video →</a>
-                            @endif
-                        @elseif(Str::endsWith($lesson->content_url, ['.pdf']))
-                            <iframe src="{{ asset($lesson->content_url) }}" width="100%" height="600px" class="rounded-xl border border-pink-100 shadow"></iframe>
-                        @elseif(Str::endsWith($lesson->content_url, ['.mp4', '.mov', '.avi']))
-                            <!-- Video.js Player Container -->
-                            <div class="aspect-video w-full rounded-xl border border-pink-100 shadow overflow-hidden">
-                                <video
-                                    id="lesson-video-player"
-                                    class="video-js vjs-default-skin"
-                                    controls
-                                    preload="auto"
-                                    data-setup='{}'>
-                                    <source src="{{ asset($lesson->content_url) }}" type="video/mp4" />
-                                    <p class="vjs-no-js">
-                                        To view this video please enable JavaScript, and consider upgrading to a web browser
-                                        <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>.
-                                    </p>
-                                </video>
+                        
+                        @if($isPdf)
+                            <iframe src="{{ $storageUrl }}" width="100%" height="600px" class="rounded-xl border border-pink-100 shadow"></iframe>
+                            <div class="mt-2">
+                                <a href="{{ $storageUrl }}" target="_blank" class="inline-block bg-pink-100 text-pink-700 px-4 py-2 rounded-lg shadow hover:bg-pink-200 transition text-base font-semibold mt-2">Open PDF in New Tab</a>
                             </div>
-                        @elseif(filter_var($lesson->content_url, FILTER_VALIDATE_URL))
-                            <a href="{{ $lesson->content_url }}" class="inline-block bg-pink-100 text-pink-700 px-4 py-2 rounded-lg shadow hover:bg-pink-200 transition text-base font-semibold mt-2" target="_blank">Open Content Link →</a>
+                        @elseif($isVideo)
+                            <video controls width="100%" class="rounded-xl border border-pink-100 shadow">
+                                <source src="{{ $storageUrl }}" type="video/{{ $fileExtension }}">
+                                Your browser does not support the video tag.
+                            </video>
+                            @if($lesson->video_duration_seconds)
+                                <p class="text-sm text-gray-500 mt-2">Duration: {{ gmdate('i:s', $lesson->video_duration_seconds) }}</p>
+                            @endif
                         @else
-                            <a href="{{ asset($lesson->content_url) }}" class="inline-block bg-pink-100 text-pink-700 px-4 py-2 rounded-lg shadow hover:bg-pink-200 transition text-base font-semibold mt-2" target="_blank">Download Content</a>
+                            <a href="{{ $storageUrl }}" class="inline-block bg-pink-100 text-pink-700 px-4 py-2 rounded-lg shadow hover:bg-pink-200 transition text-base font-semibold mt-2" target="_blank">Download Content</a>
+                            <p class="text-sm text-gray-500 mt-2">File: {{ basename($lesson->content_url) }}</p>
                         @endif
                     </div>
                 @else

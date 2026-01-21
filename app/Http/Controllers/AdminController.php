@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdminProfile;
+use App\Models\AdminSetting;
 use Illuminate\Http\Request;
 use App\Models\TeacherRequest;
 use App\Models\Lesson;
@@ -14,8 +15,15 @@ use App\Models\Assignment;
 use App\Models\Comment;
 use App\Models\Grade;
 use App\Models\Quiz;
+use App\Models\QuizAttempt;
 use App\Models\Teacher;
 use App\Models\TeacherProfile;
+use App\Models\Game;
+use App\Models\WordSearchGame;
+use App\Models\MatchingPairsGame;
+// ClockGame model removed - clock games have been dropped
+use App\Models\StudentGameProgress;
+use App\Models\ClassLessonVisibility;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -109,6 +117,74 @@ class AdminController extends Controller
         return redirect()->route('admin.profile')->with('success', 'Profile updated successfully.');
     }
 
+    /**
+     * Mark new student registrations as read.
+     */
+    public function markStudentsAsRead()
+    {
+        $admin = auth()->user();
+        if (!$admin || $admin->role !== 'admin') {
+            abort(403, 'Unauthorized: Only admins can access this page.');
+        }
+        
+        Student::where('is_read', false)->update(['is_read' => true]);
+        return redirect()->route('admin.dashboard')->with('success', 'New student registrations marked as read.');
+    }
+
+    /**
+     * Show the admin settings page.
+     */
+    public function settings()
+    {
+        $admin = auth()->user();
+        if (!$admin || $admin->role !== 'admin') {
+            abort(403, 'Unauthorized: Only admins can access this page.');
+        }
+
+        $settings = AdminSetting::getByCategory();
+        return view('admin.settings', compact('admin', 'settings'));
+    }
+
+    /**
+     * Handle admin settings update.
+     */
+    public function updateSettings(Request $request)
+    {
+        $admin = auth()->user();
+        if (!$admin || $admin->role !== 'admin') {
+            abort(403, 'Unauthorized: Only admins can access this page.');
+        }
+
+        // Get all settings from database
+        $allSettings = AdminSetting::all();
+        
+        // Update each setting that was submitted
+        foreach ($allSettings as $setting) {
+            $key = $setting->setting_key;
+            
+            // Check if this setting was submitted
+            if ($request->has($key)) {
+                $value = $request->input($key);
+                
+                // Handle boolean checkboxes (they don't send value if unchecked)
+                if ($setting->setting_type === 'boolean') {
+                    $value = $request->has($key) ? '1' : '0';
+                }
+                
+                $setting->setting_value = (string) $value;
+                $setting->save();
+            } else {
+                // For checkboxes that weren't checked, set to 0
+                if ($setting->setting_type === 'boolean') {
+                    $setting->setting_value = '0';
+                    $setting->save();
+                }
+            }
+        }
+
+        return redirect()->route('admin.settings')->with('success', 'Settings updated successfully.');
+    }
+
     // Class color palette (matches the design)
     private static $classColors = [
         // Updated pink palette from user image
@@ -195,11 +271,16 @@ class AdminController extends Controller
      */
     private function getClassesFromDb()
     {
-        return StudentClass::with(['teacher', 'students'])->get()->map(function ($class) {
+        return StudentClass::with(['teacher', 'students.user'])->get()->map(function ($class) {
             $colorKey = $class->color;
             $colorGradient = self::$classColors[$colorKey] ?? null;
             // Get students for this class, using related User model for name/email
-            $studentsList = $class->students->map(function ($student) {
+            // Filter out teachers from the students list
+            $studentsList = $class->students->filter(function ($student) use ($class) {
+                $user = $student->user;
+                // Exclude if user is a teacher or if user_id matches the class teacher_id
+                return $user && $user->role !== 'teacher' && $user->user_id !== $class->teacher_id;
+            })->map(function ($student) {
                 $user = $student->user;
                 return [
                     'id' => $student->student_id,
@@ -300,6 +381,15 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Get unread new student registrations
+        $unreadNewStudents = Student::with('user')
+            ->where('is_read', false)
+            ->whereHas('user', function($query) {
+                $query->where('role', 'student');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         // Calculate class status counts
         $fullClassesCount = StudentClass::where(function($query) {
             $query->where('status', 'full')
@@ -317,21 +407,406 @@ class AdminController extends Controller
         $approvedTeachersCount = TeacherRequest::where('status', 'approved')->count();
         $rejectedTeachersCount = TeacherRequest::where('status', 'rejected')->count();
 
+        // KPI Cards - Get counts
+        $totalTeachers = User::where('role', 'teacher')->count();
+        $totalStudents = Student::count();
+        $totalAssignments = Assignment::count();
+        $totalQuizzes = Quiz::count();
+        
+        // Count games (regular games + word search + matching pairs)
+        $regularGames = Game::whereNotNull('game_type')
+            ->where('game_type', '!=', 'clock')
+            ->where('game_type', '!=', 'closet_game')
+            ->count();
+        $wordSearchGames = \App\Models\WordSearchGame::count();
+        $matchingPairsGames = \App\Models\MatchingPairsGame::count();
+        $totalGames = $regularGames + $wordSearchGames + $matchingPairsGames;
+
+        // Learning Activities Overview
+        $activitiesOverview = $this->getActivitiesOverview();
+        
+        // Engagement & Performance Data (for charts)
+        $engagementData = $this->getEngagementData();
+        
+        // Alerts & Action Needed
+        $alerts = $this->getAlerts();
+
         return view('admin.dashboard', [
             'lessonsCount' => Lesson::count(),
             'classesCount' => StudentClass::count(),
             'teacherRequestsCount' => TeacherRequest::where('status', 'pending')->count(),
             'emergencyCasesCount' => TeacherSubstitution::where('status', 'active')->count(),
-            'studentsCount' => Student::count(),
-            'teachersCount' => User::where('role', 'teacher')->count(),
+            'studentsCount' => $totalStudents,
+            'teachersCount' => $totalTeachers,
             'fullClassesCount' => $fullClassesCount,
             'activeClassesCount' => $activeClassesCount,
             'emptyClassesCount' => $emptyClassesCount,
             'unreadRequests' => $unreadRequests,
             'unreadRequestsCount' => $unreadRequests->count(),
+            'unreadNewStudents' => $unreadNewStudents,
+            'unreadNewStudentsCount' => $unreadNewStudents->count(),
             'approvedTeachersCount' => $approvedTeachersCount,
             'rejectedTeachersCount' => $rejectedTeachersCount,
+            // New KPI data
+            'totalAssignments' => $totalAssignments,
+            'totalQuizzes' => $totalQuizzes,
+            'totalGames' => $totalGames,
+            // New sections
+            'activitiesOverview' => $activitiesOverview,
+            'engagementData' => $engagementData,
+            'alerts' => $alerts,
         ]);
+    }
+    
+    /**
+     * Get Learning Activities Overview statistics
+     */
+    private function getActivitiesOverview()
+    {
+        // Assignments overview
+        $allAssignments = Assignment::with(['studentClass.students', 'submissions'])->get();
+        $totalAssignmentsCount = $allAssignments->count();
+        $assignmentSubmissions = \App\Models\AssignmentSubmission::count();
+        $totalStudentsForAssignments = 0;
+        foreach ($allAssignments as $assignment) {
+            if ($assignment->studentClass) {
+                $totalStudentsForAssignments += $assignment->studentClass->students()->count();
+            }
+        }
+        $avgAssignmentParticipation = $totalStudentsForAssignments > 0 
+            ? round(($assignmentSubmissions / max($totalStudentsForAssignments, 1)) * 100, 1) 
+            : 0;
+        
+        $assignmentGrades = \App\Models\Grade::whereNotNull('assignment_submission_id')->get();
+        $avgAssignmentScore = $assignmentGrades->where('percentage', '!=', null)->avg('percentage') ?? 0;
+        $assignmentStatus = $this->getUsageStatus($avgAssignmentParticipation, $avgAssignmentScore);
+        
+        // Quizzes overview
+        $allQuizzes = Quiz::with(['studentClass.students', 'attempts'])->get();
+        $totalQuizzesCount = $allQuizzes->count();
+        $quizAttempts = \App\Models\QuizAttempt::where('status', 'completed')->count();
+        $totalStudentsForQuizzes = 0;
+        foreach ($allQuizzes as $quiz) {
+            if ($quiz->studentClass) {
+                $totalStudentsForQuizzes += $quiz->studentClass->students()->count();
+            }
+        }
+        $avgQuizParticipation = $totalStudentsForQuizzes > 0 
+            ? round(($quizAttempts / max($totalStudentsForQuizzes, 1)) * 100, 1) 
+            : 0;
+        
+        // Calculate average quiz score from grades
+        $quizGrades = \App\Models\Grade::whereNotNull('quiz_attempt_id')->get();
+        $quizScorePercentages = [];
+        foreach ($allQuizzes as $quiz) {
+            $completedAttempts = $quiz->attempts->where('status', 'completed')->where('score', '!=', null);
+            foreach ($completedAttempts as $attempt) {
+                if ($attempt->grade && $attempt->grade->percentage !== null) {
+                    $quizScorePercentages[] = $attempt->grade->percentage;
+                } elseif ($quiz->max_score && $quiz->max_score > 0) {
+                    $percentage = ($attempt->score / $quiz->max_score) * 100;
+                    if ($percentage > 100 && $attempt->score <= 100) {
+                        $percentage = $attempt->score;
+                    }
+                    $quizScorePercentages[] = min($percentage, 100);
+                }
+            }
+        }
+        $avgQuizScore = count($quizScorePercentages) > 0 ? array_sum($quizScorePercentages) / count($quizScorePercentages) : 0;
+        $quizStatus = $this->getUsageStatus($avgQuizParticipation, $avgQuizScore);
+        
+        // Games overview
+        $regularGames = Game::whereNotNull('game_type')
+            ->where('game_type', '!=', 'clock')
+            ->where('game_type', '!=', 'closet_game')
+            ->get();
+        $wordSearchGames = \App\Models\WordSearchGame::all();
+        $matchingPairsGames = \App\Models\MatchingPairsGame::all();
+        $totalGamesCount = $regularGames->count() + $wordSearchGames->count() + $matchingPairsGames->count();
+        
+        $gameProgresses = \App\Models\StudentGameProgress::count();
+        $totalStudentsForGames = Student::count(); // Approximate
+        $avgGameParticipation = $totalStudentsForGames > 0 
+            ? round(($gameProgresses / max($totalStudentsForGames * $totalGamesCount, 1)) * 100, 1) 
+            : 0;
+        
+        $avgGameScore = \App\Models\StudentGameProgress::where('score', '!=', null)->avg('score') ?? 0;
+        $gameStatus = $this->getUsageStatus($avgGameParticipation, $avgGameScore);
+        
+        return [
+            'assignments' => [
+                'total_count' => $totalAssignmentsCount,
+                'avg_participation_rate' => $avgAssignmentParticipation,
+                'avg_score' => round($avgAssignmentScore, 1),
+                'status' => $assignmentStatus,
+            ],
+            'quizzes' => [
+                'total_count' => $totalQuizzesCount,
+                'avg_participation_rate' => $avgQuizParticipation,
+                'avg_score' => round($avgQuizScore, 1),
+                'status' => $quizStatus,
+            ],
+            'games' => [
+                'total_count' => $totalGamesCount,
+                'avg_participation_rate' => $avgGameParticipation,
+                'avg_score' => round($avgGameScore, 1),
+                'status' => $gameStatus,
+            ],
+        ];
+    }
+    
+    /**
+     * Get engagement and performance data for charts
+     */
+    private function getEngagementData()
+    {
+        // Assignment submissions over time (last 12 months)
+        $assignmentSubmissionsOverTime = [];
+        $assignmentLabels = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthStart = $date->copy()->startOfMonth();
+            $monthEnd = $date->copy()->endOfMonth();
+            
+            $count = \App\Models\AssignmentSubmission::whereBetween('submitted_at', [$monthStart, $monthEnd])
+                ->count();
+            
+            $assignmentSubmissionsOverTime[] = $count;
+            $assignmentLabels[] = $date->format('M Y');
+        }
+        
+        // Quiz attempts and average scores over time (last 12 months)
+        $quizAttemptsOverTime = [];
+        $quizAvgScoresOverTime = [];
+        $quizLabels = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthStart = $date->copy()->startOfMonth();
+            $monthEnd = $date->copy()->endOfMonth();
+            
+            $attempts = \App\Models\QuizAttempt::whereBetween('submitted_at', [$monthStart, $monthEnd])
+                ->where('status', 'completed')
+                ->get();
+            
+            $attemptsCount = $attempts->count();
+            $avgScore = $attempts->where('score', '!=', null)->avg('score') ?? 0;
+            
+            $quizAttemptsOverTime[] = $attemptsCount;
+            $quizAvgScoresOverTime[] = round($avgScore, 1);
+            $quizLabels[] = $date->format('M Y');
+        }
+        
+        // Game play counts over time (last 12 months)
+        $gamePlayCountsOverTime = [];
+        $gameLabels = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthStart = $date->copy()->startOfMonth();
+            $monthEnd = $date->copy()->endOfMonth();
+            
+            $count = \App\Models\StudentGameProgress::whereBetween('created_at', [$monthStart, $monthEnd])
+                ->count();
+            
+            $gamePlayCountsOverTime[] = $count;
+            $gameLabels[] = $date->format('M Y');
+        }
+        
+        return [
+            'assignment_submissions' => [
+                'labels' => $assignmentLabels,
+                'data' => $assignmentSubmissionsOverTime,
+            ],
+            'quiz_attempts' => [
+                'labels' => $quizLabels,
+                'data' => $quizAttemptsOverTime,
+            ],
+            'quiz_avg_scores' => [
+                'labels' => $quizLabels,
+                'data' => $quizAvgScoresOverTime,
+            ],
+            'game_play_counts' => [
+                'labels' => $gameLabels,
+                'data' => $gamePlayCountsOverTime,
+            ],
+        ];
+    }
+    
+    /**
+     * Get alerts and action needed items
+     */
+    private function getAlerts()
+    {
+        $alerts = [];
+        
+        // Assignments with zero submissions
+        $assignmentsWithZeroSubmissions = Assignment::with('submissions')
+            ->get()
+            ->filter(function($assignment) {
+                return $assignment->submissions->count() === 0;
+            })
+            ->take(10)
+            ->map(function($assignment) {
+                return [
+                    'id' => $assignment->assignment_id,
+                    'title' => $assignment->title,
+                    'type' => 'assignment',
+                    'class' => $assignment->studentClass ? $assignment->studentClass->class_name : 'N/A',
+                    'message' => 'No submissions received',
+                ];
+            })->toArray();
+        
+        if (count($assignmentsWithZeroSubmissions) > 0) {
+            $alerts['assignments_zero_submissions'] = $assignmentsWithZeroSubmissions;
+        }
+        
+        // Quizzes with very low average scores (< 50%)
+        $quizzesWithLowScores = Quiz::with(['attempts.grade'])->get()
+            ->filter(function($quiz) {
+                $completedAttempts = $quiz->attempts->where('status', 'completed')->where('score', '!=', null);
+                if ($completedAttempts->count() === 0) return false;
+                
+                $scorePercentages = [];
+                foreach ($completedAttempts as $attempt) {
+                    if ($attempt->grade && $attempt->grade->percentage !== null) {
+                        $scorePercentages[] = $attempt->grade->percentage;
+                    } elseif ($quiz->max_score && $quiz->max_score > 0) {
+                        $percentage = ($attempt->score / $quiz->max_score) * 100;
+                        if ($percentage > 100 && $attempt->score <= 100) {
+                            $percentage = $attempt->score;
+                        }
+                        $scorePercentages[] = min($percentage, 100);
+                    }
+                }
+                
+                $avgScore = count($scorePercentages) > 0 ? array_sum($scorePercentages) / count($scorePercentages) : 100;
+                return $avgScore < 50;
+            })
+            ->take(10)
+            ->map(function($quiz) {
+                return [
+                    'id' => $quiz->quiz_id,
+                    'title' => $quiz->title,
+                    'type' => 'quiz',
+                    'class' => $quiz->studentClass ? $quiz->studentClass->class_name : 'N/A',
+                    'message' => 'Average score below 50%',
+                ];
+            })->toArray();
+        
+        if (count($quizzesWithLowScores) > 0) {
+            $alerts['quizzes_low_scores'] = $quizzesWithLowScores;
+        }
+        
+        // Games that were never played
+        $gamesNeverPlayed = Game::with('studentProgresses')
+            ->whereNotNull('game_type')
+            ->where('game_type', '!=', 'clock')
+            ->where('game_type', '!=', 'closet_game')
+            ->get()
+            ->filter(function($game) {
+                return $game->studentProgresses->count() === 0;
+            })
+            ->take(10)
+            ->map(function($game) {
+                return [
+                    'id' => $game->game_id,
+                    'title' => $game->lesson ? $game->lesson->title : 'Unknown Game',
+                    'type' => 'game',
+                    'class' => 'N/A',
+                    'message' => 'Never played by students',
+                ];
+            })->toArray();
+        
+        // Check word search games
+        $wordSearchGamesNeverPlayed = \App\Models\WordSearchGame::with('game.studentProgresses')
+            ->get()
+            ->filter(function($game) {
+                $progresses = $game->game ? $game->game->studentProgresses : collect();
+                return $progresses->count() === 0;
+            })
+            ->take(10)
+            ->map(function($game) {
+                return [
+                    'id' => $game->game_id ?? null,
+                    'title' => $game->lesson ? $game->lesson->title : 'Word Search Game',
+                    'type' => 'game',
+                    'class' => 'N/A',
+                    'message' => 'Never played by students',
+                ];
+            })->toArray();
+        
+        $gamesNeverPlayed = array_merge($gamesNeverPlayed, $wordSearchGamesNeverPlayed);
+        
+        // Check matching pairs games
+        $matchingPairsGamesNeverPlayed = \App\Models\MatchingPairsGame::with('game.studentProgresses')
+            ->get()
+            ->filter(function($game) {
+                $progresses = $game->game ? $game->game->studentProgresses : collect();
+                return $progresses->count() === 0;
+            })
+            ->take(10)
+            ->map(function($game) {
+                return [
+                    'id' => $game->game_id ?? null,
+                    'title' => $game->lesson ? $game->lesson->title : 'Matching Pairs Game',
+                    'type' => 'game',
+                    'class' => 'N/A',
+                    'message' => 'Never played by students',
+                ];
+            })->toArray();
+        
+        $gamesNeverPlayed = array_merge($gamesNeverPlayed, $matchingPairsGamesNeverPlayed);
+        
+        if (count($gamesNeverPlayed) > 0) {
+            $alerts['games_never_played'] = array_slice($gamesNeverPlayed, 0, 10);
+        }
+        
+        // Inactive teachers (teachers with no assignments, quizzes, or games in last 3 months)
+        $threeMonthsAgo = now()->subMonths(3);
+        $teachersWithRecentActivity = collect();
+        
+        // Get teachers from assignments
+        $recentAssignmentTeachers = Assignment::where('created_at', '>=', $threeMonthsAgo)
+            ->pluck('teacher_id');
+        $teachersWithRecentActivity = $teachersWithRecentActivity->merge($recentAssignmentTeachers);
+        
+        // Get teachers from quizzes
+        $recentQuizTeachers = Quiz::where('created_at', '>=', $threeMonthsAgo)
+            ->pluck('teacher_id');
+        $teachersWithRecentActivity = $teachersWithRecentActivity->merge($recentQuizTeachers);
+        
+        $inactiveTeachers = User::where('role', 'teacher')
+            ->whereNotIn('user_id', $teachersWithRecentActivity->unique())
+            ->take(10)
+            ->get()
+            ->map(function($teacher) {
+                return [
+                    'id' => $teacher->user_id,
+                    'title' => $teacher->first_name . ' ' . $teacher->last_name,
+                    'type' => 'teacher',
+                    'class' => 'N/A',
+                    'message' => 'No activity in last 3 months',
+                ];
+            })->toArray();
+        
+        if (count($inactiveTeachers) > 0) {
+            $alerts['inactive_teachers'] = $inactiveTeachers;
+        }
+        
+        return $alerts;
+    }
+    
+    /**
+     * Determine usage status based on participation rate and average score
+     */
+    private function getUsageStatus($participationRate, $avgScore = null)
+    {
+        if ($participationRate >= 70 && ($avgScore === null || $avgScore >= 70)) {
+            return 'Healthy';
+        } elseif ($participationRate >= 50 && ($avgScore === null || $avgScore >= 50)) {
+            return 'Needs Review';
+        } else {
+            return 'Low Usage';
+        }
     }
 
     // LESSONS - Using Database
@@ -396,6 +871,29 @@ class AdminController extends Controller
 
     public function storeLesson(Request $request)
     {
+        // Increase memory limit for file processing (must be set before file handling)
+        ini_set('memory_limit', '512M');
+        ini_set('max_execution_time', '300'); // 5 minutes for large file uploads
+        
+        try {
+            
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'skills' => 'required|integer|min:0',
+                'icon' => 'nullable|string|max:10', // Made nullable with default fallback
+                // Accept either levelId (existing) or new_level_name (new)
+                'levelId' => 'nullable|integer',
+                'new_level_name' => 'nullable|string|max:255',
+                'new_level_number' => 'nullable|integer',
+                'new_level_description' => 'nullable|string|max:255',
+                'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi,mkv,wmv,flv,webm|max:51200', // 50MB max
+                'duration_minutes' => 'nullable|integer|min:1',
+            ], [
+                'title.required' => 'Lesson title is required.',
+                'skills.required' => 'Number of skills is required.',
+                'content_file.mimes' => 'The file must be a PDF or video file (mp4, mov, avi, mkv, wmv, flv, webm).',
+                'content_file.max' => 'The file size must not exceed 50MB.',
+            ]);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -411,6 +909,7 @@ class AdminController extends Controller
         ]);
 
         // Always ensure the selected level exists in the DB (for dropdown 1-10)
+            // Always ensure the selected level exists in the DB (for dropdown 1-10)
         if ($request->filled('levelId')) {
             $levelNumber = (int) $request->levelId;
             $level = \App\Models\Level::firstOrCreate(
@@ -433,15 +932,70 @@ class AdminController extends Controller
             $levelId = $level->level_id;
         }
 
-        // Handle content: URL or file upload (file takes priority if both provided)
+        // Handle file upload (save to storage/app/public/lessons)
         $contentUrl = null;
+        $videoSize = null;
+        $videoFormat = null;
+        $videoDurationSeconds = null;
+
         if ($request->hasFile('content_file')) {
             $file = $request->file('content_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('lessons'), $filename);
-            $contentUrl = '/lessons/' . $filename;
-        } elseif ($request->filled('content_url')) {
-            $contentUrl = $request->content_url;
+            
+            // Check file size before processing to avoid memory issues
+            $fileSize = $file->getSize();
+            if ($fileSize > 52428800) { // 50MB in bytes
+                return redirect()->back()
+                    ->withInput($request->except(['content_file', '_token']))
+                    ->withErrors(['content_file' => 'File size exceeds 50MB limit.']);
+            }
+            
+            // Get file information (without loading entire file into memory)
+            $videoSize = $fileSize;
+            $extension = strtolower($file->getClientOriginalExtension());
+            
+            // Determine if it's a video file
+            $videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'webm'];
+            $isVideo = in_array($extension, $videoExtensions);
+            
+            if ($isVideo) {
+                $videoFormat = $extension;
+                
+                // Try to get video duration using ffprobe if available
+                try {
+                    $tempFilePath = $file->getRealPath();
+                    if ($tempFilePath && file_exists($tempFilePath)) {
+                        $ffprobePath = env('FFPROBE_PATH', 'ffprobe'); // Default to 'ffprobe' in PATH
+                        
+                        // Check if ffprobe is available (Windows uses 'where', Unix uses 'which')
+                        $ffprobeCheck = null;
+                        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                            $ffprobeCheck = @shell_exec("where {$ffprobePath} 2>&1");
+                        } else {
+                            $ffprobeCheck = @shell_exec("which {$ffprobePath} 2>&1");
+                        }
+                        
+                        if ($ffprobeCheck && !empty(trim($ffprobeCheck)) && strpos($ffprobeCheck, 'not found') === false) {
+                            // Get duration using ffprobe
+                            $command = escapeshellarg($ffprobePath) . " -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 " . escapeshellarg($tempFilePath);
+                            $duration = @shell_exec($command);
+                            
+                            if ($duration && is_numeric(trim($duration))) {
+                                $videoDurationSeconds = (int) round(floatval(trim($duration)));
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // If ffprobe is not available or fails, duration will remain null
+                    // This is not critical - the video will still be uploaded
+                } catch (\Throwable $e) {
+                    // Catch any other errors silently
+                }
+            }
+            
+            // Store file in storage/app/public/lessons
+            $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('lessons', $filename, 'public');
+            $contentUrl = $filePath; // Store only the path, not full URL
         }
 
         // Get the next lesson order for this level
@@ -451,9 +1005,12 @@ class AdminController extends Controller
             'level_id' => $levelId,
             'title' => $request->title,
             'skills' => (int) $request->skills,
-            'icon' => $request->icon,
-            'description' => $request->description,
+            'icon' => $request->filled('icon') ? $request->icon : '📚', // Default icon if not provided
+            'description' => $request->description ?? null,
             'content_url' => $contentUrl,
+            'video_size' => $videoSize,
+            'video_format' => $videoFormat,
+            'video_duration_seconds' => $videoDurationSeconds,
             'duration_minutes' => $request->duration_minutes ? (int) $request->duration_minutes : null,
             'lesson_order' => $maxOrder + 1,
             'is_visible' => true,
@@ -461,24 +1018,63 @@ class AdminController extends Controller
         ]);
 
         // Automatically make this lesson visible for all teachers/classes for this level
-        $classes = \App\Models\StudentClass::whereHas('levels', function($q) use ($request) {
-            $q->where('levels.level_id', (int) $request->levelId);
-        })->get();
-        $teachers = \App\Models\User::where('role', 'teacher')->get();
-        foreach ($classes as $class) {
-            foreach ($teachers as $teacher) {
-                \App\Models\ClassLessonVisibility::firstOrCreate([
-                    'class_id' => $class->class_id,
-                    'lesson_id' => $lesson->lesson_id,
-                    'teacher_id' => $teacher->user_id,
-                ], [
-                    'is_visible' => true,
-                    'changed_at' => now(),
-                ]);
+        try {
+            $classes = \App\Models\StudentClass::whereHas('levels', function($q) use ($levelId) {
+                $q->where('levels.level_id', $levelId);
+            })->select('class_id')->get();
+            
+            // Get first teacher ID as default (since unique constraint is on class_id + lesson_id only)
+            $firstTeacher = \App\Models\User::where('role', 'teacher')->first();
+            
+            if ($classes->isNotEmpty() && $firstTeacher) {
+                $bulkData = [];
+                foreach ($classes as $class) {
+                    // Only one record per class-lesson pair (unique constraint)
+                    $bulkData[] = [
+                        'class_id' => $class->class_id,
+                        'lesson_id' => $lesson->lesson_id,
+                        'teacher_id' => $firstTeacher->user_id,
+                        'is_visible' => true,
+                        'changed_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                
+                // Use insertOrIgnore to avoid duplicate key violations
+                if (!empty($bulkData)) {
+                    \DB::table('class_lesson_visibilities')->insertOrIgnore($bulkData);
+                }
             }
+        } catch (\Exception $e) {
+            // Log but don't fail the lesson creation if visibility setup fails
+            \Log::warning('Failed to set lesson visibility: ' . $e->getMessage());
         }
 
-        return redirect()->route('admin.lessons')->with('success', 'Lesson created successfully!');
+            return redirect()->route('admin.lessons')->with('success', 'Lesson created successfully!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Return validation errors with input
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput($request->except(['content_file', '_token']));
+        } catch (\Exception $e) {
+            \Log::error('Error creating lesson: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->except(['content_file', '_token']),
+                'file_size' => $request->hasFile('content_file') ? $request->file('content_file')->getSize() : null,
+                'memory_usage' => memory_get_usage(true),
+                'memory_peak' => memory_get_peak_usage(true),
+            ]);
+            
+            $errorMessage = 'An error occurred while creating the lesson.';
+            if (strpos($e->getMessage(), 'memory') !== false || strpos($e->getMessage(), 'exhausted') !== false) {
+                $errorMessage = 'The file is too large or the server ran out of memory. Please try uploading a smaller file.';
+            }
+            
+            return redirect()->back()
+                ->withInput($request->except(['content_file', '_token']))
+                ->withErrors(['error' => $errorMessage]);
+        }
     }
 
     public function editLesson($id)
@@ -511,35 +1107,82 @@ class AdminController extends Controller
             'skills' => 'required|integer|min:0',
             'icon' => 'required|string|max:10',
             'levelId' => 'required|integer',
-            'content_url' => 'nullable|url|max:500',
-            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:102400',
+            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi,mkv,wmv,flv,webm|max:51200',
         ]);
 
         $lesson = Lesson::find($id);
         if (!$lesson) abort(404);
 
-        // Handle content: URL or file upload (file takes priority if both provided)
+        // Handle file upload (save to storage/app/public/lessons)
         if ($request->hasFile('content_file')) {
-            // Delete old file if it exists and is a local file
-            if ($lesson->content_url && !filter_var($lesson->content_url, FILTER_VALIDATE_URL)) {
-                $oldFilePath = public_path($lesson->content_url);
-                if (file_exists($oldFilePath)) {
-                    unlink($oldFilePath);
-                }
+            // Delete old file if exists
+            if ($lesson->content_url && Storage::disk('public')->exists($lesson->content_url)) {
+                Storage::disk('public')->delete($lesson->content_url);
             }
+            
             $file = $request->file('content_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('lessons'), $filename);
-            $lesson->content_url = '/lessons/' . $filename;
-        } elseif ($request->filled('content_url')) {
-            // Delete old file if it exists and is a local file
-            if ($lesson->content_url && !filter_var($lesson->content_url, FILTER_VALIDATE_URL)) {
-                $oldFilePath = public_path($lesson->content_url);
-                if (file_exists($oldFilePath)) {
-                    unlink($oldFilePath);
+            
+            // Get file information
+            $videoSize = $file->getSize();
+            $extension = strtolower($file->getClientOriginalExtension());
+            
+            // Determine if it's a video file
+            $videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'webm'];
+            $isVideo = in_array($extension, $videoExtensions);
+            
+            $videoFormat = null;
+            $videoDurationSeconds = null;
+            
+            if ($isVideo) {
+                $videoFormat = $extension;
+                
+                // Try to get video duration using ffprobe if available
+                try {
+                    $tempFilePath = $file->getRealPath();
+                    if ($tempFilePath && file_exists($tempFilePath)) {
+                        $ffprobePath = env('FFPROBE_PATH', 'ffprobe');
+                        
+                        // Check if ffprobe is available (Windows uses 'where', Unix uses 'which')
+                        $ffprobeCheck = null;
+                        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                            $ffprobeCheck = @shell_exec("where {$ffprobePath} 2>&1");
+                        } else {
+                            $ffprobeCheck = @shell_exec("which {$ffprobePath} 2>&1");
+                        }
+                        
+                        if ($ffprobeCheck && !empty(trim($ffprobeCheck)) && strpos($ffprobeCheck, 'not found') === false) {
+                            // Get duration using ffprobe
+                            $command = escapeshellarg($ffprobePath) . " -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 " . escapeshellarg($tempFilePath);
+                            $duration = @shell_exec($command);
+                            
+                            if ($duration && is_numeric(trim($duration))) {
+                                $videoDurationSeconds = (int) round(floatval(trim($duration)));
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // If ffprobe is not available or fails, duration will remain null
+                    // This is not critical - the video will still be uploaded
+                } catch (\Throwable $e) {
+                    // Catch any other errors silently
                 }
             }
-            $lesson->content_url = $request->content_url;
+            
+            // Store file in storage/app/public/lessons
+            $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('lessons', $filename, 'public');
+            
+            $lesson->content_url = $filePath;
+            $lesson->video_size = $isVideo ? $videoSize : null;
+            $lesson->video_format = $videoFormat;
+            $lesson->video_duration_seconds = $videoDurationSeconds;
+        } else {
+            // If no new file uploaded, clear video metadata if content_url is removed
+            if (!$request->filled('keep_content_file')) {
+                $lesson->video_size = null;
+                $lesson->video_format = null;
+                $lesson->video_duration_seconds = null;
+            }
         }
 
         $lesson->title = $request->title;
@@ -979,7 +1622,7 @@ class AdminController extends Controller
             'duration_minutes' => 'nullable|integer|min:1',
             'is_visible' => 'nullable|boolean',
             'lesson_order' => 'nullable|integer|min:1',
-            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:102400',
+            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi,mkv,wmv,flv,webm|max:51200',
         ]);
 
         // Handle content: URL or file upload (file takes priority if both provided)
@@ -988,14 +1631,61 @@ class AdminController extends Controller
             if ($lesson->content_url && !filter_var($lesson->content_url, FILTER_VALIDATE_URL) && Storage::disk('public')->exists($lesson->content_url)) {
                 Storage::disk('public')->delete($lesson->content_url);
             }
+            
             $file = $request->file('content_file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $validated['content_url'] = $file->storeAs('lessons', $filename, 'public');
-        } elseif ($request->filled('content_url')) {
-            // Delete old file if exists and is a local file
-            if ($lesson->content_url && !filter_var($lesson->content_url, FILTER_VALIDATE_URL) && Storage::disk('public')->exists($lesson->content_url)) {
-                Storage::disk('public')->delete($lesson->content_url);
+            
+            // Get file information
+            $videoSize = $file->getSize();
+            $extension = strtolower($file->getClientOriginalExtension());
+            
+            // Determine if it's a video file
+            $videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'webm'];
+            $isVideo = in_array($extension, $videoExtensions);
+            
+            $videoFormat = null;
+            $videoDurationSeconds = null;
+            
+            if ($isVideo) {
+                $videoFormat = $extension;
+                
+                // Try to get video duration using ffprobe if available
+                try {
+                    $tempFilePath = $file->getRealPath();
+                    if ($tempFilePath && file_exists($tempFilePath)) {
+                        $ffprobePath = env('FFPROBE_PATH', 'ffprobe');
+                        
+                        // Check if ffprobe is available (Windows uses 'where', Unix uses 'which')
+                        $ffprobeCheck = null;
+                        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                            $ffprobeCheck = @shell_exec("where {$ffprobePath} 2>&1");
+                        } else {
+                            $ffprobeCheck = @shell_exec("which {$ffprobePath} 2>&1");
+                        }
+                        
+                        if ($ffprobeCheck && !empty(trim($ffprobeCheck)) && strpos($ffprobeCheck, 'not found') === false) {
+                            // Get duration using ffprobe
+                            $command = escapeshellarg($ffprobePath) . " -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 " . escapeshellarg($tempFilePath);
+                            $duration = @shell_exec($command);
+                            
+                            if ($duration && is_numeric(trim($duration))) {
+                                $videoDurationSeconds = (int) round(floatval(trim($duration)));
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // If ffprobe is not available or fails, duration will remain null
+                    // This is not critical - the video will still be uploaded
+                } catch (\Throwable $e) {
+                    // Catch any other errors silently
+                }
             }
+            
+            // Store file in storage/app/public/lessons
+            $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+            $validated['content_url'] = $file->storeAs('lessons', $filename, 'public');
+            $validated['video_size'] = $isVideo ? $videoSize : null;
+            $validated['video_format'] = $videoFormat;
+            $validated['video_duration_seconds'] = $videoDurationSeconds;
         }
 
         $lesson->update($validated);
@@ -1827,331 +2517,872 @@ class AdminController extends Controller
         ]);
     }
 
+    // --------------------------
+    // ADMIN ASSIGNMENTS MANAGEMENT
+    // --------------------------
+
     /**
-     * Display all students page
+     * Show all assignments uploaded by teachers (Admin View)
      * 
      * @return \Illuminate\View\View
      */
-    public function students()
+    public function assignments()
     {
-        $students = Student::with(['user', 'studentClass'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $assignments = Assignment::with([
+            'teacher', 
+            'studentClass', 
+            'level',
+            'submissions.student.user',
+            'submissions.grade',
+            'checkedByAdmin'
+        ])
+        ->latest()
+        ->get();
 
-        return view('admin.students.index', compact('students'));
-    }
-
-    /**
-     * Show individual student profile
-     * 
-     * @param int $id
-     * @return \Illuminate\View\View
-     */
-    public function showStudent($id)
-    {
-        $student = Student::with(['user', 'studentClass', 'studentClass.teacher'])
-            ->findOrFail($id);
-
-        // Get student progress data
-        $lessonProgress = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)->count();
-        $completedLessons = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)
-            ->whereNotNull('completed_at')
-            ->count();
-        
-        $quizAttempts = \App\Models\QuizAttempt::where('student_id', $student->student_id)->count();
-        $assignmentSubmissions = \App\Models\AssignmentSubmission::where('student_id', $student->student_id)->count();
-        
-        // Get grades/averages
-        $grades = \App\Models\Grade::where('student_id', $student->student_id)->get();
-        $averageGrade = $grades->whereNotNull('percentage')->avg('percentage');
-        
-        // Get payments
-        $payments = \App\Models\Payment::where('student_id', $student->student_id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return view('admin.students.show', compact(
-            'student',
-            'lessonProgress',
-            'completedLessons',
-            'quizAttempts',
-            'assignmentSubmissions',
-            'grades',
-            'averageGrade',
-            'payments'
-        ));
-    }
-
-    /**
-     * Export students to Excel
-     * 
-     * @return \Symfony\Component\HttpFoundation\StreamedResponse
-     */
-    public function exportStudents()
-    {
-        $students = Student::with(['user', 'studentClass'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        $filename = 'students_export_' . date('Y-m-d_His') . '.csv';
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Pragma' => 'no-cache',
-            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0'
-        ];
-
-        // Add BOM for UTF-8 Excel compatibility
-        $callback = function() use ($students) {
-            $file = fopen('php://output', 'w');
-            
-            // Add UTF-8 BOM for Excel
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            
-            // Headers
-            fputcsv($file, [
-                'ID',
-                'First Name',
-                'Last Name',
-                'Email',
-                'Phone',
-                'Date of Birth',
-                'City',
-                'Country',
-                'Class',
-                'Total Score',
-                'Plan Type',
-                'Subscription Status',
-                'Subscription Expires',
-                'Language',
-                'Date Joined'
-            ]);
-
-            // Data rows
-            foreach ($students as $student) {
-                $user = $student->user;
-                fputcsv($file, [
-                    $student->student_id,
-                    $user->first_name ?? '',
-                    $user->last_name ?? '',
-                    $user->email ?? '',
-                    $user->phone_number ?? '',
-                    $student->date_of_birth ? $student->date_of_birth->format('Y-m-d') : '',
-                    $student->city ?? '',
-                    $user->country ?? '',
-                    $student->studentClass ? $student->studentClass->class_name : 'No Class',
-                    $student->total_score ?? 0,
-                    $student->plan_type ?? 'basic',
-                    $student->subscription_status ?? 'inactive',
-                    $student->subscription_expires_at ? $student->subscription_expires_at->format('Y-m-d H:i:s') : '',
-                    $student->language ?? '',
-                    $user->date_joined ? $user->date_joined->format('Y-m-d') : ''
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
-    }
-
-    /**
-     * Display all teachers page
-     * 
-     * @return \Illuminate\View\View
-     */
-    public function teachers()
-    {
-        // Get all teachers with their users and filter out those without users
-        $teachers = Teacher::with('user')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->filter(function ($teacher) {
-                return $teacher->user !== null;
-            });
-
-        // Get all teacher profiles in one query
-        $userIds = $teachers->pluck('user_id')->filter();
-        $profiles = TeacherProfile::whereIn('user_id', $userIds)
-            ->get()
-            ->keyBy('user_id');
-
-        // Get all teacher requests for language data
-        $teacherRequests = \App\Models\TeacherRequest::whereIn('user_id', $userIds)
-            ->get()
-            ->keyBy('user_id');
-
-        // Map teachers with classes count, profiles, and language
-        $teachers = $teachers->map(function ($teacher) use ($profiles, $teacherRequests) {
-            $user = $teacher->user;
-            if ($user) {
-                $teacher->classes_count = $user->taughtClasses()->count();
-                // Attach profile if exists
-                $teacher->user->teacherProfile = $profiles->get($user->user_id);
-                // Attach language from teacher request
-                $teacherRequest = $teacherRequests->get($user->user_id);
-                $teacher->user->language = $teacherRequest ? $teacherRequest->language : null;
-            } else {
-                $teacher->classes_count = 0;
-            }
-            return $teacher;
-        });
-
-        return view('admin.teachers.index', compact('teachers'));
-    }
-
-    /**
-     * Export teachers to CSV
-     * 
-     * @return \Symfony\Component\HttpFoundation\StreamedResponse
-     */
-    public function exportTeachers()
-    {
-        // Get all teachers with their users and filter out those without users
-        $teachers = Teacher::with('user')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->filter(function ($teacher) {
-                return $teacher->user !== null;
-            });
-
-        // Get all teacher profiles in one query
-        $userIds = $teachers->pluck('user_id')->filter();
-        $profiles = TeacherProfile::whereIn('user_id', $userIds)
-            ->get()
-            ->keyBy('user_id');
-
-        // Get all teacher requests for language data
-        $teacherRequests = \App\Models\TeacherRequest::whereIn('user_id', $userIds)
-            ->get()
-            ->keyBy('user_id');
-
-        // Map teachers with classes count, profiles, and language
-        $teachers = $teachers->map(function ($teacher) use ($profiles, $teacherRequests) {
-            $user = $teacher->user;
-            if ($user) {
-                $teacher->classes_count = $user->taughtClasses()->count();
-                $teacher->user->teacherProfile = $profiles->get($user->user_id);
-                $teacherRequest = $teacherRequests->get($user->user_id);
-                $teacher->user->language = $teacherRequest ? $teacherRequest->language : null;
-                $teacher->user->specialization = $teacherRequest ? $teacherRequest->specialization : null;
-                $teacher->user->experience_years = $teacherRequest ? $teacherRequest->experience_years : null;
-            } else {
-                $teacher->classes_count = 0;
-            }
-            return $teacher;
-        });
-
-        $filename = 'teachers_export_' . date('Y-m-d_His') . '.csv';
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Pragma' => 'no-cache',
-            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0'
-        ];
-
-        // Add BOM for UTF-8 Excel compatibility
-        $callback = function() use ($teachers) {
-            $file = fopen('php://output', 'w');
-            
-            // Add UTF-8 BOM for Excel
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            
-            // Headers
-            fputcsv($file, [
-                'ID',
-                'First Name',
-                'Last Name',
-                'Email',
-                'Phone',
-                'Language',
-                'Specialization',
-                'Experience Years',
-                'Classes Count',
-                'Bio',
-                'Date Joined'
-            ]);
-
-            // Data rows
-            foreach ($teachers as $teacher) {
-                $user = $teacher->user;
-                $profile = $user ? ($user->teacherProfile ?? null) : null;
-                
-                fputcsv($file, [
-                    $teacher->teacher_id,
-                    $user->first_name ?? '',
-                    $user->last_name ?? '',
-                    $user->email ?? '',
-                    $user->phone_number ?? '',
-                    $user->language ?? '',
-                    $user->specialization ?? '',
-                    $user->experience_years ?? '',
-                    $teacher->classes_count ?? 0,
-                    $profile && $profile->bio ? $profile->bio : '',
-                    $user->date_joined ? $user->date_joined->format('Y-m-d') : ''
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
-    }
-
-    /**
-     * Show individual teacher profile
-     * 
-     * @param int $id
-     * @return \Illuminate\View\View
-     */
-    public function showTeacher($id)
-    {
-        $teacher = Teacher::with('user')
-            ->findOrFail($id);
-        
-        $user = $teacher->user;
-        if (!$user) {
-            abort(404, 'Teacher user not found');
+        // Calculate statistics for each assignment
+        foreach ($assignments as $assignment) {
+            $assignment->total_students = $assignment->studentClass ? $assignment->studentClass->students()->count() : 0;
+            $assignment->submitted_count = $assignment->submissions->count();
+            $assignment->graded_count = $assignment->submissions->filter(function($submission) {
+                return $submission->grade !== null;
+            })->count();
+            $assignment->pending_grading = $assignment->submissions->filter(function($submission) {
+                return $submission->grade === null;
+            })->count();
         }
 
-        // Get teacher profile
-        $profile = TeacherProfile::where('user_id', $user->user_id)->first();
-
-        // Get teacher statistics
-        $classes = $user->taughtClasses()->with('students')->get();
-        $classesCount = $classes->count();
-        $totalStudents = $classes->sum(function($class) {
-            return $class->students()->count();
-        });
+        // Calculate overall statistics
+        $totalAssignments = $assignments->count();
+        $totalSubmissions = $assignments->sum('submitted_count');
+        $totalGraded = $assignments->sum('graded_count');
+        $totalPending = $assignments->sum('pending_grading');
+        $totalStudents = $assignments->sum('total_students');
         
-        $assignments = \App\Models\Assignment::where('teacher_id', $user->user_id)->count();
-        $quizzes = \App\Models\Quiz::where('teacher_id', $user->user_id)->count();
-        $gradesGiven = \App\Models\Grade::where('teacher_id', $user->user_id)->count();
-        
-        // Get meetings
-        $meetings = \App\Models\Meeting::where('teacher_id', $user->user_id)
-            ->orderBy('scheduled_at', 'desc')
+        // Calculate average grades
+        $allGrades = \App\Models\Grade::whereHas('assignmentSubmission')
             ->get();
+        $averageGrade = $allGrades->where('percentage', '!=', null)->avg('percentage') ?? 0;
         
-        // Get teacher request (if available)
-        $teacherRequest = \App\Models\TeacherRequest::where('user_id', $user->user_id)->first();
+        // Submission rate
+        $submissionRate = $totalStudents > 0 ? round(($totalSubmissions / $totalStudents) * 100, 1) : 0;
+        $gradingRate = $totalSubmissions > 0 ? round(($totalGraded / $totalSubmissions) * 100, 1) : 0;
 
-        return view('admin.teachers.show', compact(
-            'teacher',
-            'user',
-            'profile',
-            'classes',
-            'classesCount',
-            'totalStudents',
+        // Calculate statistics per class
+        $classes = \App\Models\StudentClass::with('teacher')->get();
+        $classStats = [];
+        
+        foreach ($classes as $class) {
+            $classAssignments = $assignments->where('class_id', $class->class_id);
+            $classTotalAssignments = $classAssignments->count();
+            $classTotalSubmissions = $classAssignments->sum('submitted_count');
+            $classTotalGraded = $classAssignments->sum('graded_count');
+            $classTotalPending = $classAssignments->sum('pending_grading');
+            $classTotalStudents = $classAssignments->sum('total_students');
+            
+            // Get grades for this class
+            $classSubmissionIds = \App\Models\AssignmentSubmission::whereIn('assignment_id', $classAssignments->pluck('assignment_id'))
+                ->pluck('submission_id');
+            $classGrades = \App\Models\Grade::whereIn('assignment_submission_id', $classSubmissionIds)->get();
+            $classAverageGrade = $classGrades->where('percentage', '!=', null)->avg('percentage') ?? 0;
+            
+            $classSubmissionRate = $classTotalStudents > 0 ? round(($classTotalSubmissions / $classTotalStudents) * 100, 1) : 0;
+            $classGradingRate = $classTotalSubmissions > 0 ? round(($classTotalGraded / $classTotalSubmissions) * 100, 1) : 0;
+            
+            if ($classTotalAssignments > 0) {
+                $classStats[] = [
+                    'class_id' => $class->class_id,
+                    'class_name' => $class->class_name,
+                    'teacher' => $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned',
+                    'total_assignments' => $classTotalAssignments,
+                    'total_submissions' => $classTotalSubmissions,
+                    'total_graded' => $classTotalGraded,
+                    'total_pending' => $classTotalPending,
+                    'total_students' => $classTotalStudents,
+                    'average_grade' => $classAverageGrade,
+                    'submission_rate' => $classSubmissionRate,
+                    'grading_rate' => $classGradingRate,
+                ];
+            }
+        }
+
+        return view('admin.assignments', compact(
             'assignments',
-            'quizzes',
-            'gradesGiven',
-            'meetings',
-            'teacherRequest'
+            'totalAssignments',
+            'totalSubmissions',
+            'totalGraded',
+            'totalPending',
+            'totalStudents',
+            'averageGrade',
+            'submissionRate',
+            'gradingRate',
+            'classStats'
         ));
+    }
+
+    /**
+     * Add admin comment to an assignment
+     * 
+     * @param Request $request
+     * @param int $assignmentId
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function addAssignmentComment(Request $request, $assignmentId)
+    {
+        $assignment = Assignment::findOrFail($assignmentId);
+        
+        $request->validate([
+            'admin_comment' => 'required|string|max:5000',
+        ]);
+
+        $assignment->admin_comment = $request->admin_comment;
+        $assignment->checked_by_admin_id = Auth::id();
+        $assignment->save();
+
+        return redirect()->route('admin.assignments')->with('success', 'Comment added successfully!');
+    }
+
+    // --------------------------
+    // ADMIN QUIZZES MANAGEMENT
+    // --------------------------
+
+    /**
+     * Show all quizzes created by teachers (Admin View)
+     * 
+     * @return \Illuminate\View\View
+     */
+    public function quizzes()
+    {
+        $quizzes = Quiz::with([
+            'teacher', 
+            'studentClass', 
+            'level',
+            'attempts.student.user',
+            'attempts.grade',
+            'checkedByAdmin',
+            'questions.options'
+        ])
+        ->latest()
+        ->get();
+
+        // Calculate statistics for each quiz
+        // Always use 60% as the passing score for all quizzes (standardized)
+        $passingScorePercent = 60;
+        foreach ($quizzes as $quiz) {
+            $quiz->total_students = $quiz->studentClass ? $quiz->studentClass->students()->count() : 0;
+            $quiz->submissions_count = $quiz->attempts->where('status', 'completed')->count();
+            
+            $quiz->passed_count = $quiz->attempts->filter(function($attempt) use ($passingScorePercent) {
+                return $attempt->status === 'completed' && $attempt->score !== null && $attempt->score >= $passingScorePercent;
+            })->count();
+            $quiz->failed_count = $quiz->attempts->filter(function($attempt) use ($passingScorePercent) {
+                return $attempt->status === 'completed' && $attempt->score !== null && $attempt->score < $passingScorePercent;
+            })->count();
+            
+            // Calculate average score for this quiz (use percentage from grade if available, otherwise calculate)
+            $scorePercentages = [];
+            $completedAttempts = $quiz->attempts->where('status', 'completed')->where('score', '!=', null);
+            foreach ($completedAttempts as $attempt) {
+                // Try to use grade percentage first
+                if ($attempt->grade && $attempt->grade->percentage !== null) {
+                    $scorePercentages[] = $attempt->grade->percentage;
+                } elseif ($quiz->max_score && $quiz->max_score > 0) {
+                    // Calculate percentage from score and max_score
+                    $percentage = ($attempt->score / $quiz->max_score) * 100;
+                    // If result is > 100, score might already be a percentage
+                    if ($percentage > 100 && $attempt->score <= 100) {
+                        $percentage = $attempt->score;
+                    }
+                    $scorePercentages[] = min($percentage, 100); // Cap at 100%
+                }
+            }
+            $quiz->average_score_percentage = count($scorePercentages) > 0 ? array_sum($scorePercentages) / count($scorePercentages) : 0;
+        }
+
+        // Calculate overall statistics
+        $totalQuizzes = $quizzes->count();
+        $totalSubmissions = $quizzes->sum('submissions_count');
+        $totalPassed = $quizzes->sum('passed_count');
+        $totalFailed = $quizzes->sum('failed_count');
+        $totalStudents = $quizzes->sum('total_students');
+        
+        // Calculate average score percentage correctly (weighted by actual submissions)
+        $allSubmissionsPercentages = [];
+        foreach ($quizzes as $quiz) {
+            $completedAttempts = $quiz->attempts->where('status', 'completed')->where('score', '!=', null);
+            foreach ($completedAttempts as $attempt) {
+                $percentage = null;
+                
+                // Try to use grade percentage first (most reliable)
+                if ($attempt->grade && $attempt->grade->percentage !== null) {
+                    $percentage = $attempt->grade->percentage;
+                } elseif ($quiz->max_score && $quiz->max_score > 0) {
+                    // Calculate percentage from score and max_score
+                    $calculatedPercentage = ($attempt->score / $quiz->max_score) * 100;
+                    // If calculated is > 100 and score is <= 100, score might already be a percentage
+                    if ($calculatedPercentage > 100 && $attempt->score <= 100) {
+                        $percentage = $attempt->score;
+                    } else {
+                        $percentage = min($calculatedPercentage, 100); // Cap at 100%
+                    }
+                }
+                
+                if ($percentage !== null) {
+                    $allSubmissionsPercentages[] = $percentage;
+                }
+            }
+        }
+        $averageScorePercentage = count($allSubmissionsPercentages) > 0 ? array_sum($allSubmissionsPercentages) / count($allSubmissionsPercentages) : 0;
+        
+        // Completion rate (submissions / total students)
+        $completionRate = $totalStudents > 0 ? round(($totalSubmissions / $totalStudents) * 100, 1) : 0;
+        $passRate = $totalSubmissions > 0 ? round(($totalPassed / $totalSubmissions) * 100, 1) : 0;
+
+        // Calculate statistics per class
+        $classes = \App\Models\StudentClass::with('teacher')->get();
+        $classStats = [];
+        
+        foreach ($classes as $class) {
+            $classQuizzes = $quizzes->where('class_id', $class->class_id);
+            $classTotalQuizzes = $classQuizzes->count();
+            $classTotalSubmissions = $classQuizzes->sum('submissions_count');
+            $classTotalPassed = $classQuizzes->sum('passed_count');
+            $classTotalFailed = $classQuizzes->sum('failed_count');
+            $classTotalStudents = $class->students()->count();
+            
+            // Calculate average percentage for this class correctly (weighted by actual submissions)
+            $classSubmissionsPercentages = [];
+            foreach ($classQuizzes as $quiz) {
+                $completedAttempts = $quiz->attempts->where('status', 'completed')->where('score', '!=', null);
+                foreach ($completedAttempts as $attempt) {
+                    $percentage = null;
+                    
+                    // Try to use grade percentage first (most reliable)
+                    if ($attempt->grade && $attempt->grade->percentage !== null) {
+                        $percentage = $attempt->grade->percentage;
+                    } elseif ($quiz->max_score && $quiz->max_score > 0) {
+                        // Calculate percentage from score and max_score
+                        $calculatedPercentage = ($attempt->score / $quiz->max_score) * 100;
+                        // If calculated is > 100 and score is <= 100, score might already be a percentage
+                        if ($calculatedPercentage > 100 && $attempt->score <= 100) {
+                            $percentage = $attempt->score;
+                        } else {
+                            $percentage = min($calculatedPercentage, 100); // Cap at 100%
+                        }
+                    }
+                    
+                    if ($percentage !== null) {
+                        $classSubmissionsPercentages[] = $percentage;
+                    }
+                }
+            }
+            $classAvgPercentage = count($classSubmissionsPercentages) > 0 ? array_sum($classSubmissionsPercentages) / count($classSubmissionsPercentages) : 0;
+            
+            // Calculate completion rate correctly for class with multiple quizzes
+            // Average completion rate across all quizzes in the class
+            $quizCompletionRates = [];
+            foreach ($classQuizzes as $quiz) {
+                $quizTotalStudents = $quiz->studentClass ? $quiz->studentClass->students()->count() : 0;
+                $quizSubmissions = $quiz->attempts->where('status', 'completed')->count();
+                if ($quizTotalStudents > 0) {
+                    $quizCompletionRates[] = ($quizSubmissions / $quizTotalStudents) * 100;
+                }
+            }
+            $classCompletionRate = count($quizCompletionRates) > 0 ? round(array_sum($quizCompletionRates) / count($quizCompletionRates), 1) : 0;
+            
+            $classPassRate = $classTotalSubmissions > 0 ? round(($classTotalPassed / $classTotalSubmissions) * 100, 1) : 0;
+            
+            if ($classTotalQuizzes > 0) {
+                $classStats[] = [
+                    'class_id' => $class->class_id,
+                    'class_name' => $class->class_name,
+                    'teacher' => $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned',
+                    'total_quizzes' => $classTotalQuizzes,
+                    'total_submissions' => $classTotalSubmissions,
+                    'total_passed' => $classTotalPassed,
+                    'total_failed' => $classTotalFailed,
+                    'total_students' => $classTotalStudents,
+                    'average_percentage' => $classAvgPercentage,
+                    'completion_rate' => $classCompletionRate,
+                    'pass_rate' => $classPassRate,
+                ];
+            }
+        }
+
+        return view('admin.quizzes', compact(
+            'quizzes',
+            'totalQuizzes',
+            'totalSubmissions',
+            'totalPassed',
+            'totalFailed',
+            'totalStudents',
+            'averageScorePercentage',
+            'completionRate',
+            'passRate',
+            'classStats'
+        ));
+    }
+
+    // --------------------------
+    // ADMIN GAMES MANAGEMENT
+    // --------------------------
+
+    /**
+     * Show all games with statistics and filtering (Admin View)
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\View\View
+     */
+    public function games(Request $request)
+    {
+        // Get all classes for filtering
+        $allClasses = StudentClass::with('teacher')->get();
+        $selectedClassId = $request->input('class_id');
+        
+        // Get all games with their relationships
+        // Exclude 'clock' and 'closet_game' type games as they have been removed/dropped
+        $gamesQuery = Game::with(['lesson.level', 'studentProgresses.student.user'])
+            ->where('game_type', '!=', 'clock')
+            ->where('game_type', '!=', 'closet_game')
+            ->whereNotNull('game_type'); // Also exclude null game types
+        
+        // Filter by class if selected
+        if ($selectedClassId) {
+            $lessonIds = ClassLessonVisibility::where('class_id', $selectedClassId)
+                ->pluck('lesson_id')
+                ->toArray();
+            $gamesQuery->whereIn('lesson_id', $lessonIds);
+        }
+        
+        $games = $gamesQuery->get();
+        
+        // Get additional game types - only valid games with data
+        $wordSearchGames = WordSearchGame::with(['lesson.level', 'game.studentProgresses'])
+            ->whereHas('lesson')
+            ->get()
+            ->filter(function($game) {
+                return $game->words && (is_array($game->words) ? count($game->words) > 0 : true);
+            });
+        
+        $matchingPairsGames = MatchingPairsGame::with(['lesson.level', 'game.studentProgresses', 'pairs'])
+            ->whereHas('lesson')
+            ->get()
+            ->filter(function($game) {
+                return $game->pairs && $game->pairs->count() > 0;
+            });
+        
+        // Clock games have been removed/dropped - no longer fetching them
+        
+        // Filter additional games by class if selected
+        if ($selectedClassId) {
+            $lessonIds = ClassLessonVisibility::where('class_id', $selectedClassId)
+                ->pluck('lesson_id')
+                ->toArray();
+            $wordSearchGames = $wordSearchGames->whereIn('lesson_id', $lessonIds);
+            $matchingPairsGames = $matchingPairsGames->whereIn('lesson_id', $lessonIds);
+        }
+        
+        // Calculate overall statistics
+        $totalGames = $games->count() + $wordSearchGames->count() + $matchingPairsGames->count();
+        
+        // Count by game type
+        $gameTypeCounts = [
+            'word_search' => $wordSearchGames->count(),
+            'matching_pairs' => $matchingPairsGames->count(),
+            'word_clock_arrangement' => $games->where('game_type', 'word_clock_arrangement')->count(),
+            'scrambled_clocks' => $games->where('game_type', 'scrambled_clocks')->count(),
+            'scramble' => $games->where('game_type', 'scramble')->count(),
+            'mcq' => $games->where('game_type', 'mcq')->count(),
+        ];
+        
+        // Calculate completion statistics
+        $allProgresses = StudentGameProgress::with(['game', 'student.user'])->get();
+        $totalProgresses = $allProgresses->count();
+        $completedProgresses = $allProgresses->where('status', 'completed')->count();
+        $inProgressProgresses = $allProgresses->where('status', 'in_progress')->count();
+        $notStartedProgresses = $allProgresses->where('status', 'not_started')->count();
+        
+        $completionRate = $totalProgresses > 0 ? round(($completedProgresses / $totalProgresses) * 100, 1) : 0;
+        $averageScore = $allProgresses->where('score', '!=', null)->avg('score') ?? 0;
+        $averageAttempts = $allProgresses->where('attempts', '>', 0)->avg('attempts') ?? 0;
+        
+        // Calculate statistics per class
+        $classStats = [];
+        foreach ($allClasses as $class) {
+            $classLessonIds = ClassLessonVisibility::where('class_id', $class->class_id)
+                ->pluck('lesson_id')
+                ->toArray();
+            
+            $classGames = $games->whereIn('lesson_id', $classLessonIds);
+            $classWordSearchGames = $wordSearchGames->whereIn('lesson_id', $classLessonIds);
+            $classMatchingPairsGames = $matchingPairsGames->whereIn('lesson_id', $classLessonIds);
+            
+            $classTotalGames = $classGames->count() + $classWordSearchGames->count() + 
+                              $classMatchingPairsGames->count();
+            
+            // Get student IDs for this class
+            $classStudentIds = $class->students()->pluck('student_id')->toArray();
+            
+            // Get progresses for this class
+            $classProgresses = $allProgresses->filter(function($progress) use ($classStudentIds, $classLessonIds) {
+                return in_array($progress->student_id, $classStudentIds) && 
+                       in_array($progress->game->lesson_id ?? 0, $classLessonIds);
+            });
+            
+            $classTotalProgresses = $classProgresses->count();
+            $classCompleted = $classProgresses->where('status', 'completed')->count();
+            $classAverageScore = $classProgresses->where('score', '!=', null)->avg('score') ?? 0;
+            $classCompletionRate = $classTotalProgresses > 0 ? round(($classCompleted / $classTotalProgresses) * 100, 1) : 0;
+            
+            if ($classTotalGames > 0) {
+                $classStats[] = [
+                    'class_id' => $class->class_id,
+                    'class_name' => $class->class_name,
+                    'teacher' => $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned',
+                    'total_games' => $classTotalGames,
+                    'total_progresses' => $classTotalProgresses,
+                    'completed' => $classCompleted,
+                    'average_score' => round($classAverageScore, 1),
+                    'completion_rate' => $classCompletionRate,
+                ];
+            }
+        }
+        
+        // Prepare games data for display
+        $gamesData = [];
+        
+        // Add regular games
+        foreach ($games as $game) {
+            // Skip if no lesson
+            if (!$game->lesson) {
+                continue;
+            }
+            
+            // Skip closet_game type as it has been removed/dropped
+            if ($game->game_type === 'closet_game') {
+                continue;
+            }
+            
+            // Skip word_search and matching_pairs games as they're loaded separately from their own tables
+            if ($game->game_type === 'word_search' || $game->game_type === 'matching_pairs') {
+                continue;
+            }
+            
+            $progresses = $game->studentProgresses;
+            
+            // Ensure game_data is properly decoded
+            $gameData = $game->game_data;
+            if (is_string($gameData)) {
+                $gameData = json_decode($gameData, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $gameData = null;
+                }
+            }
+            
+            $gamesData[] = [
+                'game_id' => $game->game_id,
+                'lesson_id' => $game->lesson_id,
+                'lesson_title' => $game->lesson->title ?? 'N/A',
+                'level_name' => ($game->lesson->level && $game->lesson->level->level_name) ? $game->lesson->level->level_name : 'Uncategorized',
+                'game_type' => $game->game_type,
+                'game_name' => $this->getGameTypeName($game->game_type),
+                'created_at' => $game->created_at,
+                'total_attempts' => $progresses->count(),
+                'completed' => $progresses->where('status', 'completed')->count(),
+                'average_score' => round($progresses->where('score', '!=', null)->avg('score') ?? 0, 1),
+                'game_data' => $gameData,
+            ];
+        }
+        
+        // Add word search games
+        foreach ($wordSearchGames as $wsGame) {
+            // Skip if no lesson
+            if (!$wsGame->lesson) {
+                continue;
+            }
+            
+            $progresses = $wsGame->game ? $wsGame->game->studentProgresses : collect();
+            $lesson = $wsGame->lesson;
+            $gamesData[] = [
+                'game_id' => $wsGame->game_id ?? null,
+                'lesson_id' => $wsGame->lesson_id,
+                'lesson_title' => $lesson ? $lesson->title : 'N/A',
+                'level_name' => ($lesson && $lesson->level && $lesson->level->level_name) ? $lesson->level->level_name : 'Uncategorized',
+                'game_type' => 'word_search',
+                'game_name' => 'Word Search',
+                'created_at' => $wsGame->created_at ?? now(),
+                'total_attempts' => $progresses->count(),
+                'completed' => $progresses->where('status', 'completed')->count(),
+                'average_score' => round($progresses->where('score', '!=', null)->avg('score') ?? 0, 1),
+                'game_data' => [
+                    'title' => $wsGame->title ?? '',
+                    'words' => is_array($wsGame->words) ? $wsGame->words : (is_string($wsGame->words) ? json_decode($wsGame->words, true) : []),
+                    'grid_size' => $wsGame->grid_size ?? 10,
+                    'grid_data' => is_array($wsGame->grid_data) || is_object($wsGame->grid_data) ? $wsGame->grid_data : (is_string($wsGame->grid_data) ? json_decode($wsGame->grid_data, true) : null),
+                ],
+            ];
+        }
+        
+        // Add matching pairs games
+        foreach ($matchingPairsGames as $mpGame) {
+            // Skip if no lesson
+            if (!$mpGame->lesson) {
+                continue;
+            }
+            
+            $progresses = $mpGame->game ? $mpGame->game->studentProgresses : collect();
+            $lesson = $mpGame->lesson;
+            $gamesData[] = [
+                'game_id' => $mpGame->game_id ?? null,
+                'lesson_id' => $mpGame->lesson_id,
+                'lesson_title' => $lesson ? $lesson->title : 'N/A',
+                'level_name' => ($lesson && $lesson->level && $lesson->level->level_name) ? $lesson->level->level_name : 'Uncategorized',
+                'game_type' => 'matching_pairs',
+                'game_name' => 'Matching Pairs',
+                'created_at' => $mpGame->created_at ?? now(),
+                'total_attempts' => $progresses->count(),
+                'completed' => $progresses->where('status', 'completed')->count(),
+                'average_score' => round($progresses->where('score', '!=', null)->avg('score') ?? 0, 1),
+                'game_data' => [
+                    'title' => $mpGame->title ?? '',
+                    'pairs' => $mpGame->pairs->map(function($pair) {
+                        return [
+                            'left_item_text' => $pair->left_item_text,
+                            'left_item_image' => $pair->left_item_image,
+                            'right_item_text' => $pair->right_item_text,
+                            'right_item_image' => $pair->right_item_image,
+                        ];
+                    })->toArray(),
+                ],
+            ];
+        }
+        
+        // Clock games have been removed/dropped - no longer adding them to gamesData
+        
+        // Remove duplicates based on game_id and game_type combination
+        $uniqueGames = [];
+        $seenKeys = [];
+        foreach ($gamesData as $game) {
+            // Create a unique key based on game_id and game_type, or lesson_id and game_type if game_id is null
+            $uniqueKey = ($game['game_id'] ?? 'null') . '_' . $game['game_type'] . '_' . $game['lesson_id'];
+            
+            // Only add if we haven't seen this combination before
+            if (!isset($seenKeys[$uniqueKey])) {
+                $seenKeys[$uniqueKey] = true;
+                $uniqueGames[] = $game;
+            }
+        }
+        $gamesData = $uniqueGames;
+        
+        // Organize games by level and lesson
+        $organizedGames = [];
+        if (!empty($gamesData)) {
+            foreach ($gamesData as $game) {
+                $levelName = $game['level_name'] ?? 'Uncategorized';
+                $lessonId = $game['lesson_id'] ?? null;
+                $lessonTitle = $game['lesson_title'] ?? 'Unknown Lesson';
+                
+                // Skip if no lesson_id
+                if (!$lessonId) {
+                    continue;
+                }
+                
+                // Initialize level if not exists
+                if (!isset($organizedGames[$levelName])) {
+                    $organizedGames[$levelName] = [];
+                }
+                
+                // Initialize lesson if not exists
+                if (!isset($organizedGames[$levelName][$lessonId])) {
+                    $organizedGames[$levelName][$lessonId] = [
+                        'lesson_id' => $lessonId,
+                        'lesson_title' => $lessonTitle,
+                        'level_name' => $levelName,
+                        'games' => []
+                    ];
+                }
+                
+                // Add game to lesson
+                $organizedGames[$levelName][$lessonId]['games'][] = $game;
+            }
+        }
+        
+        // Sort games within each lesson by created_at desc
+        foreach ($organizedGames as $levelName => $lessons) {
+            foreach ($lessons as $lessonId => $lessonData) {
+                usort($organizedGames[$levelName][$lessonId]['games'], function($a, $b) {
+                    return strtotime($b['created_at']) - strtotime($a['created_at']);
+                });
+            }
+        }
+        
+        // Sort lessons within each level by lesson title
+        foreach ($organizedGames as $levelName => $lessons) {
+            uasort($organizedGames[$levelName], function($a, $b) {
+                return strcmp($a['lesson_title'], $b['lesson_title']);
+            });
+        }
+        
+        // Sort levels alphabetically
+        ksort($organizedGames);
+        
+        // Flatten gamesData for JavaScript (maintain backward compatibility)
+        $flatGamesData = [];
+        foreach ($organizedGames as $levelName => $lessons) {
+            foreach ($lessons as $lessonId => $lessonData) {
+                foreach ($lessonData['games'] as $game) {
+                    $flatGamesData[] = $game;
+                }
+            }
+        }
+        
+        return view('admin.games', compact(
+            'gamesData',
+            'flatGamesData',
+            'organizedGames',
+            'allClasses',
+            'selectedClassId',
+            'totalGames',
+            'gameTypeCounts',
+            'totalProgresses',
+            'completedProgresses',
+            'inProgressProgresses',
+            'notStartedProgresses',
+            'completionRate',
+            'averageScore',
+            'averageAttempts',
+            'classStats'
+        ));
+    }
+    
+    // --------------------------
+    // LIGHTWEIGHT ACTIVITIES SUMMARY PAGES
+    // --------------------------
+    
+    /**
+     * Show lightweight assignments summary page (aggregated statistics only)
+     */
+    public function activitiesAssignments()
+    {
+        // Get aggregated statistics only - no detailed content
+        $totalAssignments = Assignment::count();
+        $totalSubmissions = \App\Models\AssignmentSubmission::count();
+        $totalGraded = \App\Models\Grade::whereNotNull('assignment_submission_id')->count();
+        $totalPending = $totalSubmissions - $totalGraded;
+        
+        // Calculate average grade
+        $assignmentGrades = \App\Models\Grade::whereNotNull('assignment_submission_id')->get();
+        $averageGrade = $assignmentGrades->where('percentage', '!=', null)->avg('percentage') ?? 0;
+        
+        // Calculate statistics per class (aggregated)
+        $classes = StudentClass::with('teacher')->get();
+        $classStats = [];
+        foreach ($classes as $class) {
+            $classAssignments = Assignment::where('class_id', $class->class_id)->get();
+            $classTotalAssignments = $classAssignments->count();
+            
+            if ($classTotalAssignments > 0) {
+                $assignmentIds = $classAssignments->pluck('assignment_id');
+                $classSubmissions = \App\Models\AssignmentSubmission::whereIn('assignment_id', $assignmentIds)->count();
+                $classGraded = \App\Models\Grade::whereIn('assignment_submission_id', 
+                    \App\Models\AssignmentSubmission::whereIn('assignment_id', $assignmentIds)->pluck('submission_id')
+                )->count();
+                $classStudents = $class->students()->count();
+                
+                $classGrades = \App\Models\Grade::whereIn('assignment_submission_id',
+                    \App\Models\AssignmentSubmission::whereIn('assignment_id', $assignmentIds)->pluck('submission_id')
+                )->get();
+                $classAverageGrade = $classGrades->where('percentage', '!=', null)->avg('percentage') ?? 0;
+                
+                $classStats[] = [
+                    'class_name' => $class->class_name,
+                    'teacher' => $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned',
+                    'total_assignments' => $classTotalAssignments,
+                    'total_submissions' => $classSubmissions,
+                    'total_graded' => $classGraded,
+                    'total_students' => $classStudents,
+                    'average_grade' => round($classAverageGrade, 1),
+                    'submission_rate' => $classStudents > 0 ? round(($classSubmissions / max($classTotalAssignments * $classStudents, 1)) * 100, 1) : 0,
+                ];
+            }
+        }
+        
+        return view('admin.activities.assignments', compact(
+            'totalAssignments',
+            'totalSubmissions',
+            'totalGraded',
+            'totalPending',
+            'averageGrade',
+            'classStats'
+        ));
+    }
+    
+    /**
+     * Show lightweight quizzes summary page (aggregated statistics only)
+     */
+    public function activitiesQuizzes()
+    {
+        // Get aggregated statistics only - no questions or student answers
+        $totalQuizzes = Quiz::count();
+        $totalAttempts = \App\Models\QuizAttempt::where('status', 'completed')->count();
+        // Always use 60% as the passing score for all quizzes (standardized)
+        $passingScorePercent = 60;
+        $totalPassed = Quiz::with('attempts')->get()->sum(function($quiz) use ($passingScorePercent) {
+            return $quiz->attempts->filter(function($attempt) use ($passingScorePercent) {
+                return $attempt->status === 'completed' && $attempt->score !== null && $attempt->score >= $passingScorePercent;
+            })->count();
+        });
+        $totalFailed = $totalAttempts - $totalPassed;
+        
+        // Calculate average score (from grades only - no question details)
+        $quizGrades = \App\Models\Grade::whereNotNull('quiz_attempt_id')->get();
+        $averageScore = $quizGrades->where('percentage', '!=', null)->avg('percentage') ?? 0;
+        
+        // Calculate statistics per class (aggregated)
+        $classes = StudentClass::with('teacher')->get();
+        $classStats = [];
+        foreach ($classes as $class) {
+            $classQuizzes = Quiz::where('class_id', $class->class_id)->get();
+            $classTotalQuizzes = $classQuizzes->count();
+            
+            if ($classTotalQuizzes > 0) {
+                $quizIds = $classQuizzes->pluck('quiz_id');
+                $classAttempts = \App\Models\QuizAttempt::whereIn('quiz_id', $quizIds)
+                    ->where('status', 'completed')
+                    ->count();
+                // Always use 60% as the passing score for all quizzes (standardized)
+                $passingScorePercent = 60;
+                $classPassed = \App\Models\QuizAttempt::whereIn('quiz_id', $quizIds)
+                    ->where('status', 'completed')
+                    ->get()
+                    ->filter(function($attempt) use ($passingScorePercent) {
+                        return $attempt->score !== null && $attempt->score >= $passingScorePercent;
+                    })
+                    ->count();
+                
+                $classGrades = \App\Models\Grade::whereIn('quiz_attempt_id',
+                    \App\Models\QuizAttempt::whereIn('quiz_id', $quizIds)->pluck('attempt_id')
+                )->get();
+                $classAverageScore = $classGrades->where('percentage', '!=', null)->avg('percentage') ?? 0;
+                
+                $classStats[] = [
+                    'class_name' => $class->class_name,
+                    'teacher' => $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned',
+                    'total_quizzes' => $classTotalQuizzes,
+                    'total_attempts' => $classAttempts,
+                    'total_passed' => $classPassed,
+                    'average_score' => round($classAverageScore, 1),
+                    'pass_rate' => $classAttempts > 0 ? round(($classPassed / $classAttempts) * 100, 1) : 0,
+                ];
+            }
+        }
+        
+        return view('admin.activities.quizzes', compact(
+            'totalQuizzes',
+            'totalAttempts',
+            'totalPassed',
+            'totalFailed',
+            'averageScore',
+            'classStats'
+        ));
+    }
+    
+    /**
+     * Show lightweight games summary page (aggregated statistics only)
+     */
+    public function activitiesGames()
+    {
+        // Get aggregated statistics only - no game data details
+        $regularGames = Game::whereNotNull('game_type')
+            ->where('game_type', '!=', 'clock')
+            ->where('game_type', '!=', 'closet_game')
+            ->count();
+        $wordSearchGames = WordSearchGame::count();
+        $matchingPairsGames = MatchingPairsGame::count();
+        $totalGames = $regularGames + $wordSearchGames + $matchingPairsGames;
+        
+        $totalProgresses = StudentGameProgress::count();
+        $completedProgresses = StudentGameProgress::where('status', 'completed')->count();
+        $averageScore = StudentGameProgress::where('score', '!=', null)->avg('score') ?? 0;
+        $completionRate = $totalProgresses > 0 ? round(($completedProgresses / $totalProgresses) * 100, 1) : 0;
+        
+        // Count by game type (aggregated)
+        $gameTypeCounts = [
+            'word_search' => $wordSearchGames,
+            'matching_pairs' => $matchingPairsGames,
+            'word_clock_arrangement' => Game::where('game_type', 'word_clock_arrangement')->count(),
+            'scrambled_clocks' => Game::where('game_type', 'scrambled_clocks')->count(),
+            'scramble' => Game::where('game_type', 'scramble')->count(),
+            'mcq' => Game::where('game_type', 'mcq')->count(),
+        ];
+        
+        // Calculate statistics per class (aggregated)
+        $classes = StudentClass::with('teacher')->get();
+        $classStats = [];
+        foreach ($classes as $class) {
+            $classLessonIds = ClassLessonVisibility::where('class_id', $class->class_id)
+                ->pluck('lesson_id')
+                ->toArray();
+            
+            $classGameCount = Game::whereIn('lesson_id', $classLessonIds)
+                ->whereNotNull('game_type')
+                ->where('game_type', '!=', 'clock')
+                ->where('game_type', '!=', 'closet_game')
+                ->count();
+            
+            $classWordSearchCount = WordSearchGame::whereIn('lesson_id', $classLessonIds)->count();
+            $classMatchingPairsCount = MatchingPairsGame::whereIn('lesson_id', $classLessonIds)->count();
+            $classTotalGames = $classGameCount + $classWordSearchCount + $classMatchingPairsCount;
+            
+            if ($classTotalGames > 0) {
+                $classStudentIds = $class->students()->pluck('student_id')->toArray();
+                $classProgresses = StudentGameProgress::whereIn('student_id', $classStudentIds)
+                    ->whereHas('game', function($q) use ($classLessonIds) {
+                        $q->whereIn('lesson_id', $classLessonIds);
+                    })
+                    ->get();
+                
+                $classCompleted = $classProgresses->where('status', 'completed')->count();
+                $classAverageScore = $classProgresses->where('score', '!=', null)->avg('score') ?? 0;
+                $classCompletionRate = $classProgresses->count() > 0 ? round(($classCompleted / $classProgresses->count()) * 100, 1) : 0;
+                
+                $classStats[] = [
+                    'class_name' => $class->class_name,
+                    'teacher' => $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned',
+                    'total_games' => $classTotalGames,
+                    'total_progresses' => $classProgresses->count(),
+                    'completed' => $classCompleted,
+                    'average_score' => round($classAverageScore, 1),
+                    'completion_rate' => $classCompletionRate,
+                ];
+            }
+        }
+        
+        return view('admin.activities.games', compact(
+            'totalGames',
+            'totalProgresses',
+            'completedProgresses',
+            'averageScore',
+            'completionRate',
+            'gameTypeCounts',
+            'classStats'
+        ));
+    }
+    
+    /**
+     * Get human-readable game type name
+     */
+    private function getGameTypeName($gameType)
+    {
+        $names = [
+            'word_search' => 'Word Search',
+            'matching_pairs' => 'Matching Pairs',
+            'word_clock_arrangement' => 'Word Clock Arrangement',
+            'scrambled_clocks' => 'Scrambled Clocks',
+            'scramble' => 'Scrambled Letters',
+            'mcq' => 'Multiple Choice',
+            'clock' => 'Clock Game',
+        ];
+        
+        return $names[$gameType] ?? ucfirst(str_replace('_', ' ', $gameType));
     }
 }

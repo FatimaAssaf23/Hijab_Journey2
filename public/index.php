@@ -8,6 +8,13 @@ ini_set('upload_max_filesize', '100M');
 ini_set('post_max_size', '100M');
 ini_set('max_execution_time', '300');
 ini_set('max_input_time', '300');
+// Increase memory limit and execution time for file uploads
+// Note: upload_max_filesize and post_max_size must be set in php.ini
+// They cannot be changed at runtime with ini_set()
+if (function_exists('ini_set')) {
+    @ini_set('memory_limit', '512M');
+    @ini_set('max_execution_time', '300');
+}
 
 define('LARAVEL_START', microtime(true));
 

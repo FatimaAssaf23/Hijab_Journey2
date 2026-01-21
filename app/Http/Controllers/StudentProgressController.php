@@ -81,6 +81,31 @@ class StudentProgressController extends Controller
         $assignments = Assignment::where('class_id', $student->class_id)->get();
         $submissions = AssignmentSubmission::where('student_id', $student->student_id)->get();
         $submittedAssignmentIds = $submissions->pluck('assignment_id')->toArray();
+        
+        // Get grades for assignment submissions
+        $submissionIds = $submissions->pluck('submission_id')->toArray();
+        $assignmentGrades = Grade::where('student_id', $student->student_id)
+            ->whereNotNull('assignment_submission_id')
+            ->whereIn('assignment_submission_id', $submissionIds)
+            ->get();
+        
+        // Calculate average grade (using percentage if available, otherwise calculate from grade_value/max_grade)
+        $averageGrade = 0;
+        if ($assignmentGrades->count() > 0) {
+            $totalPercentage = 0;
+            $count = 0;
+            foreach ($assignmentGrades as $grade) {
+                if ($grade->percentage !== null) {
+                    $totalPercentage += $grade->percentage;
+                    $count++;
+                } elseif ($grade->max_grade > 0) {
+                    $totalPercentage += ($grade->grade_value / $grade->max_grade) * 100;
+                    $count++;
+                }
+            }
+            $averageGrade = $count > 0 ? round($totalPercentage / $count, 1) : 0;
+        }
+        
         $assignmentsStats = [
             'total' => $assignments->count(),
             'submitted' => $submissions->count(),
@@ -88,6 +113,7 @@ class StudentProgressController extends Controller
             'completed_percentage' => $assignments->count() > 0 
                 ? round(($submissions->count() / $assignments->count()) * 100) 
                 : 0,
+            'average_grade' => $averageGrade,
         ];
         
         return view('student.progress', compact('levels', 'student', 'gamesStats', 'quizzesStats', 'assignmentsStats', 'totalLessons', 'completedLessons', 'overallProgress'));

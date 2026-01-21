@@ -116,6 +116,8 @@
                                 $fileExtension = pathinfo($lesson['content_url'], PATHINFO_EXTENSION);
                                 $isVideo = in_array(strtolower($fileExtension), ['mp4', 'mov', 'avi', 'webm']);
                                 $isPdf = strtolower($fileExtension) === 'pdf';
+                                // Remove leading slash if present to avoid double slashes in URL
+                                $contentUrl = ltrim($lesson['content_url'], '/');
                             @endphp
                             
                             <div class="bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-4 border-2 border-pink-200">
@@ -140,7 +142,7 @@
                                 @elseif($isVideo)
                                     <div class="mb-3">
                                         <video controls class="w-full rounded-lg max-h-64">
-                                            <source src="{{ asset('storage/' . $lesson['content_url']) }}" type="video/{{ $fileExtension }}">
+                                            <source src="{{ asset('storage/' . $contentUrl) }}" type="video/{{ $fileExtension }}">
                                             Your browser does not support the video tag.
                                         </video>
                                     </div>
@@ -149,7 +151,7 @@
                                         <span class="text-4xl">📄</span>
                                         <div>
                                             <p class="font-semibold text-gray-800">PDF Document</p>
-                                            <a href="{{ asset('storage/' . $lesson['content_url']) }}" target="_blank" class="text-pink-500 hover:text-pink-600 text-sm font-medium">View PDF →</a>
+                                            <a href="{{ asset('storage/' . $contentUrl) }}" target="_blank" class="text-pink-500 hover:text-pink-600 text-sm font-medium">View PDF →</a>
                                         </div>
                                     </div>
                                 @else

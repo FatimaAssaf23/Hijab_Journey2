@@ -35,9 +35,9 @@ class StudentGameController extends Controller
         $otherGameLessonIds = \App\Models\Game::whereIn('game_type', ['scrambled_clocks', 'word_clock_arrangement', 'word_search', 'matching_pairs'])
             ->pluck('lesson_id')
             ->unique();
-        // Get lesson IDs from group_word_pairs table (word/definition pairs) - either MCQ or Scramble
+        // Get lesson IDs from group_word_pairs table (word/definition pairs) - Scramble
         $wordPairLessonIds = GroupWordPair::whereNotNull('lesson_id')
-            ->whereIn('game_type', ['mcq', 'scramble'])
+            ->where('game_type', 'scramble')
             ->pluck('lesson_id')
             ->unique();
         // Merge all lesson IDs
@@ -60,25 +60,82 @@ class StudentGameController extends Controller
             $matchingPairsGame = MatchingPairsGame::where('lesson_id', $lessonId)->with('pairs')->first();
         }
         
-        // Get current student
-        $student = null;
-        if (auth()->check() && auth()->user()->student) {
-            $student = auth()->user()->student;
-        }
-
-        // Get pairs for the selected lesson separated by game type
-        $mcqPairs = collect();
+        // Get pairs for the selected lesson separated by game type (needed for game ID mapping)
         $scramblePairs = collect();
         if ($lessonId) {
-            $mcqPairs = GroupWordPair::where('lesson_id', $lessonId)
-                ->where('game_type', 'mcq')
-                ->get();
             $scramblePairs = GroupWordPair::where('lesson_id', $lessonId)
                 ->where('game_type', 'scramble')
                 ->get();
         }
         
-        if ($mcqPairs->isEmpty() && $scramblePairs->isEmpty() && !$scrambledClocksGame && !$clockGame && !$wordClockArrangementGame && !$wordSearchGame && !$matchingPairsGame) {
+        // Get current student
+        $student = null;
+        $completedGameIds = [];
+        $gameTypeToGameIdMap = []; // Map game types to their game IDs
+        
+        if (auth()->check() && auth()->user()->student) {
+            $student = auth()->user()->student;
+            // Get all game progress for this student and lesson
+            if ($lessonId) {
+                // Build game ID mapping for each game type
+                // Clock game - get or create game_id
+                if ($clockGame) {
+                    $clockGameModel = \App\Models\Game::where('lesson_id', $lessonId)->where('game_type', 'clock')->first();
+                    if (!$clockGameModel) {
+                        $clockGameModel = \App\Models\Game::create([
+                            'lesson_id' => $lessonId,
+                            'game_type' => 'clock',
+                            'game_data' => json_encode([])
+                        ]);
+                    }
+                    $gameTypeToGameIdMap['clock'] = $clockGameModel->game_id;
+                }
+                
+                // Scrambled clocks game
+                if ($scrambledClocksGame && $scrambledClocksGame->game_id) {
+                    $gameTypeToGameIdMap['scrambledclocks'] = $scrambledClocksGame->game_id;
+                }
+                
+                // Word clock arrangement game
+                if ($wordClockArrangementGame && $wordClockArrangementGame->game_id) {
+                    $gameTypeToGameIdMap['wordclock'] = $wordClockArrangementGame->game_id;
+                }
+                
+                // Word search game
+                if ($wordSearchGame && $wordSearchGame->game_id) {
+                    $gameTypeToGameIdMap['wordsearch'] = $wordSearchGame->game_id;
+                }
+                
+                // Matching pairs game
+                if ($matchingPairsGame && $matchingPairsGame->game_id) {
+                    $gameTypeToGameIdMap['matchingpairs'] = $matchingPairsGame->game_id;
+                }
+                
+                // Scramble game - get or create
+                $scrambleGame = \App\Models\Game::where('lesson_id', $lessonId)->where('game_type', 'scramble')->first();
+                if (!$scrambleGame && $scramblePairs->isNotEmpty()) {
+                    $scrambleGame = \App\Models\Game::create([
+                        'lesson_id' => $lessonId,
+                        'game_type' => 'scramble',
+                        'game_data' => json_encode([])
+                    ]);
+                }
+                if ($scrambleGame) {
+                    $gameTypeToGameIdMap['scramble'] = $scrambleGame->game_id;
+                }
+                
+                // Fetch all completed progress records
+                if (!empty($gameTypeToGameIdMap)) {
+                    $completedGameIds = \App\Models\StudentGameProgress::where('student_id', $student->student_id)
+                        ->whereIn('game_id', array_values($gameTypeToGameIdMap))
+                        ->where('status', 'completed')
+                        ->pluck('game_id')
+                        ->toArray();
+                }
+            }
+        }
+
+        if ($scramblePairs->isEmpty() && !$scrambledClocksGame && !$clockGame && !$wordClockArrangementGame && !$wordSearchGame && !$matchingPairsGame) {
             return view('student.games', [
                 'error' => 'No quiz data available. Ask your teacher to add words.', 
                 'scrambledClocksGame' => $scrambledClocksGame, 
@@ -90,11 +147,10 @@ class StudentGameController extends Controller
                 'lessonsWithGames' => $lessonsWithGames,
                 'selectedLessonId' => $lessonId,
                 'student' => $student,
-                'mcqPairs' => $mcqPairs,
                 'scramblePairs' => $scramblePairs
             ]);
         }
-        return view('student.games', compact('mcqPairs', 'scramblePairs', 'scrambledClocksGame', 'clockGame', 'wordClockArrangementGame', 'wordSearchGame', 'matchingPairsGame', 'lesson', 'lessonsWithGames', 'selectedLessonId', 'student'));
+        return view('student.games', compact('scramblePairs', 'scrambledClocksGame', 'clockGame', 'wordClockArrangementGame', 'wordSearchGame', 'matchingPairsGame', 'lesson', 'lessonsWithGames', 'selectedLessonId', 'student', 'completedGameIds', 'gameTypeToGameIdMap'));
     }
 
     public function quiz(Request $request)
@@ -224,13 +280,21 @@ class StudentGameController extends Controller
             return response()->json(['error' => 'Either game_id or (lesson_id and game_type) required'], 400);
         }
 
-        // Get existing progress to increment attempts
+        // Check if student has already completed this game
         $existingProgress = \App\Models\StudentGameProgress::where('game_id', $gameId)
             ->where('student_id', $student->student_id)
             ->first();
         
-        $attempts = $existingProgress ? $existingProgress->attempts + 1 : 1;
+        // If already completed, prevent replay
+        if ($existingProgress && $existingProgress->status === 'completed') {
+            return response()->json([
+                'error' => 'You have already played this game. You cannot play the same game more than once.',
+                'already_completed' => true,
+                'score' => $existingProgress->score
+            ], 403);
+        }
         
+        // Create or update progress (first time only)
         $progress = \App\Models\StudentGameProgress::updateOrCreate(
             [
                 'game_id' => $gameId,
@@ -240,7 +304,7 @@ class StudentGameController extends Controller
                 'status' => 'completed',
                 'score' => $request->score,
                 'completed_at' => now(),
-                'attempts' => $attempts,
+                'attempts' => 1, // Always 1 - no multiple attempts allowed
             ]
         );
 
