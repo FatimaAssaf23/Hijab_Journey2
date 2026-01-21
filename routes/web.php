@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
@@ -137,7 +138,89 @@ Route::get('/student/dashboard', function () {
     if ($user->role !== 'student') {
         abort(403, 'Unauthorized. Only students can access this page.');
     }
-    return view('dashboard');
+    
+    $student = $user->student;
+    $class = $student?->studentClass;
+    $upcomingAssignments = [];
+    $lessonsCompleted = 0;
+    
+    // Check if student is in top 3 for day or week
+    $isInTop3Day = false;
+    $isInTop3Week = false;
+    $dayRank = null;
+    $weekRank = null;
+    $top3DayPosition = null;
+    $top3WeekPosition = null;
+    
+    if ($student) {
+        $lessonsCompleted = $student->lessonProgresses()->where('status', 'completed')->count();
+        
+        // Calculate rankings using the same logic as RewardsController
+        $rewardsController = new \App\Http\Controllers\RewardsController();
+        
+        // Daily rankings
+        $todayStart = Carbon::today()->startOfDay();
+        $todayEnd = Carbon::today()->endOfDay();
+        $studentsWithDailyScores = $rewardsController->getStudentsWithScores($todayStart, $todayEnd);
+        $top3Day = $studentsWithDailyScores->where('performance_score', '>', 0)->take(3);
+        
+        // Check if current student is in top 3 of day
+        foreach ($top3Day as $index => $topStudent) {
+            if ($topStudent->student_id === $student->student_id) {
+                $isInTop3Day = true;
+                $top3DayPosition = $index + 1;
+                break;
+            }
+        }
+        
+        // Get daily rank
+        $dailyIndex = $studentsWithDailyScores->search(function($s) use ($student) {
+            return $s->student_id === $student->student_id;
+        });
+        if ($dailyIndex !== false) {
+            $dayRank = $dailyIndex + 1;
+        }
+        
+        // Weekly rankings
+        $weekStart = Carbon::now()->startOfWeek()->startOfDay();
+        $weekEnd = Carbon::now()->endOfWeek()->endOfDay();
+        $studentsWithWeeklyScores = $rewardsController->getStudentsWithScores($weekStart, $weekEnd);
+        $top3Week = $studentsWithWeeklyScores->where('performance_score', '>', 0)->take(3);
+        
+        // Check if current student is in top 3 of week
+        foreach ($top3Week as $index => $topStudent) {
+            if ($topStudent->student_id === $student->student_id) {
+                $isInTop3Week = true;
+                $top3WeekPosition = $index + 1;
+                break;
+            }
+        }
+        
+        // Get weekly rank
+        $weeklyIndex = $studentsWithWeeklyScores->search(function($s) use ($student) {
+            return $s->student_id === $student->student_id;
+        });
+        if ($weeklyIndex !== false) {
+            $weekRank = $weeklyIndex + 1;
+        }
+    }
+    
+    if ($class) {
+        $upcomingAssignments = \App\Models\Assignment::where('class_id', $class->class_id)
+            ->whereDate('due_date', '>=', now())
+            ->orderBy('due_date')
+            ->take(5)
+            ->get();
+    }
+    
+    return view('dashboard', compact(
+        'isInTop3Day', 
+        'isInTop3Week', 
+        'dayRank', 
+        'weekRank', 
+        'top3DayPosition', 
+        'top3WeekPosition'
+    ));
 })->middleware(['auth', 'verified'])->name('student.dashboard');
 
 // Teacher dashboard route
@@ -190,7 +273,6 @@ Route::get('/teacher/dashboard', function () {
     $gradeRangeLabels = array_keys($gradeRanges);
     $gradeRangeCounts = array_values($gradeRanges);
     
-    return view('teacher.dashboard', compact('levels', 'levelNames', 'lessonCounts', 'gradeRangeLabels', 'gradeRangeCounts'));
     // Get teacher's classes
     $taughtClasses = \App\Models\StudentClass::where('teacher_id', $user->user_id)
         ->with(['students', 'assignments', 'quizzes'])
@@ -269,7 +351,7 @@ Route::get('/teacher/dashboard', function () {
     }
     
     return view('teacher.dashboard', compact(
-        'levels', 'levelNames', 'lessonCounts',
+        'levels', 'levelNames', 'lessonCounts', 'gradeRangeLabels', 'gradeRangeCounts',
         'totalClasses', 'totalStudents', 'totalAssignments', 'totalQuizzes', 'averageGrade', 'pendingGrading',
         'classNames', 'studentCountsByClass', 'assignmentsByClass', 'quizzesByClass',
         'activityOverTimeLabels', 'upcomingAssignments', 'upcomingQuizzes'
@@ -341,6 +423,8 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     
     // Teacher Management
     Route::get('/teachers', [AdminController::class, 'teachers'])->name('admin.teachers.index');
+    Route::get('/teachers/{id}', [AdminController::class, 'showTeacher'])->name('admin.teachers.show');
+    Route::get('/teachers/export', [AdminController::class, 'exportTeachers'])->name('admin.teachers.export');
     
     // Teacher Requests
     Route::get('/requests', [AdminController::class, 'teacherRequests'])->name('admin.requests');

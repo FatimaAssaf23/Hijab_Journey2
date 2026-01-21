@@ -84,9 +84,10 @@
                             ];
                             $planClass = $planColors[$student->plan_type ?? 'basic'] ?? 'bg-gray-50 text-gray-700 border-gray-200';
                         @endphp
+                        @if($user)
                         <tr class="hover:bg-gradient-to-r hover:from-pink-50 hover:to-rose-50 transition-all duration-200 student-row group" 
-                            data-name="{{ strtolower($user->first_name . ' ' . $user->last_name) }}"
-                            data-email="{{ strtolower($user->email) }}"
+                            data-name="{{ strtolower(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) }}"
+                            data-email="{{ strtolower($user->email ?? '') }}"
                             data-class="{{ strtolower($class->class_name ?? '') }}"
                             data-city="{{ strtolower($student->city ?? '') }}"
                             data-plan="{{ $student->plan_type ?? '' }}"
@@ -100,11 +101,11 @@
                                         </div>
                                         <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white"></div>
                                     </div>
-                                    <div class="flex-1">
+                                        <div class="flex-1">
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('admin.students.show', $student->student_id) }}" 
                                                class="text-sm font-bold text-gray-900 group-hover:text-pink-600 transition-colors hover:underline">
-                                                {{ $user->first_name }} {{ $user->last_name }}
+                                                {{ $user->first_name ?? 'Unknown' }} {{ $user->last_name ?? '' }}
                                             </a>
                                             <a href="{{ route('admin.students.show', $student->student_id) }}" 
                                                class="text-pink-600 hover:text-pink-700 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -124,8 +125,8 @@
                             
                             <!-- Contact -->
                             <td class="px-6 py-5">
-                                <div class="text-sm font-medium text-gray-900">{{ $user->email }}</div>
-                                @if($user->phone_number)
+                                <div class="text-sm font-medium text-gray-900">{{ $user->email ?? 'N/A' }}</div>
+                                @if($user->phone_number ?? null)
                                 <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
@@ -182,8 +183,8 @@
                             
                             <!-- Joined Date -->
                             <td class="px-6 py-5">
-                                <div class="text-sm font-medium text-gray-900">{{ $user->date_joined ? $user->date_joined->format('M d, Y') : 'N/A' }}</div>
-                                @if($user->date_joined)
+                                <div class="text-sm font-medium text-gray-900">{{ ($user->date_joined ?? null) ? $user->date_joined->format('M d, Y') : 'N/A' }}</div>
+                                @if($user->date_joined ?? null)
                                 <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -193,6 +194,7 @@
                                 @endif
                             </td>
                         </tr>
+                        @endif
                         @empty
                         <tr>
                             <td colspan="6" class="px-6 py-16 text-center">

@@ -12,6 +12,7 @@ use App\Models\StudentGameProgress;
 use App\Models\QuizAttempt;
 use App\Models\AssignmentSubmission;
 use App\Models\Assignment;
+use App\Models\Grade;
 use App\Models\Game;
 use App\Models\ClassLessonVisibility;
 

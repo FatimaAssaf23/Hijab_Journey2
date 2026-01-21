@@ -282,7 +282,7 @@ class RewardsController extends Controller
     /**
      * Get all students with their performance scores
      */
-    private function getStudentsWithScores($startDate, $endDate)
+    public function getStudentsWithScores($startDate, $endDate)
     {
         $students = Student::with('user')
             ->whereHas('user', function($query) {

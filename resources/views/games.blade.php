@@ -283,7 +283,7 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
-                                <button type="button" id="viewWordSearchBtn" class="group relative px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 text-white font-bold shadow-lg hover:shadow-2xl transform hover:scale-110 transition-all duration-300 flex items-center gap-2.5 overflow-hidden border-2 border-white/20">
+                                <button type="button" id="viewWordSearchBtn" class="group relative px-6 py-3 rounded-2xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-bold shadow-lg hover:shadow-2xl transform hover:scale-110 transition-all duration-300 flex items-center gap-2.5 overflow-hidden border-2 border-pink-200/50">
                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                     <svg class="h-5 w-5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -291,7 +291,7 @@
                                     </svg>
                                     <span class="relative z-10">View</span>
                                 </button>
-                                <button type="button" id="editWordSearchBtn" class="group relative px-6 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-600 text-white font-bold shadow-lg hover:shadow-2xl transform hover:scale-110 transition-all duration-300 flex items-center gap-2.5 overflow-hidden border-2 border-white/20">
+                                <button type="button" id="editWordSearchBtn" class="group relative px-6 py-3 rounded-2xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-bold shadow-lg hover:shadow-2xl transform hover:scale-110 transition-all duration-300 flex items-center gap-2.5 overflow-hidden border-2 border-pink-200/50">
                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                     <svg class="h-5 w-5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -447,7 +447,7 @@
                                            class="flex-1 bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 focus:bg-pink-50 transition-all" 
                                            value="{{ $cleanWord }}" 
                                            placeholder="Enter word" required>
-                                    <button type="button" class="removeWordSearchWordBox px-4 py-2.5 bg-gradient-to-r from-red-400 to-rose-500 text-white rounded-lg font-bold shadow-md hover:from-red-500 hover:to-rose-600 transform hover:scale-105 transition-all duration-200">&times;</button>
+                                    <button type="button" class="removeWordSearchWordBox px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button>
                                 </div>
                             @endforeach
                         @else
@@ -456,11 +456,11 @@
                                     <input type="text" name="word_search_words[]" 
                                            class="flex-1 bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 focus:bg-pink-50 transition-all" 
                                            placeholder="Enter word" required>
-                                    <button type="button" class="removeWordSearchWordBox px-4 py-2.5 bg-gradient-to-r from-red-400 to-rose-500 text-white rounded-lg font-bold shadow-md hover:from-red-500 hover:to-rose-600 transform hover:scale-105 transition-all duration-200">&times;</button>
+                                    <button type="button" class="removeWordSearchWordBox px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button>
                                 </div>
                         @endif
                     </div>
-                            <button type="button" id="addWordSearchWordBox" class="mt-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow-lg hover:from-green-600 hover:to-emerald-700 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 w-fit">
+                            <button type="button" id="addWordSearchWordBox" class="mt-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-semibold shadow-lg hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 w-fit border border-pink-200/50">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                 </svg>
@@ -468,7 +468,7 @@
                             </button>
                         </div>
 
-                        <button type="submit" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-pink-500 to-cyan-600 text-white font-bold text-lg shadow-xl hover:from-pink-600 hover:to-cyan-700 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
+                        <button type="submit" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-bold text-lg shadow-xl hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 border border-pink-200/50">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
@@ -482,7 +482,7 @@
         <!-- Word Clock Arrangement Game Section -->
         <div class="max-w-7xl mx-auto mb-8">
             <div class="bg-gradient-to-br from-pink-50/60 via-white/80 to-cyan-50/90 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-cyan-200/40 transform transition-all duration-300 hover:shadow-2xl">
-                <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-cyan-200/50">
+                <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-pink-200/50">
                     <div class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -507,7 +507,7 @@
                                 </div>
                                 <h4 class="text-xl font-bold text-green-800">Saved Word Clock Arrangement Game</h4>
                             </div>
-                            <button type="button" id="editWordClockArrangementBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-semibold shadow-md hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200 flex items-center gap-2">
+                            <button type="button" id="editWordClockArrangementBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-semibold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 border border-pink-200/50">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
@@ -559,7 +559,7 @@
                                 </svg>
                                 This sentence will be automatically split into words. Each word will need a clock time assigned.
                             </p>
-                            <button type="button" id="splitSentenceBtn" class="mt-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold shadow-lg hover:from-cyan-600 hover:to-teal-700 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 w-fit">
+                            <button type="button" id="splitSentenceBtn" class="mt-3 px-5 py-2.5 rounded-xl bg-[#EC769A] text-white font-semibold shadow-lg hover:bg-[#d8658a] transform hover:scale-105 transition-all duration-200 flex items-center gap-2 w-fit">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
@@ -629,13 +629,13 @@
                                                 <circle cx="30" cy="30" r="2" fill="#333"/>
                                             </svg>
                                         </div>
-                                                <button type="button" class="removeWordClockArrangementWordBox px-4 py-2.5 bg-gradient-to-r from-red-400 to-rose-500 text-white rounded-lg font-bold shadow-md hover:from-red-500 hover:to-rose-600 transform hover:scale-105 transition-all duration-200">&times;</button>
+                                                <button type="button" class="removeWordClockArrangementWordBox px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button>
                                             </div>
                                         </div>
                             @endforeach
                         @endif
                     </div>
-                            <button type="button" id="addWordClockArrangementWordBox" class="mt-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow-lg hover:from-green-600 hover:to-emerald-700 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 w-fit">
+                            <button type="button" id="addWordClockArrangementWordBox" class="mt-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-semibold shadow-lg hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 w-fit border border-pink-200/50">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                 </svg>
@@ -643,7 +643,7 @@
                             </button>
                         </div>
 
-                        <button type="submit" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-bold text-lg shadow-xl hover:from-cyan-600 hover:to-teal-700 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
+                        <button type="submit" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-bold text-lg shadow-xl hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 border border-pink-200/50">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
@@ -682,17 +682,17 @@
             }
         @endphp
                 @if($matchingPairsData && !empty($matchingPairsData['pairs']))
-                    <div id="matchingPairsSavedView" class="mb-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-lg">
+                    <div id="matchingPairsSavedView" class="mb-6 p-6 bg-gradient-to-r from-cyan-50 to-teal-50 border-2 border-cyan-300 rounded-xl shadow-lg">
                         <div class="flex justify-between items-center mb-4">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center shadow-md">
+                                <div class="w-10 h-10 bg-gradient-to-br from-cyan-400 to-teal-500 rounded-lg flex items-center justify-center shadow-md">
                                     <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </div>
-                                <h4 class="text-xl font-bold text-green-800">Saved Matching Pairs Game</h4>
+                                <h4 class="text-xl font-bold text-cyan-800">Saved Matching Pairs Game</h4>
                             </div>
-                            <button type="button" id="editMatchingPairsBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-semibold shadow-md hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200 flex items-center gap-2">
+                            <button type="button" id="editMatchingPairsBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-semibold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 border border-pink-200/50">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
@@ -701,13 +701,13 @@
                         </div>
                 @if(!empty($matchingPairsData['title']))
                     <div class="mb-3">
-                        <strong class="text-green-800">Title:</strong> 
-                        <span class="text-green-900 font-semibold text-lg" dir="rtl">{{ $matchingPairsData['title'] }}</span>
+                        <strong class="text-cyan-800">Title:</strong> 
+                        <span class="text-cyan-900 font-semibold text-lg" dir="rtl">{{ $matchingPairsData['title'] }}</span>
                     </div>
                 @endif
                         <div class="grid gap-4">
                             @foreach($matchingPairsData['pairs'] as $index => $pair)
-                                <div class="border-2 border-green-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+                                <div class="border-2 border-cyan-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                                         <div class="flex items-center gap-3">
                                             <span class="font-bold text-teal-600 text-lg">{{ $index + 1 }}.</span>
@@ -770,7 +770,7 @@
                                                     </svg>
                                                     Pair {{ $index + 1 }}
                                                 </span>
-                                                <button type="button" class="removeMatchingPairBox px-4 py-2 bg-gradient-to-r from-red-400 to-rose-500 text-white rounded-lg font-bold shadow-md hover:from-red-500 hover:to-rose-600 transform hover:scale-105 transition-all duration-200">&times;</button>
+                                                <button type="button" class="removeMatchingPairBox px-4 py-2 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button>
                                             </div>
                                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                                 <div class="space-y-3">
@@ -812,7 +812,7 @@
                             @endforeach
                         @endif
                     </div>
-                            <button type="button" id="addMatchingPairBox" class="mt-4 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow-lg hover:from-green-600 hover:to-emerald-700 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 w-fit">
+                            <button type="button" id="addMatchingPairBox" class="mt-4 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-semibold shadow-lg hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 w-fit border border-pink-200/50">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                 </svg>
@@ -820,7 +820,7 @@
                             </button>
                         </div>
 
-                        <button type="submit" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-bold text-lg shadow-xl hover:from-teal-600 hover:to-cyan-700 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
+                        <button type="submit" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-bold text-lg shadow-xl hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 border border-pink-200/50">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
@@ -882,7 +882,7 @@
                             <div class="flex flex-col md:flex-row gap-3">
                             <input type="text" name="words[]" class="flex-1 bg-pink-50 border-2 border-pink-200 rounded-xl px-4 py-3 text-gray-800 font-medium shadow-md hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Word" required>
                             <input type="text" name="definitions[]" class="flex-2 bg-pink-50 border-2 border-pink-200 rounded-xl px-4 py-3 text-gray-800 font-medium shadow-md hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Definition" required>
-                            <button type="button" class="addPairBtn px-6 py-3 bg-gradient-to-r from-teal-400 to-cyan-500 text-white font-bold rounded-xl shadow-lg hover:from-teal-500 hover:to-cyan-600 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
+                            <button type="button" class="addPairBtn px-6 py-3 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-bold rounded-xl shadow-lg hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 border border-pink-200/50">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                 </svg>
@@ -891,7 +891,7 @@
                         </div>
                     </div>
                     <div class="pairs-list space-y-3 mb-6"></div>
-                    <button type="submit" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-bold text-lg shadow-xl hover:from-teal-600 hover:to-cyan-700 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
+                    <button type="submit" class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-bold text-lg shadow-xl hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 border border-pink-200/50">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
@@ -905,7 +905,155 @@
 </div>
 
 <script>
+// TEST: Verify script is loading
+console.log('=== GAMES PAGE SCRIPT LOADING ===');
+
+// Global event delegation handler - works for ALL buttons even if loaded dynamically
+(function() {
+    'use strict';
+    
+    console.log('=== GLOBAL EVENT HANDLER SETUP ===');
+    
+    // Unified click handler for all add buttons
+    document.addEventListener('click', function(e) {
+        console.log('=== CLICK DETECTED ===', e.target);
+        const target = e.target;
+        const button = target.closest('button[id], button[class*="add"], button[class*="Add"]') || target;
+        
+        console.log('Button ID:', button.id, 'Button classes:', button.className);
+        
+        // Word Search Add Button
+        if (button.id === 'addWordSearchWordBox' || target.closest('#addWordSearchWordBox') || target.id === 'addWordSearchWordBox') {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('=== Word Search Add button clicked ===');
+            const container = document.getElementById('wordSearchWordsBoxes');
+            if (container) {
+                const box = document.createElement('div');
+                box.className = 'word-search-word-box flex items-center gap-3 mb-3 p-3 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-pink-300 transition-colors';
+                box.innerHTML = '<input type="text" name="word_search_words[]" class="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all" placeholder="Enter word" required><button type="button" class="removeWordSearchWordBox px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200">&times;</button>';
+                container.appendChild(box);
+            }
+            return false;
+        }
+        
+        // Matching Pairs Add Button
+        if (button.id === 'addMatchingPairBox' || target.closest('#addMatchingPairBox') || target.id === 'addMatchingPairBox') {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('=== Matching Pairs Add button clicked ===');
+            const container = document.getElementById('matchingPairsBoxes');
+            if (container) {
+                const pairIndex = container.querySelectorAll('.matching-pair-box').length;
+                const box = document.createElement('div');
+                box.className = 'matching-pair-box border-2 border-teal-200 rounded-xl p-5 bg-gradient-to-r from-pink-50/50 to-teal-50/50 hover:border-teal-300 transition-colors';
+                box.innerHTML = '<div class="flex justify-between items-center mb-4"><span class="font-bold text-teal-700 text-lg flex items-center gap-2"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>Pair ' + (pairIndex + 1) + '</span><button type="button" class="removeMatchingPairBox px-4 py-2 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-5"><div class="space-y-3"><label class="block text-sm font-bold text-gray-700">Left Item (Text):</label><input type="text" name="pairs[' + pairIndex + '][left_item_text]" class="w-full bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Text for left column" dir="rtl"><label class="block text-sm font-bold text-gray-700 mt-3">Left Item (Image):</label><input type="file" name="pairs[' + pairIndex + '][left_item_image]" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" accept="image/*"></div><div class="space-y-3"><label class="block text-sm font-bold text-gray-700">Right Item (Text):</label><input type="text" name="pairs[' + pairIndex + '][right_item_text]" class="w-full bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Text for right column" dir="rtl"><label class="block text-sm font-bold text-gray-700 mt-3">Right Item (Image):</label><input type="file" name="pairs[' + pairIndex + '][right_item_image]" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" accept="image/*"></div></div>';
+                container.appendChild(box);
+            }
+            return false;
+        }
+        
+        // Clock Game Add Button
+        if (button.id === 'addWordClockArrangementWordBox' || target.closest('#addWordClockArrangementWordBox') || target.id === 'addWordClockArrangementWordBox') {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('=== Clock Game Add button clicked ===');
+            if (typeof window.addWordClockArrangementWordBox === 'function') {
+                window.addWordClockArrangementWordBox();
+            } else {
+                // Fallback if function doesn't exist
+                const container = document.getElementById('wordClockArrangementWordsBoxes');
+                if (container) {
+                    alert('Clock game function not loaded. Please refresh the page.');
+                }
+            }
+            return false;
+        }
+        
+        // Scrambled Letters Add Button
+        if (target.classList.contains('addPairBtn') || target.closest('.addPairBtn') || button.classList.contains('addPairBtn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('=== Add Pair button clicked ===');
+            const btn = target.closest('.addPairBtn') || target;
+            const form = btn.closest('form');
+            if (form) {
+                const pairsList = form.querySelector('.pairs-list');
+                const wordInput = form.querySelector('input[name="words[]"]');
+                const defInput = form.querySelector('input[name="definitions[]"]');
+                if (pairsList && wordInput && defInput) {
+                    const wordVal = wordInput.value.trim();
+                    const defVal = defInput.value.trim();
+                    if (wordVal && defVal) {
+                        const pairDiv = document.createElement('div');
+                        pairDiv.className = 'flex flex-col md:flex-row gap-3 p-4 bg-gradient-to-r from-pink-50 to-teal-50 border-2 border-teal-200 rounded-xl hover:border-teal-300 transition-colors';
+                        const escapedWord = wordVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        const escapedDef = defVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        pairDiv.innerHTML = '<input type="text" name="words[]" value="' + escapedWord + '" class="flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><input type="text" name="definitions[]" value="' + escapedDef + '" class="flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><button type="button" class="removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">-</button>';
+                        pairsList.appendChild(pairDiv);
+                        wordInput.value = '';
+                        defInput.value = '';
+                        pairDiv.querySelector('.removePairBtn').onclick = function() { pairDiv.remove(); };
+                    } else {
+                        alert('Please enter both word and definition before adding.');
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Remove buttons
+        if (target.classList.contains('removeWordSearchWordBox') || target.closest('.removeWordSearchWordBox')) {
+            e.preventDefault();
+            const box = target.closest('.word-search-word-box');
+            if (box) {
+                const container = document.getElementById('wordSearchWordsBoxes');
+                if (container && container.querySelectorAll('.word-search-word-box').length > 1) {
+                    box.remove();
+                } else {
+                    alert('You must have at least one word.');
+                }
+            }
+            return false;
+        }
+        
+        if (target.classList.contains('removeMatchingPairBox') || target.closest('.removeMatchingPairBox')) {
+            e.preventDefault();
+            const box = target.closest('.matching-pair-box');
+            if (box) {
+                box.remove();
+                const container = document.getElementById('matchingPairsBoxes');
+                if (container) {
+                    const remainingBoxes = container.querySelectorAll('.matching-pair-box');
+                    remainingBoxes.forEach(function(box, index) {
+                        const span = box.querySelector('span.font-bold');
+                        if (span) {
+                            span.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>Pair ' + (index + 1);
+                        }
+                        const inputs = box.querySelectorAll('input[type="text"], input[type="file"]');
+                        inputs.forEach(function(input) {
+                            input.name = input.name.replace(/pairs\[\d+\]/, 'pairs[' + index + ']');
+                        });
+                    });
+                }
+            }
+            return false;
+        }
+        
+        if (target.classList.contains('removePairBtn') || target.closest('.removePairBtn')) {
+            e.preventDefault();
+            const pairDiv = target.closest('div.flex.flex-col, div.flex-row');
+            if (pairDiv && pairDiv.classList.contains('bg-gradient-to-r')) {
+                pairDiv.remove();
+            }
+            return false;
+        }
+    });
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Games page JavaScript loaded');
+    
     // Get the class selector dropdown
     const classSelector = document.getElementById('class_id');
     
@@ -1200,19 +1348,40 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Add/Remove Word Search Word Boxes
-    const addWordSearchWordBox = document.getElementById('addWordSearchWordBox');
-    const wordSearchWordsBoxes = document.getElementById('wordSearchWordsBoxes');
+    function handleAddWordSearchWordBox(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Add Word Search Word Box button clicked');
+        
+        const wordSearchWordsBoxes = document.getElementById('wordSearchWordsBoxes');
+        if (!wordSearchWordsBoxes) {
+            console.error('wordSearchWordsBoxes container not found');
+            alert('Error: Could not find the words container. Please refresh the page.');
+            return;
+        }
+        
+        const box = document.createElement('div');
+        box.className = 'word-search-word-box flex items-center gap-3 mb-3 p-3 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-pink-300 transition-colors';
+        box.innerHTML = `
+            <input type="text" name="word_search_words[]" class="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all" placeholder="Enter word" required>
+            <button type="button" class="removeWordSearchWordBox px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200">&times;</button>
+        `;
+        wordSearchWordsBoxes.appendChild(box);
+        console.log('Word box added successfully');
+    }
     
-    if (addWordSearchWordBox && wordSearchWordsBoxes) {
-        addWordSearchWordBox.addEventListener('click', function() {
-            const box = document.createElement('div');
-            box.className = 'word-search-word-box flex items-center gap-3 mb-3 p-3 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-pink-300 transition-colors';
-            box.innerHTML = `
-                <input type="text" name="word_search_words[]" class="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all" placeholder="Enter word" required>
-                <button type="button" class="removeWordSearchWordBox px-4 py-2.5 bg-gradient-to-r from-red-400 to-rose-500 text-white rounded-lg font-bold shadow-md hover:from-red-500 hover:to-rose-600 transform hover:scale-105 transition-all duration-200">&times;</button>
-            `;
-            wordSearchWordsBoxes.appendChild(box);
-        });
+    // Use event delegation for dynamic elements
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'addWordSearchWordBox' || e.target.closest('#addWordSearchWordBox')) {
+            handleAddWordSearchWordBox(e);
+        }
+    });
+    
+    // Also attach directly if element exists
+    const addWordSearchWordBox = document.getElementById('addWordSearchWordBox');
+    if (addWordSearchWordBox) {
+        addWordSearchWordBox.addEventListener('click', handleAddWordSearchWordBox);
+    }
 
         // Remove word box logic
         wordSearchWordsBoxes.addEventListener('click', function(e) {
@@ -1340,8 +1509,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // Get or find the container
+            let container = wordClockArrangementWordsBoxes;
+            if (!container) {
+                container = document.getElementById('wordClockArrangementWordsBoxes');
+            }
+            
+            if (!container) {
+                console.error('wordClockArrangementWordsBoxes container not found');
+                alert('Error: Could not find the word container. Please refresh the page.');
+                return;
+            }
+            
             // Clear existing word boxes (optional - you might want to ask for confirmation)
-            wordClockArrangementWordsBoxes.innerHTML = '';
+            container.innerHTML = '';
             
             // Create word boxes for each word
             words.forEach((word, index) => {
@@ -1396,15 +1577,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Add word box
-    function addWordClockArrangementWordBox(wordValue = '') {
+    // Add word box - Make it globally available
+    window.addWordClockArrangementWordBox = function(wordValue = '') {
+        // Get or find the container
+        let container = wordClockArrangementWordsBoxes;
+        if (!container) {
+            container = document.getElementById('wordClockArrangementWordsBoxes');
+        }
+        
+        if (!container) {
+            console.error('wordClockArrangementWordsBoxes container not found');
+            alert('Error: Could not find the word container. Please refresh the page.');
+            return;
+        }
+        
+        // Escape HTML to prevent XSS
+        const escapeHtml = function(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
+        
         const box = document.createElement('div');
         box.className = 'word-clock-arrangement-word-box flex flex-col md:flex-row items-start md:items-center gap-4 p-5 border-2 border-cyan-200 rounded-xl bg-gradient-to-r from-pink-50/60 to-cyan-50/60 hover:border-cyan-300 transition-colors';
         box.innerHTML = `
             <div class="flex-1 w-full md:w-auto">
                 <input type="text" name="word_clock_words[][word]" 
                        class="w-full bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 focus:bg-pink-50 transition-all" 
-                       value="${wordValue}" 
+                       value="${escapeHtml(wordValue)}" 
                        placeholder="Word" required>
             </div>
             <div class="flex items-center gap-3 flex-wrap">
@@ -1425,10 +1625,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="clock-preview ml-2 p-2 bg-pink-50 rounded-lg border-2 border-pink-200 shadow-sm" style="width: 70px; height: 70px;">
                     ${createClockSVG(0, 0, 70)}
                 </div>
-                <button type="button" class="removeWordClockArrangementWordBox px-4 py-2.5 bg-gradient-to-r from-red-400 to-rose-500 text-white rounded-lg font-bold shadow-md hover:from-red-500 hover:to-rose-600 transform hover:scale-105 transition-all duration-200">&times;</button>
+                <button type="button" class="removeWordClockArrangementWordBox px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button>
             </div>
         `;
-        wordClockArrangementWordsBoxes.appendChild(box);
+        container.appendChild(box);
         
         // Add event listeners for clock preview updates
         const hourInput = box.querySelector('.hour-input');
@@ -1444,11 +1644,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add word box button
+    function handleAddWordClockArrangementWordBox(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Add Word Clock Arrangement Word Box button clicked');
+        addWordClockArrangementWordBox();
+    }
+    
+    // Use event delegation for dynamic elements
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'addWordClockArrangementWordBox' || e.target.closest('#addWordClockArrangementWordBox')) {
+            handleAddWordClockArrangementWordBox(e);
+        }
+    });
+    
+    // Also attach directly if element exists
     const addWordClockArrangementWordBoxBtn = document.getElementById('addWordClockArrangementWordBox');
-    if (addWordClockArrangementWordBoxBtn && wordClockArrangementWordsBoxes) {
-        addWordClockArrangementWordBoxBtn.addEventListener('click', function() {
-            addWordClockArrangementWordBox();
-        });
+    if (addWordClockArrangementWordBoxBtn) {
+        addWordClockArrangementWordBoxBtn.addEventListener('click', handleAddWordClockArrangementWordBox);
+    }
 
         // Remove word box logic
         wordClockArrangementWordsBoxes.addEventListener('click', function(e) {
@@ -1481,19 +1695,56 @@ document.addEventListener('DOMContentLoaded', function() {
     const matchingPairsSection = document.getElementById('matchingPairsSection');
     
     if (editMatchingPairsBtn) {
-        editMatchingPairsBtn.addEventListener('click', function() {
-            if (matchingPairsSavedView) matchingPairsSavedView.style.display = 'none';
-            if (matchingPairsSection) matchingPairsSection.classList.remove('hidden');
+        editMatchingPairsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Edit Matching Pairs clicked (addEventListener)');
+            if (matchingPairsSavedView) {
+                matchingPairsSavedView.style.display = 'none';
+                console.log('Saved view hidden');
+            }
+            if (matchingPairsSection) {
+                matchingPairsSection.classList.remove('hidden');
+                console.log('Matching pairs section shown');
+            }
         });
+        
+        // Also add direct onclick as backup
+        editMatchingPairsBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Edit Matching Pairs clicked (direct onclick)');
+            const savedView = document.getElementById('matchingPairsSavedView');
+            const section = document.getElementById('matchingPairsSection');
+            if (savedView) {
+                savedView.style.display = 'none';
+                console.log('Saved view hidden (onclick)');
+            }
+            if (section) {
+                section.classList.remove('hidden');
+                console.log('Matching pairs section shown (onclick)');
+            }
+            return false;
+        };
+        console.log('Edit Matching Pairs button handlers attached');
+    } else {
+        console.log('Edit Matching Pairs button not found in DOMContentLoaded');
     }
 
     // Add/Remove Matching Pair Boxes
-    const addMatchingPairBox = document.getElementById('addMatchingPairBox');
-    const matchingPairsBoxes = document.getElementById('matchingPairsBoxes');
-    
-    if (addMatchingPairBox && matchingPairsBoxes) {
-        addMatchingPairBox.addEventListener('click', function() {
-            const pairIndex = matchingPairsBoxes.querySelectorAll('.matching-pair-box').length;
+    function handleAddMatchingPairBox(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Add Matching Pair Box button clicked');
+        
+        const matchingPairsBoxes = document.getElementById('matchingPairsBoxes');
+        if (!matchingPairsBoxes) {
+            console.error('matchingPairsBoxes container not found');
+            alert('Error: Could not find the pairs container. Please refresh the page.');
+            return;
+        }
+        
+        const pairIndex = matchingPairsBoxes.querySelectorAll('.matching-pair-box').length;
             const box = document.createElement('div');
             box.className = 'matching-pair-box border-2 border-teal-200 rounded-xl p-5 bg-gradient-to-r from-pink-50/50 to-teal-50/50 hover:border-teal-300 transition-colors';
             box.innerHTML = `
@@ -1504,7 +1755,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </svg>
                         Pair ${pairIndex + 1}
                     </span>
-                    <button type="button" class="removeMatchingPairBox px-4 py-2 bg-gradient-to-r from-red-400 to-rose-500 text-white rounded-lg font-bold shadow-md hover:from-red-500 hover:to-rose-600 transform hover:scale-105 transition-all duration-200">&times;</button>
+                    <button type="button" class="removeMatchingPairBox px-4 py-2 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div class="space-y-3">
@@ -1535,52 +1786,341 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             `;
-            matchingPairsBoxes.appendChild(box);
-        });
+        matchingPairsBoxes.appendChild(box);
+    }
+    
+    // Use event delegation for dynamic elements
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'addMatchingPairBox' || e.target.closest('#addMatchingPairBox')) {
+            handleAddMatchingPairBox(e);
+        }
+    });
+    
+    // Also attach directly if element exists
+    const addMatchingPairBox = document.getElementById('addMatchingPairBox');
+    if (addMatchingPairBox) {
+        addMatchingPairBox.addEventListener('click', handleAddMatchingPairBox);
+    }
 
-        // Remove matching pair box logic
-        matchingPairsBoxes.addEventListener('click', function(e) {
-            if (e.target.classList.contains('removeMatchingPairBox')) {
+        // Remove matching pair box logic - Use event delegation
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('removeMatchingPairBox')) {
                 const box = e.target.closest('.matching-pair-box');
-                if (box) box.remove();
-                // Re-index remaining pairs
-                const remainingBoxes = matchingPairsBoxes.querySelectorAll('.matching-pair-box');
-                remainingBoxes.forEach(function(box, index) {
-                    box.querySelector('span.font-semibold').textContent = `Pair ${index + 1}`;
-                    const inputs = box.querySelectorAll('input[type="text"], input[type="file"]');
-                    inputs.forEach(function(input) {
-                        const name = input.name;
-                        const newName = name.replace(/pairs\[\d+\]/, `pairs[${index}]`);
-                        input.name = newName;
-                    });
-                });
+                if (box) {
+                    box.remove();
+                    // Re-index remaining pairs
+                    const container = document.getElementById('matchingPairsBoxes');
+                    if (container) {
+                        const remainingBoxes = container.querySelectorAll('.matching-pair-box');
+                        remainingBoxes.forEach(function(box, index) {
+                            const span = box.querySelector('span.font-bold');
+                            if (span) {
+                                span.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>Pair ' + (index + 1);
+                            }
+                            const inputs = box.querySelectorAll('input[type="text"], input[type="file"]');
+                            inputs.forEach(function(input) {
+                                const name = input.name;
+                                const newName = name.replace(/pairs\[\d+\]/, 'pairs[' + index + ']');
+                                input.name = newName;
+                            });
+                        });
+                    }
+                }
             }
         });
     }
 
     // Existing logic for word/definition pairs
+    function handleAddPairBtn(e) {
+        const btn = e.target.closest('.addPairBtn') || e.target;
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Add Pair button clicked');
+            
+            // Find the form container
+            const container = btn.closest('form');
+            if (!container) {
+                console.error('Form container not found for addPairBtn');
+                return;
+            }
+            
+            // Find the pairs list container
+            const pairsList = container.querySelector('.pairs-list');
+            if (!pairsList) {
+                console.error('Pairs list container not found');
+                return;
+            }
+            
+            // Find the input fields - look for the first empty inputs or inputs in the same parent as the button
+            const inputContainer = btn.closest('.flex.flex-col, .flex-row, div');
+            let wordInput = inputContainer ? inputContainer.querySelector('input[name="words[]"]') : null;
+            let defInput = inputContainer ? inputContainer.querySelector('input[name="definitions[]"]') : null;
+            
+            // Fallback: search in the entire form
+            if (!wordInput || !defInput) {
+                wordInput = container.querySelector('input[name="words[]"]');
+                defInput = container.querySelector('input[name="definitions[]"]');
+            }
+            
+            if (!wordInput || !defInput) {
+                console.error('Word or definition input not found');
+                alert('Error: Could not find input fields. Please refresh the page.');
+                return;
+            }
+            
+            // Get values and trim whitespace
+            const wordValue = wordInput.value.trim();
+            const defValue = defInput.value.trim();
+            
+            if (!wordValue || !defValue) {
+                alert('Please enter both word and definition before adding.');
+                return;
+            }
+            
+            // Escape HTML to prevent XSS
+            const escapeHtml = function(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+            
+            // Create the pair div
+            const pairDiv = document.createElement('div');
+            pairDiv.className = 'flex flex-col md:flex-row gap-3 p-4 bg-gradient-to-r from-pink-50 to-teal-50 border-2 border-teal-200 rounded-xl hover:border-teal-300 transition-colors';
+            pairDiv.innerHTML = `
+                <input type='text' name='words[]' value='${escapeHtml(wordValue)}' class='flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
+                <input type='text' name='definitions[]' value='${escapeHtml(defValue)}' class='flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
+                <button type='button' class='removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200'>-</button>
+            `;
+            
+            pairsList.appendChild(pairDiv);
+            
+            // Clear the input fields
+            wordInput.value = '';
+            defInput.value = '';
+            
+            // Add remove functionality
+            const removeBtn = pairDiv.querySelector('.removePairBtn');
+            if (removeBtn) {
+                removeBtn.onclick = function() { 
+                    pairDiv.remove(); 
+                };
+            }
+    }
+    
+    // Use event delegation for dynamic elements
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('addPairBtn') || e.target.closest('.addPairBtn')) {
+            handleAddPairBtn(e);
+        }
+    });
+    
+    // Also attach directly if elements exist
     document.querySelectorAll('.addPairBtn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
+            
+            // Find the form container
             const container = btn.closest('form');
+            if (!container) {
+                console.error('Form container not found for addPairBtn');
+                return;
+            }
+            
+            // Find the pairs list container
             const pairsList = container.querySelector('.pairs-list');
-            const wordInput = container.querySelector('input[name="words[]"]');
-            const defInput = container.querySelector('input[name="definitions[]"]');
-            if (wordInput.value && defInput.value) {
-                const pairDiv = document.createElement('div');
-                pairDiv.className = 'flex flex-col md:flex-row gap-3 p-4 bg-gradient-to-r from-pink-50 to-teal-50 border-2 border-teal-200 rounded-xl hover:border-teal-300 transition-colors';
-                pairDiv.innerHTML = `
-                    <input type='text' name='words[]' value='${wordInput.value}' class='flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
-                    <input type='text' name='definitions[]' value='${defInput.value}' class='flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
-                    <button type='button' class='removePairBtn px-4 py-2.5 bg-gradient-to-r from-red-400 to-rose-500 text-white rounded-lg font-bold shadow-md hover:from-red-500 hover:to-rose-600 transform hover:scale-105 transition-all duration-200'>-</button>
-                `;
-                pairsList.appendChild(pairDiv);
-                wordInput.value = '';
-                defInput.value = '';
-                pairDiv.querySelector('.removePairBtn').onclick = function() { pairDiv.remove(); };
+            if (!pairsList) {
+                console.error('Pairs list container not found');
+                return;
+            }
+            
+            // Find the input fields - look for the first empty inputs or inputs in the same parent as the button
+            const inputContainer = btn.closest('.flex.flex-col, .flex-row, div');
+            let wordInput = inputContainer ? inputContainer.querySelector('input[name="words[]"]') : null;
+            let defInput = inputContainer ? inputContainer.querySelector('input[name="definitions[]"]') : null;
+            
+            // Fallback: search in the entire form
+            if (!wordInput || !defInput) {
+                wordInput = container.querySelector('input[name="words[]"]');
+                defInput = container.querySelector('input[name="definitions[]"]');
+            }
+            
+            if (!wordInput || !defInput) {
+                console.error('Word or definition input not found');
+                alert('Error: Could not find input fields. Please refresh the page.');
+                return;
+            }
+            
+            // Get values and trim whitespace
+            const wordValue = wordInput.value.trim();
+            const defValue = defInput.value.trim();
+            
+            if (!wordValue || !defValue) {
+                alert('Please enter both word and definition before adding.');
+                return;
+            }
+            
+            // Escape HTML to prevent XSS
+            const escapeHtml = function(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+            
+            // Create the pair div
+            const pairDiv = document.createElement('div');
+            pairDiv.className = 'flex flex-col md:flex-row gap-3 p-4 bg-gradient-to-r from-pink-50 to-teal-50 border-2 border-teal-200 rounded-xl hover:border-teal-300 transition-colors';
+            pairDiv.innerHTML = `
+                <input type='text' name='words[]' value='${escapeHtml(wordValue)}' class='flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
+                <input type='text' name='definitions[]' value='${escapeHtml(defValue)}' class='flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
+                <button type='button' class='removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200'>-</button>
+            `;
+            
+            pairsList.appendChild(pairDiv);
+            
+            // Clear the input fields
+            wordInput.value = '';
+            defInput.value = '';
+            
+            // Add remove functionality
+            const removeBtn = pairDiv.querySelector('.removePairBtn');
+            if (removeBtn) {
+                removeBtn.onclick = function() { 
+                    pairDiv.remove(); 
+                };
             }
         });
     });
+    
+    // COMPREHENSIVE FIX: Direct event handlers for all add buttons
+    // This ensures buttons work even if previous handlers failed
+    setTimeout(function() {
+        console.log('Initializing add button handlers...');
+        
+        // Word Search Add Button
+        const addWordSearchBtn = document.getElementById('addWordSearchWordBox');
+        if (addWordSearchBtn) {
+            addWordSearchBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Word Search Add button clicked (direct handler)');
+                const container = document.getElementById('wordSearchWordsBoxes');
+                if (container) {
+                    const box = document.createElement('div');
+                    box.className = 'word-search-word-box flex items-center gap-3 mb-3 p-3 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-pink-300 transition-colors';
+                    box.innerHTML = '<input type="text" name="word_search_words[]" class="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all" placeholder="Enter word" required><button type="button" class="removeWordSearchWordBox px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200">&times;</button>';
+                    container.appendChild(box);
+                }
+            };
+            console.log('Word Search button handler attached');
+        }
+        
+        // Matching Pairs Add Button - More robust handler
+        function attachMatchingPairsHandler() {
+            const addMatchingPairBtn = document.getElementById('addMatchingPairBox');
+            if (addMatchingPairBtn) {
+                // Remove any existing handlers
+                addMatchingPairBtn.onclick = null;
+                // Attach new handler
+                addMatchingPairBtn.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Matching Pairs Add button clicked (direct handler)');
+                    const container = document.getElementById('matchingPairsBoxes');
+                    if (!container) {
+                        console.error('matchingPairsBoxes container not found');
+                        alert('Error: Could not find the pairs container. Please refresh the page.');
+                        return;
+                    }
+                    const pairIndex = container.querySelectorAll('.matching-pair-box').length;
+                    const box = document.createElement('div');
+                    box.className = 'matching-pair-box border-2 border-teal-200 rounded-xl p-5 bg-gradient-to-r from-pink-50/50 to-teal-50/50 hover:border-teal-300 transition-colors';
+                    box.innerHTML = '<div class="flex justify-between items-center mb-4"><span class="font-bold text-teal-700 text-lg flex items-center gap-2"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>Pair ' + (pairIndex + 1) + '</span><button type="button" class="removeMatchingPairBox px-4 py-2 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-5"><div class="space-y-3"><label class="block text-sm font-bold text-gray-700">Left Item (Text):</label><input type="text" name="pairs[' + pairIndex + '][left_item_text]" class="w-full bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Text for left column" dir="rtl"><label class="block text-sm font-bold text-gray-700 mt-3">Left Item (Image):</label><input type="file" name="pairs[' + pairIndex + '][left_item_image]" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" accept="image/*"></div><div class="space-y-3"><label class="block text-sm font-bold text-gray-700">Right Item (Text):</label><input type="text" name="pairs[' + pairIndex + '][right_item_text]" class="w-full bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Text for right column" dir="rtl"><label class="block text-sm font-bold text-gray-700 mt-3">Right Item (Image):</label><input type="file" name="pairs[' + pairIndex + '][right_item_image]" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" accept="image/*"></div></div>';
+                    container.appendChild(box);
+                    console.log('Pair box added successfully. Total pairs: ' + (pairIndex + 1));
+                };
+                console.log('Matching Pairs button handler attached');
+            } else {
+                console.log('Matching Pairs button not found, will retry...');
+            }
+        }
+        
+        // Try to attach immediately
+        attachMatchingPairsHandler();
+        
+        // Also use event delegation as backup
+        document.addEventListener('click', function(e) {
+            if (e.target && (e.target.id === 'addMatchingPairBox' || e.target.closest('#addMatchingPairBox'))) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Matching Pairs Add button clicked (event delegation)');
+                const container = document.getElementById('matchingPairsBoxes');
+                if (!container) {
+                    console.error('matchingPairsBoxes container not found');
+                    return;
+                }
+                const pairIndex = container.querySelectorAll('.matching-pair-box').length;
+                const box = document.createElement('div');
+                box.className = 'matching-pair-box border-2 border-teal-200 rounded-xl p-5 bg-gradient-to-r from-pink-50/50 to-teal-50/50 hover:border-teal-300 transition-colors';
+                box.innerHTML = '<div class="flex justify-between items-center mb-4"><span class="font-bold text-teal-700 text-lg flex items-center gap-2"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>Pair ' + (pairIndex + 1) + '</span><button type="button" class="removeMatchingPairBox px-4 py-2 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-5"><div class="space-y-3"><label class="block text-sm font-bold text-gray-700">Left Item (Text):</label><input type="text" name="pairs[' + pairIndex + '][left_item_text]" class="w-full bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Text for left column" dir="rtl"><label class="block text-sm font-bold text-gray-700 mt-3">Left Item (Image):</label><input type="file" name="pairs[' + pairIndex + '][left_item_image]" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" accept="image/*"></div><div class="space-y-3"><label class="block text-sm font-bold text-gray-700">Right Item (Text):</label><input type="text" name="pairs[' + pairIndex + '][right_item_text]" class="w-full bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Text for right column" dir="rtl"><label class="block text-sm font-bold text-gray-700 mt-3">Right Item (Image):</label><input type="file" name="pairs[' + pairIndex + '][right_item_image]" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" accept="image/*"></div></div>';
+                container.appendChild(box);
+            }
+        });
+        
+        // Re-attach handler when section becomes visible
+        const editMatchingPairsBtn = document.getElementById('editMatchingPairsBtn');
+        if (editMatchingPairsBtn) {
+            const originalHandler = editMatchingPairsBtn.onclick;
+            editMatchingPairsBtn.onclick = function() {
+                if (originalHandler) originalHandler();
+                setTimeout(attachMatchingPairsHandler, 100);
+            };
+        }
+        
+        // Clock Game Add Button
+        const addClockWordBtn = document.getElementById('addWordClockArrangementWordBox');
+        if (addClockWordBtn) {
+            addClockWordBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Clock Game Add button clicked (direct handler)');
+                if (typeof addWordClockArrangementWordBox === 'function') {
+                    addWordClockArrangementWordBox();
+                }
+            };
+            console.log('Clock Game button handler attached');
+        }
+        
+        // Scrambled Letters Add Button
+        document.querySelectorAll('.addPairBtn').forEach(function(btn) {
+            btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Add Pair button clicked (direct handler)');
+                const form = btn.closest('form');
+                if (form) {
+                    const pairsList = form.querySelector('.pairs-list');
+                    const wordInput = form.querySelector('input[name="words[]"]');
+                    const defInput = form.querySelector('input[name="definitions[]"]');
+                    if (pairsList && wordInput && defInput && wordInput.value.trim() && defInput.value.trim()) {
+                        const pairDiv = document.createElement('div');
+                        pairDiv.className = 'flex flex-col md:flex-row gap-3 p-4 bg-gradient-to-r from-pink-50 to-teal-50 border-2 border-teal-200 rounded-xl hover:border-teal-300 transition-colors';
+                        const wordVal = wordInput.value.trim().replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        const defVal = defInput.value.trim().replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        pairDiv.innerHTML = '<input type="text" name="words[]" value="' + wordVal + '" class="flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><input type="text" name="definitions[]" value="' + defVal + '" class="flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><button type="button" class="removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200">-</button>';
+                        pairsList.appendChild(pairDiv);
+                        wordInput.value = '';
+                        defInput.value = '';
+                        pairDiv.querySelector('.removePairBtn').onclick = function() { pairDiv.remove(); };
+                    } else if (!wordInput.value.trim() || !defInput.value.trim()) {
+                        alert('Please enter both word and definition before adding.');
+                    }
+                }
+            };
+        });
+        console.log('All add button handlers initialized');
+    }, 100);
 });
 </script>
 
@@ -1604,5 +2144,227 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
+
+<!-- SIMPLE FIX: Direct button handlers -->
+<script>
+console.log('=== SIMPLE FIX SCRIPT LOADING ===');
+
+// Wait for page to be fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initButtons);
+} else {
+    initButtons();
+}
+
+function initButtons() {
+    console.log('=== INITIALIZING BUTTONS ===');
+    
+    // Function to add word search word
+    function addWordSearchWord() {
+        console.log('Adding word search word');
+        const container = document.getElementById('wordSearchWordsBoxes');
+        if (!container) {
+            console.error('wordSearchWordsBoxes not found');
+            return;
+        }
+        const box = document.createElement('div');
+        box.className = 'word-search-word-box flex items-center gap-3 mb-3 p-3 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-pink-300 transition-colors';
+                box.innerHTML = '<input type="text" name="word_search_words[]" class="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all" placeholder="Enter word" required><button type="button" class="removeWordSearchWordBox px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50" onclick="this.closest(\'.word-search-word-box\').remove()">&times;</button>';
+        container.appendChild(box);
+    }
+    
+    // Function to remove matching pair and re-index
+    function removeMatchingPair(btn) {
+        console.log('Removing matching pair');
+        const box = btn.closest('.matching-pair-box');
+        if (!box) {
+            console.error('Could not find matching-pair-box');
+            return;
+        }
+        box.remove();
+        
+        // Re-index remaining pairs
+        const container = document.getElementById('matchingPairsBoxes');
+        if (container) {
+            const remainingBoxes = container.querySelectorAll('.matching-pair-box');
+            remainingBoxes.forEach(function(box, index) {
+                const span = box.querySelector('span.font-bold');
+                if (span) {
+                    span.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>Pair ' + (index + 1);
+                }
+                const inputs = box.querySelectorAll('input[type="text"], input[type="file"]');
+                inputs.forEach(function(input) {
+                    const name = input.name;
+                    const newName = name.replace(/pairs\[\d+\]/, 'pairs[' + index + ']');
+                    input.name = newName;
+                });
+            });
+            console.log('Pairs re-indexed. Total: ' + remainingBoxes.length);
+        }
+    }
+    
+    // Function to add matching pair
+    function addMatchingPair() {
+        console.log('Adding matching pair');
+        const container = document.getElementById('matchingPairsBoxes');
+        if (!container) {
+            console.error('matchingPairsBoxes not found');
+            return;
+        }
+        const pairIndex = container.querySelectorAll('.matching-pair-box').length;
+        const box = document.createElement('div');
+        box.className = 'matching-pair-box border-2 border-teal-200 rounded-xl p-5 bg-gradient-to-r from-pink-50/50 to-teal-50/50 hover:border-teal-300 transition-colors';
+        box.innerHTML = '<div class="flex justify-between items-center mb-4"><span class="font-bold text-teal-700 text-lg flex items-center gap-2"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>Pair ' + (pairIndex + 1) + '</span><button type="button" class="removeMatchingPairBox px-4 py-2 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">&times;</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-5"><div class="space-y-3"><label class="block text-sm font-bold text-gray-700">Left Item (Text):</label><input type="text" name="pairs[' + pairIndex + '][left_item_text]" class="w-full bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Text for left column" dir="rtl"><label class="block text-sm font-bold text-gray-700 mt-3">Left Item (Image):</label><input type="file" name="pairs[' + pairIndex + '][left_item_image]" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" accept="image/*"></div><div class="space-y-3"><label class="block text-sm font-bold text-gray-700">Right Item (Text):</label><input type="text" name="pairs[' + pairIndex + '][right_item_text]" class="w-full bg-pink-50 border-2 border-pink-200 rounded-lg px-4 py-2.5 text-gray-800 font-medium hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Text for right column" dir="rtl"><label class="block text-sm font-bold text-gray-700 mt-3">Right Item (Image):</label><input type="file" name="pairs[' + pairIndex + '][right_item_image]" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 text-gray-800 font-medium focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" accept="image/*"></div></div>';
+        // Attach event listener to the remove button
+        const removeBtn = box.querySelector('.removeMatchingPairBox');
+        if (removeBtn) {
+            removeBtn.onclick = function() {
+                if (typeof window.removeMatchingPair === 'function') {
+                    window.removeMatchingPair(this);
+                } else {
+                    const pairBox = this.closest('.matching-pair-box');
+                    if (pairBox) {
+                        pairBox.remove();
+                        // Re-index remaining pairs
+                        const container = document.getElementById('matchingPairsBoxes');
+                        if (container) {
+                            const remainingBoxes = container.querySelectorAll('.matching-pair-box');
+                            remainingBoxes.forEach(function(b, i) {
+                                const span = b.querySelector('span.font-bold');
+                                if (span) {
+                                    span.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>Pair ' + (i + 1);
+                                }
+                                const inputs = b.querySelectorAll('input[type="text"], input[type="file"]');
+                                inputs.forEach(function(inp) {
+                                    inp.name = inp.name.replace(/pairs\[\d+\]/, 'pairs[' + i + ']');
+                                });
+                            });
+                        }
+                    }
+                }
+                return false;
+            };
+        }
+        container.appendChild(box);
+    }
+    
+    // Make removeMatchingPair globally available BEFORE creating buttons
+    window.removeMatchingPair = removeMatchingPair;
+    
+    // Also attach handlers to existing remove buttons
+    document.querySelectorAll('.removeMatchingPairBox').forEach(function(btn) {
+        if (!btn.onclick || btn.onclick.toString().indexOf('removeMatchingPair') === -1) {
+            btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.removeMatchingPair === 'function') {
+                    window.removeMatchingPair(this);
+                } else {
+                    this.closest('.matching-pair-box').remove();
+                }
+                return false;
+            };
+        }
+    });
+    
+    // Function to add scrambled pair
+    function addScrambledPair(btn) {
+        console.log('Adding scrambled pair');
+        const form = btn.closest('form');
+        if (!form) return;
+        const pairsList = form.querySelector('.pairs-list');
+        const wordInput = form.querySelector('input[name="words[]"]');
+        const defInput = form.querySelector('input[name="definitions[]"]');
+        if (!pairsList || !wordInput || !defInput) return;
+        const wordVal = wordInput.value.trim();
+        const defVal = defInput.value.trim();
+        if (!wordVal || !defVal) {
+            alert('Please enter both word and definition before adding.');
+            return;
+        }
+        const pairDiv = document.createElement('div');
+        pairDiv.className = 'flex flex-col md:flex-row gap-3 p-4 bg-gradient-to-r from-pink-50 to-teal-50 border-2 border-teal-200 rounded-xl hover:border-teal-300 transition-colors';
+        const escapedWord = wordVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const escapedDef = defVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        pairDiv.innerHTML = '<input type="text" name="words[]" value="' + escapedWord + '" class="flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><input type="text" name="definitions[]" value="' + escapedDef + '" class="flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><button type="button" class="removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200" onclick="this.closest(\'div\').remove()">-</button>';
+        pairsList.appendChild(pairDiv);
+        wordInput.value = '';
+        defInput.value = '';
+    }
+    
+    // Attach handlers
+    setTimeout(function() {
+        const btn1 = document.getElementById('addWordSearchWordBox');
+        if (btn1) {
+            btn1.onclick = function(e) { e.preventDefault(); console.log('Word Search clicked'); addWordSearchWord(); return false; };
+            console.log('Word Search button handler attached');
+        }
+        
+        const btn2 = document.getElementById('addMatchingPairBox');
+        if (btn2) {
+            btn2.onclick = function(e) { e.preventDefault(); console.log('Matching Pairs clicked'); addMatchingPair(); return false; };
+            console.log('Matching Pairs button handler attached');
+        }
+        
+        const btn3 = document.getElementById('addWordClockArrangementWordBox');
+        if (btn3) {
+            btn3.onclick = function(e) { e.preventDefault(); console.log('Clock Game clicked'); if (typeof window.addWordClockArrangementWordBox === 'function') window.addWordClockArrangementWordBox(); return false; };
+            console.log('Clock Game button handler attached');
+        }
+        
+        document.querySelectorAll('.addPairBtn').forEach(function(btn) {
+            btn.onclick = function(e) { e.preventDefault(); console.log('Add Pair clicked'); addScrambledPair(this); return false; };
+        });
+        console.log('Add Pair buttons: ' + document.querySelectorAll('.addPairBtn').length);
+        
+        // Edit Matching Pairs Button
+        const editMatchingPairsBtn = document.getElementById('editMatchingPairsBtn');
+        if (editMatchingPairsBtn) {
+            editMatchingPairsBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Edit Matching Pairs button clicked');
+                const savedView = document.getElementById('matchingPairsSavedView');
+                const section = document.getElementById('matchingPairsSection');
+                if (savedView) {
+                    savedView.style.display = 'none';
+                    console.log('Saved view hidden');
+                }
+                if (section) {
+                    section.classList.remove('hidden');
+                    console.log('Matching pairs section shown');
+                }
+                return false;
+            };
+            console.log('Edit Matching Pairs button handler attached');
+        } else {
+            console.log('Edit Matching Pairs button not found');
+        }
+        
+        // Add event delegation for remove buttons (works for dynamically added buttons)
+        document.addEventListener('click', function(e) {
+            if (e.target && (e.target.classList.contains('removeMatchingPairBox') || e.target.closest('.removeMatchingPairBox'))) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Remove Matching Pair clicked (event delegation)');
+                const btn = e.target.classList.contains('removeMatchingPairBox') ? e.target : e.target.closest('.removeMatchingPairBox');
+                if (btn && typeof window.removeMatchingPair === 'function') {
+                    window.removeMatchingPair(btn);
+                } else {
+                    // Fallback
+                    const box = e.target.closest('.matching-pair-box');
+                    if (box) {
+                        box.remove();
+                        console.log('Pair removed (fallback)');
+                    }
+                }
+                return false;
+            }
+        });
+        
+        console.log('=== ALL HANDLERS ATTACHED ===');
+    }, 1000);
+}
+</script>
 
 @endsection

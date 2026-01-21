@@ -705,14 +705,20 @@
                 const relativeLeft = elementRect.left - gridRect.left;
                 const centerY = relativeTop + elementRect.height / 2;
                 
+                // Get computed border width to account for it
+                const computedStyle = window.getComputedStyle(element);
+                const borderWidth = parseFloat(computedStyle.borderWidth) || 2; // Default to 2px if not found
+                
                 if (isLeftItem) {
-                    // For left items, get the right edge center (inner side facing right column)
+                    // For left items, get the right edge center at the OUTER edge of the border
+                    // elementRect.width includes border, so we're already at the outer edge
                     return {
                         x: relativeLeft + elementRect.width,
                         y: centerY
                     };
                 } else {
-                    // For right items, get the left edge center (inner side facing left column)
+                    // For right items, get the left edge center at the OUTER edge of the border
+                    // relativeLeft is already at the outer edge
                     return {
                         x: relativeLeft,
                         y: centerY
@@ -747,18 +753,38 @@
                         return;
                     }
                     
-                    const leftPos = getConnectionPoint(leftItem, true); // Left item: right edge (inner side)
-                    const rightPos = getConnectionPoint(rightItem, false); // Right item: left edge (inner side)
+                    const leftPos = getConnectionPoint(leftItem, true); // Left item: right edge
+                    const rightPos = getConnectionPoint(rightItem, false); // Right item: left edge
+                    
+                    // Get border widths and padding to ensure line doesn't enter the box
+                    const leftStyle = window.getComputedStyle(leftItem);
+                    const rightStyle = window.getComputedStyle(rightItem);
+                    const leftBorderRight = parseFloat(leftStyle.borderRightWidth) || 2;
+                    const rightBorderLeft = parseFloat(rightStyle.borderLeftWidth) || 2;
+                    
+                    // Calculate exact edge positions to prevent line from entering boxes
+                    // getBoundingClientRect() includes borders in the width/height
+                    // leftPos.x = outer edge of left item's right border
+                    // rightPos.x = outer edge of right item's left border
+                    const strokeWidth = 2;
+                    // Use a larger offset (3px) to ensure line clearly stays outside the border
+                    // This creates a small gap between the line and the box edge
+                    const offset = 3; // 3px offset to keep line clearly outside
+                    
+                    // Left item: start line at right edge + offset (outside the border)
+                    const startX = leftPos.x + offset;
+                    // Right item: end line at left edge - offset (outside the border)
+                    const endX = rightPos.x - offset;
                     
                     // Create SVG line element
-                    // Line goes FROM right box (inner edge) TO left box (inner start)
+                    // Line connects FROM left box right edge TO right box left edge
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', rightPos.x); // Start from right box inner edge (left edge)
-                    line.setAttribute('y1', rightPos.y);
-                    line.setAttribute('x2', leftPos.x); // End at left box inner start (right edge)
-                    line.setAttribute('y2', leftPos.y);
-                    line.setAttribute('stroke', '#4b5563'); // Dark grey color like in the picture
-                    line.setAttribute('stroke-width', '2');
+                    line.setAttribute('x1', startX); // Start from left box right edge (outside border)
+                    line.setAttribute('y1', leftPos.y);
+                    line.setAttribute('x2', endX); // End at right box left edge (outside border)
+                    line.setAttribute('y2', rightPos.y);
+                    line.setAttribute('stroke', '#4b5563'); // Dark grey color
+                    line.setAttribute('stroke-width', strokeWidth.toString());
                     line.setAttribute('stroke-linecap', 'round');
                     line.setAttribute('data-pair-id', pairId);
                     
@@ -859,9 +885,14 @@
                 selectedLeftItem = null;
                 selectedRightItem = null;
                 
-                // Update pairs matched count
+                // Update pairs matched count with visual animation
                 const scoreElement = document.getElementById('matchingPairsScore');
-                if (scoreElement) scoreElement.textContent = `Pairs Matched: ${lockedPairs.size}`;
+                if (scoreElement) {
+                    scoreElement.textContent = `Pairs Matched: ${lockedPairs.size}`;
+                    // Visual animation only
+                    scoreElement.classList.add('animate-score');
+                    setTimeout(() => scoreElement.classList.remove('animate-score'), 500);
+                }
             }
             
             function checkMatch() {
@@ -890,6 +921,11 @@
                     const leftItemForLine = selectedLeftItem;
                     const rightItemForLine = selectedRightItem;
                     drawLine(leftItemForLine, rightItemForLine, leftPairId);
+                    // Add visual animation class to line (visual only)
+                    setTimeout(() => {
+                        const lines = connectionCanvas.querySelectorAll(`line[data-pair-id="${leftPairId}"]`);
+                        lines.forEach(line => line.classList.add('correct-line'));
+                    }, 100);
                     
                     // Add checkmark animation
                     const checkmark1 = document.createElement('span');
@@ -960,14 +996,15 @@
                             if (leftPairId === rightPairId) {
                                 // Correct match!
                                 correctCount++;
-                                leftItem.classList.add('bg-green-100', 'border-green-500');
-                                rightItem.classList.add('bg-green-100', 'border-green-500');
+                                leftItem.classList.add('bg-green-100', 'border-green-500', 'matched');
+                                rightItem.classList.add('bg-green-100', 'border-green-500', 'matched');
                                 
-                                // Update line color to green
+                                // Update line color to green with visual animation
                                 const lines = connectionCanvas.querySelectorAll(`line[data-pair-id="${leftPairId}"]`);
                                 lines.forEach(line => {
                                     line.setAttribute('stroke', '#22c55e');
                                     line.setAttribute('stroke-width', '3');
+                                    line.classList.add('correct-line');
                                 });
                             } else {
                                 // Incorrect match
@@ -991,12 +1028,19 @@
                     // Calculate score percentage
                     const scorePercent = Math.round((correctCount / totalPairs) * 100);
                     
-                    // Update score display
+                    // Update score display with visual animation
                     const scoreElement = document.getElementById('matchingPairsScore');
-                    if (scoreElement) scoreElement.textContent = `Score: ${correctCount} / ${totalPairs} (${scorePercent}%)`;
+                    if (scoreElement) {
+                        scoreElement.textContent = `Score: ${correctCount} / ${totalPairs} (${scorePercent}%)`;
+                        // Visual animation only
+                        scoreElement.classList.add('animate-score');
+                        setTimeout(() => scoreElement.classList.remove('animate-score'), 600);
+                    }
                     
-                    // Show completion message
-                    showMatchingPairsCompletion(correctCount, scorePercent);
+                    // Show completion message with slight delay for visual effect
+                    setTimeout(() => {
+                        showMatchingPairsCompletion(correctCount, scorePercent);
+                    }, 500);
                 });
             }
             
@@ -2910,12 +2954,35 @@ document.addEventListener('DOMContentLoaded', function() {
     
     /* Matching Pairs Game Styles */
     .matching-item {
-        transition: all 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         min-height: 100px;
         height: 100px;
         display: flex;
         align-items: center;
         position: relative;
+        animation: slideInFade 0.6s ease-out backwards;
+    }
+    
+    /* Staggered entrance animation delays */
+    .left-item:nth-child(1), .right-item:nth-child(1) { animation-delay: 0.1s; }
+    .left-item:nth-child(2), .right-item:nth-child(2) { animation-delay: 0.2s; }
+    .left-item:nth-child(3), .right-item:nth-child(3) { animation-delay: 0.3s; }
+    .left-item:nth-child(4), .right-item:nth-child(4) { animation-delay: 0.4s; }
+    .left-item:nth-child(5), .right-item:nth-child(5) { animation-delay: 0.5s; }
+    .left-item:nth-child(6), .right-item:nth-child(6) { animation-delay: 0.6s; }
+    .left-item:nth-child(7), .right-item:nth-child(7) { animation-delay: 0.7s; }
+    .left-item:nth-child(8), .right-item:nth-child(8) { animation-delay: 0.8s; }
+    .left-item:nth-child(n+9), .right-item:nth-child(n+9) { animation-delay: 0.9s; }
+    
+    @keyframes slideInFade {
+        0% {
+            opacity: 0;
+            transform: translateY(30px) scale(0.9);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
     }
     
     .matching-item .flex {
@@ -2925,11 +2992,72 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     .matching-item:hover {
-        transform: scale(1.05);
+        transform: scale(1.08) translateY(-3px);
+        box-shadow: 0 12px 30px rgba(236, 72, 153, 0.3);
     }
     
     .matching-item img {
         flex-shrink: 0;
+        transition: transform 0.3s ease;
+    }
+    
+    .matching-item:hover img {
+        transform: scale(1.1) rotate(2deg);
+    }
+    
+    /* Selection animation */
+    .matching-item.selected {
+        animation: bounceSelect 0.4s ease, pulseGlow 1.5s ease-in-out infinite;
+        z-index: 10;
+    }
+    
+    @keyframes bounceSelect {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    @keyframes pulseGlow {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7);
+        }
+        50% {
+            box-shadow: 0 0 0 12px rgba(236, 72, 153, 0);
+        }
+    }
+    
+    /* Success animation */
+    .matching-item.matched {
+        animation: successBounce 0.6s ease, successGlow 2s ease-in-out infinite;
+    }
+    
+    @keyframes successBounce {
+        0% { transform: scale(1); }
+        30% { transform: scale(1.15) rotate(2deg); }
+        60% { transform: scale(1.1) rotate(-2deg); }
+        100% { transform: scale(1); }
+    }
+    
+    @keyframes successGlow {
+        0%, 100% {
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+        }
+        50% {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.8), 0 0 30px rgba(34, 197, 94, 0.6);
+        }
+    }
+    
+    @keyframes scaleIn {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.3);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
     }
     
     .matching-item span {
@@ -2944,9 +3072,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     
     @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-10px); }
-        75% { transform: translateX(10px); }
+        0%, 100% { transform: translateX(0) rotate(0deg); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-10px) rotate(-2deg); }
+        20%, 40%, 60%, 80% { transform: translateX(10px) rotate(2deg); }
     }
     
     #connectionCanvas {
@@ -2955,6 +3083,175 @@ document.addEventListener('DOMContentLoaded', function() {
         left: 0;
         width: 100%;
         height: 100%;
+        pointer-events: none;
+    }
+    
+    /* Line drawing animation */
+    @keyframes drawLine {
+        from {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+        }
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+    
+    #connectionCanvas line {
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: drawLine 0.8s ease-out forwards;
+    }
+    
+    #connectionCanvas line.correct-line {
+        animation: drawLine 0.8s ease-out forwards, linePulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes linePulse {
+        0%, 100% {
+            stroke-width: 3;
+            opacity: 1;
+        }
+        50% {
+            stroke-width: 4;
+            opacity: 0.9;
+        }
+    }
+    
+    /* Score counter animation */
+    @keyframes scorePop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.3); }
+        100% { transform: scale(1); }
+    }
+    
+    #matchingPairsScore {
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+    
+    #matchingPairsScore.animate-score {
+        animation: scorePop 0.5s ease;
+        color: #ec4899;
+        font-weight: bold;
+    }
+    
+    /* Button animations */
+    #submitMatchingPairsBtn, #resetMatchingPairsBtn {
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    #submitMatchingPairsBtn:hover {
+        transform: scale(1.05) translateY(-2px);
+        box-shadow: 0 10px 20px rgba(34, 197, 94, 0.4);
+    }
+    
+    #submitMatchingPairsBtn:active {
+        transform: scale(0.98);
+    }
+    
+    #resetMatchingPairsBtn:hover {
+        transform: scale(1.05) translateY(-2px);
+        box-shadow: 0 10px 20px rgba(168, 85, 247, 0.4);
+    }
+    
+    #resetMatchingPairsBtn:active {
+        transform: scale(0.98);
+    }
+    
+    /* Game container entrance */
+    .game-container[data-game-type="matchingpairs"] {
+        animation: fadeInScale 0.5s ease-out;
+    }
+    
+    @keyframes fadeInScale {
+        0% {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    /* Column headers animation */
+    .left-column h4, .right-column h4 {
+        animation: fadeInDown 0.6s ease-out;
+    }
+    
+    @keyframes fadeInDown {
+        0% {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Completion message animations */
+    @keyframes slideUpBounce {
+        0% {
+            opacity: 0;
+            transform: translateY(50px) scale(0.8);
+        }
+        60% {
+            transform: translateY(-10px) scale(1.05);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    
+    @keyframes celebration {
+        0%, 100% { transform: scale(1) rotate(0deg); }
+        25% { transform: scale(1.2) rotate(-10deg); }
+        75% { transform: scale(1.2) rotate(10deg); }
+    }
+    
+    #matchingPairsCompletionMessage {
+        animation: fadeInOverlay 0.3s ease;
+    }
+    
+    @keyframes fadeInOverlay {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    #matchingPairsCompletionMessage > div {
+        animation: slideUpBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    #matchingPairsCompletionMessage .text-6xl {
+        animation: celebration 1s ease-in-out infinite;
+        display: inline-block;
+    }
+    
+    /* Sparkle effect for matched items */
+    @keyframes sparkle {
+        0%, 100% {
+            opacity: 0;
+            transform: scale(0) rotate(0deg);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.2) rotate(180deg);
+        }
+    }
+    
+    .matching-item.matched::after {
+        content: '✨';
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        font-size: 20px;
+        animation: sparkle 1.5s ease-in-out;
+        z-index: 25;
         pointer-events: none;
     }
     
