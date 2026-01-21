@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
@@ -11,6 +12,43 @@ use App\Http\Controllers\LevelController;
 use App\Models\Level;
 use App\Models\Student;
 use App\Models\ClassLessonVisibility;
+
+// Serve storage files through Laravel FIRST (to handle Windows symlink issues)
+// This MUST be registered before any other routes to catch storage requests
+Route::get('/storage/{path}', function (Request $request, $path) {
+    // Handle the full request URI to get the complete path with special characters
+    $requestUri = $request->server('REQUEST_URI');
+    
+    // Extract the path after /storage/
+    if (preg_match('#^/storage/(.+)$#', $requestUri, $matches)) {
+        $storagePath = urldecode($matches[1]);
+    } else {
+        // Fallback to path parameter
+        $storagePath = urldecode($path);
+    }
+    
+    // Normalize path separators
+    $storagePath = str_replace('\\', '/', $storagePath);
+    $storagePath = ltrim($storagePath, '/');
+    
+    // Check if file exists in storage
+    if (\Illuminate\Support\Facades\Storage::disk('public')->exists($storagePath)) {
+        $file = \Illuminate\Support\Facades\Storage::disk('public')->get($storagePath);
+        $mimeType = \Illuminate\Support\Facades\Storage::disk('public')->mimeType($storagePath);
+        
+        // For PDFs and images, use inline; for others, let browser decide
+        $disposition = in_array(strtolower(pathinfo($storagePath, PATHINFO_EXTENSION)), ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp']) 
+            ? 'inline' 
+            : 'attachment';
+        
+        return response($file, 200)
+            ->header('Content-Type', $mimeType ?: 'application/octet-stream')
+            ->header('Content-Disposition', $disposition . '; filename="' . basename($storagePath) . '"')
+            ->header('Cache-Control', 'public, max-age=31536000');
+    }
+    
+    abort(404, 'File not found: ' . $storagePath);
+})->where('path', '.*')->name('storage.serve');
 
 // Set Dead Time for Assignment
 Route::middleware(['auth', 'verified', 'can:isTeacher'])->post('/assignments/{assignment}/dead-time', [App\Http\Controllers\AssignmentController::class, 'setDeadTime'])->name('assignments.setDeadTime');
@@ -34,6 +72,10 @@ Route::middleware(['auth', 'verified'])->prefix('student')->group(function () {
     Route::post('/games/save-score', [StudentGameController::class, 'saveScore'])->name('student.games.saveScore');
     Route::get('/grades', [App\Http\Controllers\StudentGradeController::class, 'index'])->name('student.grades');
 });
+
+// Student Rewards Route
+use App\Http\Controllers\RewardsController;
+Route::middleware(['auth', 'verified'])->get('/rewards', [RewardsController::class, 'index'])->name('student.rewards');
 
 // Student Progress Route
 use App\Http\Controllers\StudentProgressController;
@@ -95,6 +137,8 @@ Route::get('/student/dashboard', function () {
 
 // Teacher dashboard route
 Route::get('/teacher/dashboard', function () {
+    $user = Auth::user();
+    
     // Get all levels with their lesson counts (same as lesson management)
     $levels = \App\Models\Level::with('lessons')->orderBy('level_id')->get();
     
@@ -104,8 +148,91 @@ Route::get('/teacher/dashboard', function () {
         return $level->lessons->count();
     })->toArray());
     
-    return view('teacher.dashboard', compact('levels', 'levelNames', 'lessonCounts'));
+    // Get teacher's classes
+    $taughtClasses = \App\Models\StudentClass::where('teacher_id', $user->user_id)
+        ->with(['students', 'assignments', 'quizzes'])
+        ->get();
+    
+    // Calculate statistics
+    $totalClasses = $taughtClasses->count();
+    $totalStudents = $taughtClasses->sum(function($class) {
+        return $class->students->count();
+    });
+    $totalAssignments = $taughtClasses->sum(function($class) {
+        return $class->assignments->count();
+    });
+    $totalQuizzes = $taughtClasses->sum(function($class) {
+        return $class->quizzes->count();
+    });
+    
+    // Get grades given by this teacher
+    $grades = \App\Models\Grade::where('teacher_id', $user->user_id)->get();
+    $averageGrade = $grades->where('percentage', '!=', null)->avg('percentage') ?? 0;
+    
+    // Calculate pending grading (submissions without grades)
+    $pendingGrading = 0;
+    foreach ($taughtClasses as $class) {
+        $classAssignments = \App\Models\Assignment::where('class_id', $class->class_id)->get();
+        foreach ($classAssignments as $assignment) {
+            $ungradedSubmissions = \App\Models\AssignmentSubmission::where('assignment_id', $assignment->assignment_id)
+                ->whereDoesntHave('grade')
+                ->count();
+            $pendingGrading += $ungradedSubmissions;
+        }
+    }
+    
+    // Prepare data for class distribution chart (students by class)
+    $classNames = $taughtClasses->pluck('class_name')->toArray();
+    $studentCountsByClass = $taughtClasses->map(function($class) {
+        return $class->students->count();
+    })->toArray();
+    
+    // Prepare data for assignments/quizzes by class chart
+    $assignmentsByClass = $taughtClasses->map(function($class) {
+        return $class->assignments->count();
+    })->toArray();
+    $quizzesByClass = $taughtClasses->map(function($class) {
+        return $class->quizzes->count();
+    })->toArray();
+    
+    // Prepare data for upcoming scheduled activities (next 6 months)
+    $activityOverTime = [];
+    $activityOverTimeLabels = [];
+    $upcomingAssignments = [];
+    $upcomingQuizzes = [];
+    
+    // Get assignment IDs for this teacher's classes
+    $classIds = $taughtClasses->pluck('class_id')->toArray();
+    
+    // Show next 6 months of scheduled activities
+    for ($i = 1; $i <= 6; $i++) {
+        $date = now()->addMonths($i);
+        $monthStart = $date->copy()->startOfMonth();
+        $monthEnd = $date->copy()->endOfMonth();
+        
+        // Upcoming assignments (due dates in this month)
+        $monthAssignments = \App\Models\Assignment::whereIn('class_id', $classIds)
+            ->whereBetween('due_date', [$monthStart, $monthEnd])
+            ->count();
+        
+        // Upcoming quizzes (due dates in this month)
+        $monthQuizzes = \App\Models\Quiz::whereIn('class_id', $classIds)
+            ->whereBetween('due_date', [$monthStart, $monthEnd])
+            ->count();
+        
+        $activityOverTimeLabels[] = $date->format('M Y');
+        $upcomingAssignments[] = $monthAssignments;
+        $upcomingQuizzes[] = $monthQuizzes;
+    }
+    
+    return view('teacher.dashboard', compact(
+        'levels', 'levelNames', 'lessonCounts',
+        'totalClasses', 'totalStudents', 'totalAssignments', 'totalQuizzes', 'averageGrade', 'pendingGrading',
+        'classNames', 'studentCountsByClass', 'assignmentsByClass', 'quizzesByClass',
+        'activityOverTimeLabels', 'upcomingAssignments', 'upcomingQuizzes'
+    ));
 })->middleware(['auth', 'verified', 'can:isTeacher'])->name('teacher.dashboard');
+
 
 use App\Http\Controllers\LessonPublicController;
 Route::get('/lessons', [LessonPublicController::class, 'index'])
@@ -128,6 +255,10 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     // Admin profile
     Route::get('/profile', [AdminController::class, 'profile'])->name('admin.profile');
     Route::post('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
+    // Admin settings
+    Route::get('/settings', [AdminController::class, 'settings'])->name('admin.settings');
+    Route::post('/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
+    Route::post('/mark-students-read', [AdminController::class, 'markStudentsAsRead'])->name('admin.mark-students-read');
     Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
     // Level name update
     Route::post('/levels/update-name', [LevelController::class, 'updateName'])->name('admin.levels.updateName');
@@ -187,10 +318,27 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     // Helper API endpoints
     Route::get('/api/teachers', [AdminController::class, 'getTeachersList'])->name('admin.api.teachers');
     Route::get('/api/classes', [AdminController::class, 'getClassesList'])->name('admin.api.classes');
+    
+    // Assignments
+    Route::get('/assignments', [AdminController::class, 'assignments'])->name('admin.assignments');
+    Route::post('/assignments/{assignmentId}/comment', [AdminController::class, 'addAssignmentComment'])->name('admin.assignments.comment');
+    
+    // Quizzes
+    Route::get('/quizzes', [AdminController::class, 'quizzes'])->name('admin.quizzes');
+    
+    // Games
+    Route::get('/games', [AdminController::class, 'games'])->name('admin.games');
+    
+    // Lightweight Activities Summary Pages
+    Route::prefix('activities')->group(function () {
+        Route::get('/assignments', [AdminController::class, 'activitiesAssignments'])->name('admin.activities.assignments');
+        Route::get('/quizzes', [AdminController::class, 'activitiesQuizzes'])->name('admin.activities.quizzes');
+        Route::get('/games', [AdminController::class, 'activitiesGames'])->name('admin.activities.games');
+    });
 });
 
 // Teacher Lesson Management
-Route::middleware(['auth', 'verified'])->prefix('teacher')->group(function () {
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->prefix('teacher')->group(function () {
     Route::get('/lessons/manage', [TeacherLessonController::class, 'index'])->name('teacher.lessons.manage');
     Route::post('/lessons/{lesson}/unlock', [TeacherLessonController::class, 'unlock'])->name('teacher.lessons.unlock');
     Route::post('/lessons/{lesson}/lock', [TeacherLessonController::class, 'lock'])->name('teacher.lessons.lock');
@@ -200,6 +348,8 @@ Route::middleware(['auth', 'verified'])->prefix('teacher')->group(function () {
 // Teacher Classes Management
 Route::middleware(['auth', 'verified', 'can:isTeacher'])->prefix('teacher')->group(function () {
     Route::get('/classes', [TeacherClassesController::class, 'index'])->name('teacher.classes');
+    Route::get('/grades', [App\Http\Controllers\TeacherGradeController::class, 'index'])->name('teacher.grades');
+    Route::get('/progress', [App\Http\Controllers\TeacherProgressController::class, 'index'])->name('teacher.progress');
 });
 
 Route::middleware('auth')->group(function () {

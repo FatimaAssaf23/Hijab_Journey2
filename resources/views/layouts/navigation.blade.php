@@ -35,7 +35,7 @@
                     <!-- Games button removed, now in Tasks dropdown -->
                     <a href="{{ route('teacher.lessons.manage') }}" class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Lessons Management</a>
                     <!-- Quizzes button removed, now in Tasks dropdown -->
-                    <a href="{{ route('student.grades') }}" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Grades</a>
+                    <a href="{{ route('teacher.grades') }}" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Grades</a>
                     <a href="{{ route('teacher.emergency.create') }}" class="font-semibold px-4 py-2 rounded-xl transition text-white hover:bg-white/10">Emergency</a>
                 @else
                     <a href="{{ route('student.dashboard') }}" class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition" style="order: -1;">
@@ -80,7 +80,7 @@
                         </svg>
                         Levels
                     </a>
-                    <a href="/rewards" class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">
+                    <a href="{{ route('student.rewards') }}" class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
                         </svg>
@@ -99,7 +99,7 @@
 
 
                 @if(Auth::check() && Auth::user()->role === 'teacher')
-                <a href="/progress" class="flex flex-row items-center gap-2 font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 whitespace-nowrap">
+                <a href="{{ route('teacher.progress') }}" class="flex flex-row items-center gap-2 font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 whitespace-nowrap">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#197D8C"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>
                     <span class="whitespace-nowrap">Students</span> <span class="whitespace-nowrap">Progress</span>
                 </a>
@@ -241,11 +241,12 @@
         </div>
         <div class="px-2 pb-4 space-y-1">
             @if(Auth::check() && Auth::user()->role === 'teacher')
-                <a href="{{ route('student.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Dashboard</a>
+                <a href="{{ route('teacher.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Dashboard</a>
                 <a href="/lessons/manage" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Lessons Management</a>
                 <a href="/quizzes" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Quizzes</a>
                 <a href="/meetings" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Meetings</a>
-                <a href="{{ route('student.grades') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Grades</a>
+                <a href="{{ route('teacher.grades') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Grades</a>
+                <a href="{{ route('teacher.progress') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Students Progress</a>
                 <a href="/group-chat" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Contacts</a>
                 <a href="/inbox" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Inbox</a>
             @else

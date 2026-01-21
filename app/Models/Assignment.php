@@ -19,6 +19,8 @@ class Assignment extends Model
         'level_id',
         'class_id',
         'due_date',
+        'admin_comment',
+        'checked_by_admin_id',
     ];
 
     protected function casts(): array

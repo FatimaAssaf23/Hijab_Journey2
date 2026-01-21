@@ -20,7 +20,8 @@ class QuizController extends Controller
     public function create()
     {
         $levels = Level::all();
-        return view('quizzes.create', compact('levels'));
+        $classes = StudentClass::where('teacher_id', Auth::id())->get();
+        return view('quizzes.create', compact('levels', 'classes'));
     }
 
     // Teacher: Store new quiz
@@ -29,6 +30,7 @@ class QuizController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'level_id' => 'required|exists:levels,level_id',
+            'class_id' => 'required|exists:student_classes,class_id',
             'timer_minutes' => 'required|integer|min:1',
             'questions' => 'required|array|min:1',
             'questions.*.question_text' => 'required|string',
@@ -41,17 +43,14 @@ class QuizController extends Controller
 
         DB::beginTransaction();
         try {
-            // Get class_id from level, or from teacher's first class if level doesn't have one
-            $level = Level::findOrFail($request->level_id);
-            $classId = $level->class_id;
+            // Verify the class belongs to the teacher
+            $classId = $request->class_id;
+            $teacherClass = StudentClass::where('class_id', $classId)
+                ->where('teacher_id', Auth::id())
+                ->first();
             
-            // If level doesn't have a class_id, get teacher's first class
-            if (!$classId) {
-                $teacherClass = StudentClass::where('teacher_id', Auth::id())->first();
-                if (!$teacherClass) {
-                    throw new \Exception('Please contact admin to assign you to a class first.');
-                }
-                $classId = $teacherClass->class_id;
+            if (!$teacherClass) {
+                throw new \Exception('You do not have permission to create quizzes for this class.');
             }
 
             $quiz = Quiz::create([
@@ -113,13 +112,22 @@ class QuizController extends Controller
     }
 
     // Teacher: List all quizzes
-    public function index()
+    public function index(Request $request)
     {
-        $quizzes = Quiz::where('teacher_id', Auth::id())
-            ->with('level', 'questions')
-            ->latest()
-            ->get();
-        return view('quizzes.index', compact('quizzes'));
+        $query = Quiz::where('teacher_id', Auth::id())
+            ->with('level', 'questions', 'studentClass');
+        
+        // Filter by class if provided
+        if ($request->has('class_id') && $request->class_id) {
+            $query->where('class_id', $request->class_id);
+        }
+        
+        $quizzes = $query->latest()->get();
+        
+        // Get all classes for this teacher for the filter dropdown
+        $classes = StudentClass::where('teacher_id', Auth::id())->get();
+        
+        return view('quizzes.index', compact('quizzes', 'classes'));
     }
 
     // Teacher: Show quiz for viewing/editing/deleting
@@ -218,18 +226,24 @@ class QuizController extends Controller
             }])
             ->findOrFail($id);
 
-        // Check if student has already submitted this quiz
-        $existingAttempt = QuizAttempt::where('quiz_id', $quiz->quiz_id)
+        // Check if student has already submitted this quiz (prevent retaking)
+        $hasCompletedAttempt = QuizAttempt::where('quiz_id', $quiz->quiz_id)
             ->where('student_id', $student->student_id)
             ->whereNotNull('submitted_at')
-            ->with(['answers', 'quiz.questions.options'])
-            ->latest()
-            ->first();
+            ->exists();
 
-        // If student has already taken the quiz, show their previous attempt (read-only)
-        if ($existingAttempt) {
-            return redirect()->route('student.quizzes.result', $existingAttempt->attempt_id)
-                ->with('info', 'You have already taken this quiz. Here is your previous submission.');
+        // If student has already taken the quiz, redirect to their latest attempt result
+        if ($hasCompletedAttempt) {
+            $latestAttempt = QuizAttempt::where('quiz_id', $quiz->quiz_id)
+                ->where('student_id', $student->student_id)
+                ->whereNotNull('submitted_at')
+                ->latest()
+                ->first();
+            
+            if ($latestAttempt) {
+                return redirect()->route('student.quizzes.result', $latestAttempt->attempt_id)
+                    ->with('error', 'You have already taken this quiz. You cannot retake it.');
+            }
         }
 
         return view('student.quizzes.show', compact('quiz'));
@@ -271,15 +285,23 @@ class QuizController extends Controller
             return back()->with('error', 'Student profile not found');
         }
 
-        // Check if student has already submitted this quiz
-        $existingAttempt = QuizAttempt::where('quiz_id', $quiz->quiz_id)
+        // Check if student has already submitted this quiz (prevent retaking)
+        $hasCompletedAttempt = QuizAttempt::where('quiz_id', $quiz->quiz_id)
             ->where('student_id', $student->student_id)
             ->whereNotNull('submitted_at')
-            ->first();
+            ->exists();
 
-        if ($existingAttempt) {
-            return redirect()->route('student.quizzes.result', $existingAttempt->attempt_id)
-                ->with('error', 'You have already submitted this quiz. You cannot resubmit.');
+        if ($hasCompletedAttempt) {
+            $latestAttempt = QuizAttempt::where('quiz_id', $quiz->quiz_id)
+                ->where('student_id', $student->student_id)
+                ->whereNotNull('submitted_at')
+                ->latest()
+                ->first();
+            
+            if ($latestAttempt) {
+                return redirect()->route('student.quizzes.result', $latestAttempt->attempt_id)
+                    ->with('error', 'You have already submitted this quiz. You cannot retake it.');
+            }
         }
 
         // If time expired, answers are optional (student may not have answered all questions)

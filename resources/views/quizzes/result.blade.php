@@ -2,6 +2,14 @@
 @section('content')
 <div class="max-w-5xl mx-auto py-10">
     <div class="bg-gradient-to-br from-pink-50 via-white to-pink-100 shadow-2xl rounded-3xl p-10 mb-10 border-2 border-pink-200">
+        <div class="flex items-start justify-between mb-6">
+            <a href="{{ route('student.quizzes') }}" class="flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Go Back
+            </a>
+        </div>
         <div class="text-center mb-8">
             <h2 class="text-4xl font-extrabold text-pink-600 flex items-center justify-center gap-3 drop-shadow mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -27,7 +35,8 @@
                 $score = round($attempt->score ?? 0, 2);
                 $totalQuestions = $attempt->quiz->questions->count();
                 $correctAnswers = $attempt->answers->where('is_correct', true)->count();
-                $passingScore = $attempt->quiz->passing_score ?? 60;
+                // Always use 60% as the passing score for all quizzes (standardized)
+                $passingScore = 60;
                 $passed = $score >= $passingScore;
             @endphp
             

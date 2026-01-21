@@ -44,7 +44,7 @@
 
 <div style="display: flex; align-items: flex-start; justify-content: flex-start; min-height: 100vh;">
     <!-- Greeting Girl Image -->
-    <div style="margin-right: 16px; margin-top: -480px; margin-left: 50px; display: flex; align-items: flex-start; justify-content: flex-start; position: relative; z-index: 2; background: #fff6f9; border-radius: 16px; padding: 8px;">
+    <div style="margin-right: 16px; margin-top: -480px; margin-left: calc(50px + 6cm); display: flex; align-items: flex-start; justify-content: flex-start; position: relative; z-index: 2; background: #fff6f9; border-radius: 16px; padding: 8px;">
         <img src="{{ asset('images/dashboard/hijab5.png') }}" alt="Greeting Girl" style="max-width: 200px; height: auto; margin-top: 0; border: none; background: transparent; box-shadow: none;">
     </div>
     <!-- Login Box -->

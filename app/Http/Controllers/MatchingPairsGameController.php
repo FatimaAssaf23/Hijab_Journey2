@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Game;
 use App\Models\MatchingPairsGame;
 use App\Models\MatchingPair;
+use App\Models\ClassLessonVisibility;
 
 class MatchingPairsGameController extends Controller
 {
@@ -14,6 +16,7 @@ class MatchingPairsGameController extends Controller
     {
         $request->validate([
             'matching_pairs_lesson_id' => 'required|integer',
+            'class_id' => 'nullable|exists:student_classes,class_id',
             'pairs' => 'required|array|min:1',
             'pairs.*.left_item_text' => 'nullable|string|max:500',
             'pairs.*.left_item_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -111,6 +114,18 @@ class MatchingPairsGameController extends Controller
                     'right_item_image' => $rightImagePath,
                     'order' => $index,
                 ]);
+            }
+
+            // If class_id is provided, make the lesson visible for that class
+            if ($request->class_id) {
+                ClassLessonVisibility::firstOrCreate(
+                    [
+                        'lesson_id' => $lessonId,
+                        'class_id' => $request->class_id,
+                        'teacher_id' => Auth::id(),
+                    ],
+                    ['is_visible' => true]
+                )->update(['is_visible' => true]);
             }
 
             \Log::info('Matching Pairs Game saved', [

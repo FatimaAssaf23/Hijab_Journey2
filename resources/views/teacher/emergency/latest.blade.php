@@ -2,6 +2,17 @@
 
 @section('content')
 <div class="max-w-xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8">
+    <!-- Go Back Button -->
+    <div class="mb-6">
+        <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
+                class="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" 
+                style="background: linear-gradient(135deg, #FC8EAC, #6EC6C5);">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Go Back
+        </button>
+    </div>
     <h2 class="text-2xl font-bold mb-6 text-[#197D8C]">Your Latest Emergency Absence Request</h2>
     @if($request)
         <div class="mb-8">
