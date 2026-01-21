@@ -3,6 +3,11 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
+// Increase PHP upload limits for large file uploads
+ini_set('upload_max_filesize', '100M');
+ini_set('post_max_size', '100M');
+ini_set('max_execution_time', '300');
+ini_set('max_input_time', '300');
 // Increase memory limit and execution time for file uploads
 // Note: upload_max_filesize and post_max_size must be set in php.ini
 // They cannot be changed at runtime with ini_set()

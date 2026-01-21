@@ -308,10 +308,58 @@ class StudentGameController extends Controller
             ]
         );
 
+        // Check if lesson should be marked as completed
+        $lessonId = $game->lesson_id;
+        if ($lessonId) {
+            $this->checkAndCompleteLesson($student->student_id, $lessonId, $game);
+        }
+
         return response()->json([
             'success' => true,
             'score' => $progress->score,
             'message' => 'Score saved successfully!'
         ]);
+    }
+
+    /**
+     * Check if lesson should be marked as completed when game is passed
+     * 
+     * @param int $studentId
+     * @param int $lessonId
+     * @param \App\Models\Game $game
+     * @return void
+     */
+    private function checkAndCompleteLesson($studentId, $lessonId, $game)
+    {
+        $progress = \App\Models\StudentLessonProgress::where('student_id', $studentId)
+            ->where('lesson_id', $lessonId)
+            ->first();
+
+        if ($progress) {
+            // Check if video is completed (watched >= 80%)
+            $isVideoCompleted = $progress->video_completed ?? false;
+            
+            // Check if game is completed
+            $gameProgress = \App\Models\StudentGameProgress::where('student_id', $studentId)
+                ->where('game_id', $game->game_id)
+                ->where('status', 'completed')
+                ->first();
+            
+            $isGameCompleted = $gameProgress !== null;
+
+            // RULE 3: If game is passed AND video is completed, mark lesson completed
+            if ($isVideoCompleted && $isGameCompleted && $progress->status !== 'completed') {
+                $progress->status = 'completed';
+                $progress->completed_at = now();
+                $progress->save();
+
+                // RULE 4: Unlock next lesson
+                $lesson = \App\Models\Lesson::find($lessonId);
+                if ($lesson) {
+                    $progressController = new \App\Http\Controllers\StudentProgressController();
+                    $progressController->unlockNextLesson($studentId, $lesson->level_id, $lessonId);
+                }
+            }
+        }
     }
 }

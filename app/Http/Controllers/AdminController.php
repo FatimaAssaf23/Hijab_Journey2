@@ -17,6 +17,7 @@ use App\Models\Grade;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\Teacher;
+use App\Models\TeacherProfile;
 use App\Models\Game;
 use App\Models\WordSearchGame;
 use App\Models\MatchingPairsGame;
@@ -894,6 +895,20 @@ class AdminController extends Controller
                 'content_file.max' => 'The file size must not exceed 50MB.',
             ]);
 
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'skills' => 'required|integer|min:0',
+            'icon' => 'required|string|max:10',
+            // Accept either levelId (existing) or new_level_name (new)
+            'levelId' => 'nullable|integer',
+            'new_level_name' => 'nullable|string|max:255',
+            'new_level_number' => 'nullable|integer',
+            'new_level_description' => 'nullable|string|max:255',
+            'content_url' => 'nullable|url|max:500',
+            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:102400',
+        ]);
+
+        // Always ensure the selected level exists in the DB (for dropdown 1-10)
             // Always ensure the selected level exists in the DB (for dropdown 1-10)
         if ($request->filled('levelId')) {
             $levelNumber = (int) $request->levelId;
@@ -1537,13 +1552,13 @@ class AdminController extends Controller
             'skills' => 'required|integer|min:0',
             'icon' => 'nullable|string|max:10',
             'description' => 'nullable|string',
-            'content_url' => 'nullable|string|max:255',
+            'content_url' => 'nullable|url|max:500',
             'duration_minutes' => 'nullable|integer|min:1',
             'is_visible' => 'nullable|boolean',
-            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:51200',
+            'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi|max:102400',
         ]);
 
-        // Handle file upload
+        // Handle content: URL or file upload (file takes priority if both provided)
         $contentUrl = $validated['content_url'] ?? null;
         if ($request->hasFile('content_file')) {
             $file = $request->file('content_file');
@@ -1603,17 +1618,17 @@ class AdminController extends Controller
             'skills' => 'nullable|integer|min:0',
             'icon' => 'nullable|string|max:10',
             'description' => 'nullable|string',
-            'content_url' => 'nullable|string|max:255',
+            'content_url' => 'nullable|url|max:500',
             'duration_minutes' => 'nullable|integer|min:1',
             'is_visible' => 'nullable|boolean',
             'lesson_order' => 'nullable|integer|min:1',
             'content_file' => 'nullable|file|mimes:pdf,mp4,mov,avi,mkv,wmv,flv,webm|max:51200',
         ]);
 
-        // Handle file upload
+        // Handle content: URL or file upload (file takes priority if both provided)
         if ($request->hasFile('content_file')) {
-            // Delete old file if exists
-            if ($lesson->content_url && Storage::disk('public')->exists($lesson->content_url)) {
+            // Delete old file if exists and is a local file
+            if ($lesson->content_url && !filter_var($lesson->content_url, FILTER_VALIDATE_URL) && Storage::disk('public')->exists($lesson->content_url)) {
                 Storage::disk('public')->delete($lesson->content_url);
             }
             

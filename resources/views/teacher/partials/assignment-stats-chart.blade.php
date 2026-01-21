@@ -1,8 +1,8 @@
 <div class="bg-white rounded-xl shadow-lg p-6 w-full">
-    <h3 class="text-xl font-semibold text-gray-800 mb-6">Lessons by Level</h3>
+    <h3 class="text-xl font-semibold text-gray-800 mb-6">Assignment Grade Distribution</h3>
     
     <div class="w-full" style="position: relative; height: 250px;">
-        <canvas id="levelLessonsChart"></canvas>
+        <canvas id="assignmentStatsChart"></canvas>
     </div>
 </div>
 
@@ -10,35 +10,27 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('levelLessonsChart');
+    const ctx = document.getElementById('assignmentStatsChart');
     if (!ctx) return;
     
-    const levelNames = @json($levelNames);
-    const lessonCounts = @json($lessonCounts);
+    const gradeRangeLabels = @json($gradeRangeLabels);
+    const gradeRangeCounts = @json($gradeRangeCounts);
     
     new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
-            labels: levelNames,
+            labels: gradeRangeLabels,
             datasets: [{
-                label: 'Number of Lessons',
-                data: lessonCounts,
-                borderColor: '#6EC6C5',
-                backgroundColor: 'rgba(110, 198, 197, 0.2)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 5,
-                pointBackgroundColor: '#6EC6C5',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
-                pointHoverRadius: 7,
-                pointHoverBackgroundColor: '#197D8C',
-                pointHoverBorderColor: '#ffffff',
-                pointHoverBorderWidth: 2
+                label: 'Number of Students',
+                data: gradeRangeCounts,
+                backgroundColor: '#6EC6C5',
+                borderColor: '#197D8C',
+                borderWidth: 1,
+                borderRadius: 4
             }]
         },
         options: {
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             layout: {
@@ -75,17 +67,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     callbacks: {
                         label: function(context) {
-                            return 'Lessons: ' + context.parsed.y;
+                            return 'Students: ' + context.parsed.x;
                         }
                     }
                 }
             },
             scales: {
-                y: {
+                x: {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Number of Lessons',
+                        text: 'Number of Students',
                         font: {
                             size: 12,
                             weight: 'bold'
@@ -103,10 +95,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         color: 'rgba(0, 0, 0, 0.05)'
                     }
                 },
-                x: {
+                y: {
                     title: {
                         display: true,
-                        text: 'Level',
+                        text: 'Grade Range (%)',
                         font: {
                             size: 12,
                             weight: 'bold'
@@ -116,15 +108,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         display: false
                     },
                     ticks: {
-                        maxRotation: 25,
-                        minRotation: 25,
-                        autoSkip: false,
                         font: {
-                            size: 9
+                            size: 10
                         },
-                        padding: 1
-                    },
-                    offset: false
+                        padding: 5
+                    }
                 }
             }
         }

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\ProfileController;
@@ -129,14 +130,19 @@ Route::get('/', function () {
 
 Route::get('/student/dashboard', function () {
     $user = Auth::user();
-    if ($user && ($user->role === 'teacher' || $user->role === 'admin')) {
+    if (!$user) {
         abort(403, 'Unauthorized');
+    }
+    // Only allow students to access student dashboard
+    if ($user->role !== 'student') {
+        abort(403, 'Unauthorized. Only students can access this page.');
     }
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('student.dashboard');
 
 // Teacher dashboard route
 Route::get('/teacher/dashboard', function () {
+    $teacher_id = auth()->id();
     $user = Auth::user();
     
     // Get all levels with their lesson counts (same as lesson management)
@@ -148,6 +154,43 @@ Route::get('/teacher/dashboard', function () {
         return $level->lessons->count();
     })->toArray());
     
+    // Calculate grade distribution (0-100) by number of distinct students
+    $gradeRanges = [
+        '0-20' => 0,
+        '21-40' => 0,
+        '41-60' => 0,
+        '61-80' => 0,
+        '81-100' => 0
+    ];
+    
+    // Get all assignment grades for this teacher with their average percentage per student
+    $studentAverages = \App\Models\Grade::where('teacher_id', $teacher_id)
+        ->whereNotNull('assignment_submission_id')
+        ->whereNotNull('percentage')
+        ->selectRaw('student_id, AVG(percentage) as avg_percentage')
+        ->groupBy('student_id')
+        ->get();
+    
+    // Count distinct students in each grade range based on their average
+    foreach ($studentAverages as $avg) {
+        $percentage = $avg->avg_percentage;
+        if ($percentage >= 0 && $percentage <= 20) {
+            $gradeRanges['0-20']++;
+        } elseif ($percentage >= 21 && $percentage <= 40) {
+            $gradeRanges['21-40']++;
+        } elseif ($percentage >= 41 && $percentage <= 60) {
+            $gradeRanges['41-60']++;
+        } elseif ($percentage >= 61 && $percentage <= 80) {
+            $gradeRanges['61-80']++;
+        } elseif ($percentage >= 81 && $percentage <= 100) {
+            $gradeRanges['81-100']++;
+        }
+    }
+    
+    $gradeRangeLabels = array_keys($gradeRanges);
+    $gradeRangeCounts = array_values($gradeRanges);
+    
+    return view('teacher.dashboard', compact('levels', 'levelNames', 'lessonCounts', 'gradeRangeLabels', 'gradeRangeCounts'));
     // Get teacher's classes
     $taughtClasses = \App\Models\StudentClass::where('teacher_id', $user->user_id)
         ->with(['students', 'assignments', 'quizzes'])
@@ -291,7 +334,13 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     Route::post('/classes/{classId}/capacity', [AdminController::class, 'assignClassCapacity'])->name('admin.classes.capacity');
     
     // Student Management
+    Route::get('/students', [AdminController::class, 'students'])->name('admin.students.index');
+    Route::get('/students/{id}', [AdminController::class, 'showStudent'])->name('admin.students.show');
+    Route::get('/students/export', [AdminController::class, 'exportStudents'])->name('admin.students.export');
     Route::post('/students/{studentId}/change-class', [AdminController::class, 'changeStudentClass'])->name('admin.students.changeClass');
+    
+    // Teacher Management
+    Route::get('/teachers', [AdminController::class, 'teachers'])->name('admin.teachers.index');
     
     // Teacher Requests
     Route::get('/requests', [AdminController::class, 'teacherRequests'])->name('admin.requests');
@@ -378,14 +427,39 @@ Route::get('/levels', function () {
 // Student Lesson View Route
 Route::get('/lessons/{lesson}/view', function ($lessonId) {
     $lesson = \App\Models\Lesson::findOrFail($lessonId);
-    return view('lesson-view', compact('lesson'));
+    $user = Auth::user();
+    $student = $user->student;
+    
+    // Get student progress for this lesson
+    $progress = null;
+    $hasGame = false;
+    $isVideoCompleted = false;
+    $isGameCompleted = false;
+    
+    if ($student) {
+        $progress = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)
+            ->where('lesson_id', $lessonId)
+            ->first();
+        
+        $hasGame = \App\Models\Game::where('lesson_id', $lessonId)->exists();
+        $isVideoCompleted = $progress && ($progress->video_completed ?? false);
+        
+        if ($hasGame && $student) {
+            $game = \App\Models\Game::where('lesson_id', $lessonId)->first();
+            $gameProgress = \App\Models\StudentGameProgress::where('student_id', $student->student_id)
+                ->where('game_id', $game->game_id)
+                ->where('status', 'completed')
+                ->first();
+            $isGameCompleted = $gameProgress !== null;
+        }
+    }
+    
+    return view('lesson-view', compact('lesson', 'progress', 'hasGame', 'isVideoCompleted', 'isGameCompleted'));
 })->middleware(['auth', 'verified'])->name('student.lesson.view');
 
 require __DIR__.'/auth.php';
 
 // Games page for teachers
-use Illuminate\Support\Facades\Auth;
-
 use App\Http\Controllers\GameWordController;
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/games', [GameWordController::class, 'index'])->name('teacher.games');
@@ -445,6 +519,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Student marks lesson as completed
 use App\Models\StudentLessonProgress;
+
+// Student video progress tracking routes
+Route::middleware(['auth', 'verified'])->prefix('api/lessons')->group(function () {
+    Route::post('/{lessonId}/video/track', [App\Http\Controllers\StudentProgressController::class, 'trackVideoProgress'])->name('api.lessons.video.track');
+    Route::get('/{lessonId}/video/progress', [App\Http\Controllers\StudentProgressController::class, 'getVideoProgress'])->name('api.lessons.video.progress');
+});
 
 Route::post('/lessons/{lesson}/complete', function ($lessonId) {
     $user = Auth::user();
