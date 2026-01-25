@@ -351,6 +351,7 @@ class StudentGameController extends Controller
             if ($isVideoCompleted && $isGameCompleted && $progress->status !== 'completed') {
                 $progress->status = 'completed';
                 $progress->completed_at = now();
+                $progress->last_activity_at = now();
                 $progress->save();
 
                 // RULE 4: Unlock next lesson

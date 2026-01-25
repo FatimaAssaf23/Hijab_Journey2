@@ -164,51 +164,67 @@ class StudentProgressController extends Controller
             [
                 'status' => 'in_progress',
                 'started_at' => now(),
+                'last_activity_at' => now(),
             ]
         );
 
+        // Get video duration to cap watched seconds and percentage
+        $videoDuration = $lesson->video_duration_seconds ?? 0;
+        
+        // Cap watched seconds at video duration (prevent >100% completion)
+        $cappedWatchedSeconds = $videoDuration > 0 
+            ? min($request->watched_seconds, $videoDuration) 
+            : $request->watched_seconds;
+        
+        // Recalculate percentage based on capped seconds and cap at 100%
+        $cappedPercentage = $videoDuration > 0 
+            ? min(100, round(($cappedWatchedSeconds / $videoDuration) * 100, 2))
+            : min(100, round($request->watched_percentage, 2));
+
         // Update video tracking fields
-        $progress->watched_seconds = $request->watched_seconds;
-        $progress->watched_percentage = round($request->watched_percentage, 2);
+        $progress->watched_seconds = $cappedWatchedSeconds;
+        $progress->watched_percentage = $cappedPercentage;
         $progress->last_position = $request->current_position ?? $progress->last_position;
-        $progress->max_watched_time = max(
-            $progress->max_watched_time ?? 0,
-            $request->max_watched_time ?? 0
-        );
+        
+        // Cap max_watched_time at video duration
+        $cappedMaxWatchedTime = $videoDuration > 0
+            ? min(max($progress->max_watched_time ?? 0, $request->max_watched_time ?? 0), $videoDuration)
+            : max($progress->max_watched_time ?? 0, $request->max_watched_time ?? 0);
+        $progress->max_watched_time = $cappedMaxWatchedTime;
         $progress->last_watched_at = now();
+        
+        // Update last activity timestamp to track student activity on the website
+        $progress->last_activity_at = now();
 
         // Update time_spent_minutes (convert seconds to minutes, rounded)
-        $progress->time_spent_minutes = round($request->watched_seconds / 60);
+        $progress->time_spent_minutes = round($cappedWatchedSeconds / 60);
 
-        // RULE 1: If watched_percentage >= 80%, mark video_completed = true
-        $isVideoCompleted = $request->watched_percentage >= 80;
+        // RULE 1: If watched_percentage >= 80%, mark video_completed = true AND mark lesson as completed
+        // Use capped percentage for completion check
+        $isVideoCompleted = $cappedPercentage >= 80;
         $wasVideoCompleted = $progress->video_completed ?? false;
+        $wasLessonCompleted = $progress->status === 'completed';
         $progress->video_completed = $isVideoCompleted;
 
-        // If video just became completed, unlock the game
-        if ($isVideoCompleted && !$wasVideoCompleted) {
-            $this->unlockLessonGame($student->student_id, $lessonId);
-        }
-
-        // Check if game is completed
-        $isGameCompleted = $this->checkGameCompletion($student->student_id, $lessonId);
-
-        // RULE 3: If game is passed, mark lesson completed
-        if ($isGameCompleted && $progress->status !== 'completed') {
-            $progress->status = 'completed';
-            $progress->completed_at = now();
+        // If video reaches 80%, mark lesson as completed and unlock the game
+        if ($isVideoCompleted) {
+            // Unlock the game when 80% is reached
+            if (!$wasVideoCompleted) {
+                $this->unlockLessonGame($student->student_id, $lessonId);
+            }
             
-            // RULE 4: Unlock next lesson when current lesson is completed
-            $this->unlockNextLesson($student->student_id, $lesson->level_id, $lessonId);
-        } else if ($isVideoCompleted && !$isGameCompleted) {
-            // Video completed but game not completed yet - keep status as in_progress
-            if ($progress->status === 'not_started') {
-                $progress->status = 'in_progress';
-                if (!$progress->started_at) {
-                    $progress->started_at = now();
+            // Mark lesson as completed when 80% is reached
+            if (!$wasLessonCompleted) {
+                $progress->status = 'completed';
+                if (!$progress->completed_at) {
+                    $progress->completed_at = now();
                 }
+                
+                // RULE 4: Unlock next lesson when current lesson is completed
+                $this->unlockNextLesson($student->student_id, $lesson->level_id, $lessonId);
             }
         } else if ($progress->status === 'not_started') {
+            // Video not yet at 80% - mark as in_progress
             $progress->status = 'in_progress';
             if (!$progress->started_at) {
                 $progress->started_at = now();

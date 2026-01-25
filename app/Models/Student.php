@@ -99,4 +99,12 @@ class Student extends Model
         return $this->hasMany(Payment::class, 'student_id', 'student_id');
     }
 
+    /**
+     * Get the meeting attendances for the student.
+     */
+    public function meetingAttendances()
+    {
+        return $this->hasMany(MeetingAttendance::class, 'student_id', 'student_id');
+    }
+
 }

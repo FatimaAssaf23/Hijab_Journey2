@@ -1336,7 +1336,35 @@ class AdminController extends Controller
         $students = Student::with(['user', 'studentClass'])
             ->whereHas('user') // Only get students that have a user
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function($student) {
+                // Get the most recent activity from all lesson progresses
+                // Check last_activity_at first, then fallback to last_watched_at, then updated_at
+                $progresses = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)
+                    ->get();
+                
+                $lastActivity = null;
+                foreach ($progresses as $progress) {
+                    // Get the most recent date from available fields
+                    $dates = array_filter([
+                        $progress->last_activity_at,
+                        $progress->last_watched_at,
+                        $progress->updated_at
+                    ]);
+                    
+                    if (!empty($dates)) {
+                        $maxDate = max($dates);
+                        if (!$lastActivity || $maxDate > $lastActivity) {
+                            $lastActivity = $maxDate;
+                        }
+                    }
+                }
+                
+                $student->last_activity_at = $lastActivity;
+                
+                $student->last_activity_at = $lastActivity ? \Carbon\Carbon::parse($lastActivity) : null;
+                return $student;
+            });
 
         return view('admin.students.index', compact('students'));
     }

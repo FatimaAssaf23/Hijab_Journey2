@@ -34,8 +34,9 @@ class GameWordController extends Controller
         // Get all classes for this teacher
         $classes = \App\Models\StudentClass::where('teacher_id', $user->user_id)->get();
 
-        // Get selected lesson from request
+        // Get selected lesson and game type from request
         $selectedLessonId = $request->input('lesson_id');
+        $selectedGameType = $request->input('game_type', null); // Explicitly set to null if not provided
 
         $scramblePairs = collect();
         $clockGame = null;
@@ -65,7 +66,7 @@ class GameWordController extends Controller
             $matchingPairsGame = \App\Models\MatchingPairsGame::where('lesson_id', $selectedLessonId)->with('pairs')->first();
         }
 
-        return view('games', compact('lessons', 'scramblePairs', 'selectedLessonId', 'clockGame', 'scrambledClocksGame', 'wordClockArrangementGame', 'wordSearchGame', 'matchingPairsGame', 'classes'));
+        return view('games', compact('lessons', 'scramblePairs', 'selectedLessonId', 'selectedGameType', 'clockGame', 'scrambledClocksGame', 'wordClockArrangementGame', 'wordSearchGame', 'matchingPairsGame', 'classes'));
     }
 
     public function store(Request $request)

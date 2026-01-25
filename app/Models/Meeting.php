@@ -49,4 +49,12 @@ class Meeting extends Model
     {
         return $this->belongsTo(User::class, 'teacher_id', 'user_id');
     }
+
+    /**
+     * Get the attendances for the meeting.
+     */
+    public function attendances()
+    {
+        return $this->hasMany(MeetingAttendance::class, 'meeting_id', 'meeting_id');
+    }
 }

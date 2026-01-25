@@ -69,6 +69,7 @@
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Class</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Score</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Plan</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Last Activity</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Joined</th>
                         </tr>
                     </thead>
@@ -181,6 +182,61 @@
                                 </span>
                             </td>
                             
+                            <!-- Last Activity -->
+                            <td class="px-6 py-5">
+                                @php
+                                    $lastActivity = $student->last_activity_at;
+                                    if ($lastActivity) {
+                                        // Calculate days difference - compare dates only (not times)
+                                        $now = \Carbon\Carbon::now()->startOfDay();
+                                        $lastActivityDate = \Carbon\Carbon::parse($lastActivity)->startOfDay();
+                                        
+                                        // Calculate days between dates
+                                        // diffInDays returns absolute difference by default
+                                        $inactiveDays = $lastActivityDate->diffInDays($now);
+                                        
+                                        // If last activity is in the future (shouldn't happen), set to 0
+                                        if ($lastActivityDate->isFuture()) {
+                                            $inactiveDays = 0;
+                                        }
+                                        
+                                        $isRecent = $inactiveDays == 0;
+                                        $isThisWeek = $inactiveDays > 0 && $inactiveDays <= 7;
+                                        $isLongInactive = $inactiveDays > 30;
+                                    }
+                                @endphp
+                                @if($lastActivity)
+                                    <div class="flex flex-col gap-1">
+                                        <div class="text-sm font-medium {{ $isRecent ? 'text-green-600' : ($isThisWeek ? 'text-blue-600' : ($isLongInactive ? 'text-red-600' : 'text-orange-600')) }}">
+                                            @if($isRecent)
+                                                <span class="inline-flex items-center gap-1">
+                                                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                                    Active Today
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1">
+                                                    <span class="w-2 h-2 {{ $isLongInactive ? 'bg-red-500' : 'bg-orange-500' }} rounded-full"></span>
+                                                    {{ $inactiveDays }} {{ $inactiveDays == 1 ? 'day' : 'days' }} inactive
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-0.5">
+                                            Last: {{ $lastActivity->format('M d, Y') }} at {{ $lastActivity->format('h:i A') }}
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="flex flex-col gap-1">
+                                        <div class="text-sm font-medium text-red-600">
+                                            <span class="inline-flex items-center gap-1">
+                                                <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                                                Never active
+                                            </span>
+                                        </div>
+                                        <div class="text-xs text-gray-400 mt-0.5">No activity recorded</div>
+                                    </div>
+                                @endif
+                            </td>
+                            
                             <!-- Joined Date -->
                             <td class="px-6 py-5">
                                 <div class="text-sm font-medium text-gray-900">{{ ($user->date_joined ?? null) ? $user->date_joined->format('M d, Y') : 'N/A' }}</div>
@@ -197,7 +253,7 @@
                         @endif
                         @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-16 text-center">
+                            <td colspan="7" class="px-6 py-16 text-center">
                                 <div class="flex flex-col items-center gap-3">
                                     <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                                         <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
