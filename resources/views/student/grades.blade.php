@@ -277,9 +277,9 @@
                 <div class="bg-white rounded-3xl shadow-xl p-12 text-center border-2 border-pink-200">
                     <div class="text-6xl mb-4">🎮</div>
                     <h3 class="text-2xl font-bold text-gray-700 mb-2">No Game Scores Yet</h3>
-                    <p class="text-gray-500 mb-6">Complete games in lessons to see your grades here!</p>
-                    <a href="{{ route('student.games') }}" class="inline-block px-6 py-3 bg-gradient-to-r from-pink-400 to-pink-600 text-white rounded-xl font-semibold shadow-lg hover:from-pink-500 hover:to-pink-700 transition-all">
-                        Play Games
+                    <p class="text-gray-500 mb-6">Complete lessons and play their games to see your grades here!</p>
+                    <a href="{{ route('levels') }}" class="inline-block px-6 py-3 bg-gradient-to-r from-pink-400 to-pink-600 text-white rounded-xl font-semibold shadow-lg hover:from-pink-500 hover:to-pink-700 transition-all">
+                        Go to Lessons
                     </a>
                 </div>
             @else

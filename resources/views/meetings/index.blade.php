@@ -36,7 +36,11 @@
                 <div class="bg-gradient-to-br from-pink-50 via-white to-pink-100 shadow-lg rounded-2xl p-6 border-2 border-pink-200 hover:shadow-xl transition-shadow">
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
-                            <h2 class="text-2xl font-bold text-pink-700 mb-3">{{ $meeting->title }}</h2>
+                            <h2 class="text-2xl font-bold text-pink-700 mb-3">
+                                <a href="{{ route('meetings.show', $meeting) }}" class="hover:text-pink-800 hover:underline">
+                                    {{ $meeting->title }}
+                                </a>
+                            </h2>
                             <div class="space-y-2 text-gray-700">
                                 <p>
                                     <strong class="text-pink-600">Class:</strong> 
@@ -63,10 +67,18 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="text-right ml-4">
-                            <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full mb-3">
+                        <div class="text-right ml-4 flex flex-col items-end gap-2">
+                            <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
                                 {{ ucfirst($meeting->status) }}
                             </span>
+                            <a href="{{ route('meetings.show', $meeting) }}" 
+                               class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition-all duration-150 text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                View Details
+                            </a>
                             @if($meeting->google_meet_link)
                                 <a href="{{ $meeting->google_meet_link }}" 
                                    target="_blank"

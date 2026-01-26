@@ -106,6 +106,268 @@
             </div>
         </div>
 
+        <!-- Congratulations Banner for Top 3 Students - Creative Design -->
+        @if(isset($isInTop3Day) && ($isInTop3Day || $isInTop3Week))
+        <div class="mb-8 relative">
+            <!-- Confetti Container -->
+            <div id="confetti-container" class="absolute inset-0 pointer-events-none overflow-hidden z-20"></div>
+            
+            @if($isInTop3Day)
+            <!-- Top of the Day - Creative Medal Design -->
+            <div class="relative overflow-visible">
+                <!-- Ribbon Banner at Top -->
+                <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 z-30">
+                    <div class="relative">
+                        <!-- Ribbon with elegant design -->
+                        <div class="bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-400 px-10 py-3 rounded-full shadow-2xl border-4 border-yellow-200 relative overflow-hidden">
+                            <!-- Shine effect -->
+                            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
+                            
+                            <!-- Decorative elements -->
+                            <div class="absolute -left-2 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-yellow-400 rounded-full border-2 border-yellow-200"></div>
+                            <div class="absolute -right-2 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-yellow-400 rounded-full border-2 border-yellow-200"></div>
+                            
+                            <span class="relative z-10 text-white font-black text-base md:text-lg lg:text-xl drop-shadow-lg tracking-wide flex items-center gap-2">
+                                <span class="text-2xl animate-bounce" style="animation-delay: 0s;">🏅</span>
+                                <span>CHAMPION OF THE DAY</span>
+                                <span class="text-2xl animate-bounce" style="animation-delay: 0.2s;">🏅</span>
+                            </span>
+                        </div>
+                        
+                        <!-- Ribbon tails -->
+                        <div class="absolute -left-4 top-0 w-8 h-6 bg-yellow-400 transform skew-y-12 border-l-4 border-yellow-200"></div>
+                        <div class="absolute -right-4 top-0 w-8 h-6 bg-yellow-400 transform -skew-y-12 border-r-4 border-yellow-200"></div>
+                    </div>
+                </div>
+                
+                <!-- Main Card with 3D Effect -->
+                <div class="relative overflow-hidden rounded-3xl shadow-2xl transform transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:-translate-y-1" style="perspective: 1000px;">
+                    <!-- Animated gradient background -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-yellow-400 via-amber-400 via-yellow-500 to-orange-400 animate-gradient-shift"></div>
+                    <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent"></div>
+                    
+                    <!-- Shimmer effect -->
+                    <div class="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+                    
+                    <!-- Animated particles -->
+                    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+                        @for($i = 0; $i < 20; $i++)
+                        <div class="absolute w-2 h-2 rounded-full bg-yellow-300 animate-particle-fall opacity-70" 
+                             style="left: {{ rand(0, 100) }}%; animation-delay: {{ $i * 0.1 }}s; animation-duration: {{ 2 + rand(0, 3) }}s;"></div>
+                        @endfor
+                    </div>
+                    
+                    <!-- Glowing border effect -->
+                    <div class="absolute inset-0 rounded-3xl border-4 border-yellow-300/80 shadow-[0_0_30px_rgba(251,191,36,0.6)] animate-pulse-glow"></div>
+                    
+                    <!-- Content -->
+                    <div class="relative z-10 p-4 md:p-5 pt-8">
+                        <div class="flex flex-col lg:flex-row items-center justify-center gap-4">
+                            <!-- Medal Badge (Left) -->
+                            <div class="relative flex-shrink-0">
+                                <div class="relative">
+                                    <!-- Outer glow rings -->
+                                    <div class="absolute inset-0 bg-yellow-400 rounded-full blur-2xl opacity-40 animate-pulse"></div>
+                                    <div class="absolute inset-0 bg-amber-400 rounded-full blur-xl opacity-30 animate-pulse" style="animation-delay: 0.5s;"></div>
+                                    
+                                    <!-- Medal circle -->
+                                    <div class="relative w-24 h-24 md:w-28 md:h-28 bg-gradient-to-br from-yellow-300 via-amber-300 to-yellow-400 rounded-full flex items-center justify-center border-4 border-yellow-200 shadow-2xl transform hover:rotate-12 transition-transform animate-medal-spin">
+                                        <div class="text-5xl md:text-6xl animate-trophy-bounce">@if($top3DayPosition == 1)🥇@elseif($top3DayPosition == 2)🥈@else🥉@endif</div>
+                                    </div>
+                                    
+                                    <!-- Rank number badge -->
+                                    <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-full flex items-center justify-center border-4 border-yellow-400 shadow-xl animate-bounce-in">
+                                        <span class="text-yellow-600 font-black text-xl">#{{ $top3DayPosition }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Center Content -->
+                            <div class="flex-1 text-center lg:text-left">
+                                <div class="inline-block mb-2">
+                                    <span class="bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black text-yellow-900 uppercase tracking-wider border-2 border-yellow-300 shadow-lg animate-bounce-in">
+                                        ⭐ TOP PERFORMER ⭐
+                                    </span>
+                                </div>
+                                <h2 class="text-3xl md:text-4xl font-black text-white mb-2 drop-shadow-lg leading-tight animate-text-reveal">
+                                    <span class="inline-block animate-bounce-in" style="animation-delay: 0.1s;">🎉</span>
+                                    <span class="inline-block mx-2 bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">CONGRATULATIONS!</span>
+                                    <span class="inline-block animate-bounce-in" style="animation-delay: 0.2s;">🎉</span>
+                                </h2>
+                                <p class="text-xl md:text-2xl font-black text-yellow-900 drop-shadow-md mb-1">
+                                    You're Ranked <span class="text-3xl md:text-4xl text-white">#{{ $top3DayPosition }}</span>
+                                </p>
+                                <p class="text-lg md:text-xl font-bold text-yellow-800 drop-shadow-sm">
+                                    Top Student of the Day! 🌟
+                                </p>
+                                <p class="text-sm md:text-base text-yellow-900 font-semibold mt-2 drop-shadow-sm">
+                                    Keep up the amazing work! ✨
+                                </p>
+                            </div>
+                            
+                            <!-- Sparkle Effects (Right) -->
+                            <div class="flex flex-col gap-2">
+                                <div class="relative">
+                                    <span class="text-5xl md:text-6xl animate-star-spin opacity-90 block" style="animation-delay: 0.1s;">✨</span>
+                                    <div class="absolute inset-0 text-5xl md:text-6xl animate-ping opacity-30">✨</div>
+                                </div>
+                                <div class="relative">
+                                    <span class="text-5xl md:text-6xl animate-star-spin opacity-90 block" style="animation-delay: 0.3s;">🌟</span>
+                                    <div class="absolute inset-0 text-5xl md:text-6xl animate-ping opacity-30">🌟</div>
+                                </div>
+                                <div class="relative">
+                                    <span class="text-5xl md:text-6xl animate-star-spin opacity-90 block" style="animation-delay: 0.5s;">⭐</span>
+                                    <div class="absolute inset-0 text-5xl md:text-6xl animate-ping opacity-30">⭐</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            @elseif($isInTop3Week)
+            <!-- Top of the Week - Creative Medal Design -->
+            <div class="relative overflow-visible">
+                <!-- Ribbon Banner at Top -->
+                <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 z-30">
+                    <div class="relative">
+                        <!-- Ribbon with elegant design -->
+                        <div class="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 px-10 py-3 rounded-full shadow-2xl border-4 border-purple-200 relative overflow-hidden">
+                            <!-- Shine effect -->
+                            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
+                            
+                            <!-- Decorative elements -->
+                            <div class="absolute -left-2 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-purple-500 rounded-full border-2 border-purple-200"></div>
+                            <div class="absolute -right-2 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-purple-500 rounded-full border-2 border-purple-200"></div>
+                            
+                            <span class="relative z-10 text-white font-black text-base md:text-lg lg:text-xl drop-shadow-lg tracking-wide flex items-center gap-2">
+                                <span class="text-2xl animate-bounce" style="animation-delay: 0s;">🏅</span>
+                                <span>CHAMPION OF THE WEEK</span>
+                                <span class="text-2xl animate-bounce" style="animation-delay: 0.2s;">🏅</span>
+                            </span>
+                        </div>
+                        
+                        <!-- Ribbon tails -->
+                        <div class="absolute -left-4 top-0 w-8 h-6 bg-purple-500 transform skew-y-12 border-l-4 border-purple-200"></div>
+                        <div class="absolute -right-4 top-0 w-8 h-6 bg-purple-500 transform -skew-y-12 border-r-4 border-purple-200"></div>
+                    </div>
+                </div>
+                
+                <!-- Main Card with 3D Effect -->
+                <div class="relative overflow-hidden rounded-3xl shadow-2xl transform transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:-translate-y-1" style="perspective: 1000px;">
+                    <!-- Animated gradient background -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 via-purple-600 to-indigo-500 animate-gradient-shift"></div>
+                    <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent"></div>
+                    
+                    <!-- Shimmer effect -->
+                    <div class="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+                    
+                    <!-- Animated particles -->
+                    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+                        @for($i = 0; $i < 20; $i++)
+                        <div class="absolute w-2 h-2 rounded-full bg-purple-300 animate-particle-fall opacity-70" 
+                             style="left: {{ rand(0, 100) }}%; animation-delay: {{ $i * 0.1 }}s; animation-duration: {{ 2 + rand(0, 3) }}s;"></div>
+                        @endfor
+                    </div>
+                    
+                    <!-- Glowing border effect -->
+                    <div class="absolute inset-0 rounded-3xl border-4 border-purple-300/80 shadow-[0_0_30px_rgba(196,181,253,0.6)] animate-pulse-glow"></div>
+                    
+                    <!-- Content -->
+                    <div class="relative z-10 p-4 md:p-5 pt-8">
+                        <div class="flex flex-col lg:flex-row items-center justify-center gap-4">
+                            <!-- Medal Badge (Left) -->
+                            <div class="relative flex-shrink-0">
+                                <div class="relative">
+                                    <!-- Outer glow rings -->
+                                    <div class="absolute inset-0 bg-purple-400 rounded-full blur-2xl opacity-40 animate-pulse"></div>
+                                    <div class="absolute inset-0 bg-pink-400 rounded-full blur-xl opacity-30 animate-pulse" style="animation-delay: 0.5s;"></div>
+                                    
+                                    <!-- Medal circle -->
+                                    <div class="relative w-24 h-24 md:w-28 md:h-28 bg-gradient-to-br from-purple-400 via-pink-400 to-purple-500 rounded-full flex items-center justify-center border-4 border-purple-200 shadow-2xl transform hover:rotate-12 transition-transform animate-medal-spin">
+                                        <div class="text-5xl md:text-6xl animate-trophy-bounce">@if($top3WeekPosition == 1)🥇@elseif($top3WeekPosition == 2)🥈@else🥉@endif</div>
+                                    </div>
+                                    
+                                    <!-- Rank number badge -->
+                                    <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-full flex items-center justify-center border-4 border-purple-400 shadow-xl animate-bounce-in">
+                                        <span class="text-purple-600 font-black text-xl">#{{ $top3WeekPosition }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Center Content -->
+                            <div class="flex-1 text-center lg:text-left">
+                                <div class="inline-block mb-2">
+                                    <span class="bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-black text-purple-900 uppercase tracking-wider border-2 border-purple-300 shadow-lg animate-bounce-in">
+                                        ⭐ TOP PERFORMER ⭐
+                                    </span>
+                                </div>
+                                <h2 class="text-3xl md:text-4xl font-black text-white mb-2 drop-shadow-lg leading-tight animate-text-reveal">
+                                    <span class="inline-block animate-bounce-in" style="animation-delay: 0.1s;">🎉</span>
+                                    <span class="inline-block mx-2 bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">CONGRATULATIONS!</span>
+                                    <span class="inline-block animate-bounce-in" style="animation-delay: 0.2s;">🎉</span>
+                                </h2>
+                                <p class="text-xl md:text-2xl font-black text-purple-900 drop-shadow-md mb-1">
+                                    You're Ranked <span class="text-3xl md:text-4xl text-white">#{{ $top3WeekPosition }}</span>
+                                </p>
+                                <p class="text-lg md:text-xl font-bold text-purple-800 drop-shadow-sm">
+                                    Top Student of the Week! 🌟
+                                </p>
+                                <p class="text-sm md:text-base text-purple-900 font-semibold mt-2 drop-shadow-sm">
+                                    Outstanding performance this week! ✨
+                                </p>
+                            </div>
+                            
+                            <!-- Sparkle Effects (Right) -->
+                            <div class="flex flex-col gap-2">
+                                <div class="relative">
+                                    <span class="text-5xl md:text-6xl animate-star-spin opacity-90 block" style="animation-delay: 0.1s;">✨</span>
+                                    <div class="absolute inset-0 text-5xl md:text-6xl animate-ping opacity-30">✨</div>
+                                </div>
+                                <div class="relative">
+                                    <span class="text-5xl md:text-6xl animate-star-spin opacity-90 block" style="animation-delay: 0.3s;">🌟</span>
+                                    <div class="absolute inset-0 text-5xl md:text-6xl animate-ping opacity-30">🌟</div>
+                                </div>
+                                <div class="relative">
+                                    <span class="text-5xl md:text-6xl animate-star-spin opacity-90 block" style="animation-delay: 0.5s;">⭐</span>
+                                    <div class="absolute inset-0 text-5xl md:text-6xl animate-ping opacity-30">⭐</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
+        
+        <!-- Confetti Script -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const container = document.getElementById('confetti-container');
+                if (!container) return;
+                
+                const colors = ['#fbbf24', '#f59e0b', '#f97316', '#fb923c'];
+                const confettiCount = 50;
+                
+                for (let i = 0; i < confettiCount; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.style.position = 'absolute';
+                    confetti.style.width = Math.random() * 10 + 5 + 'px';
+                    confetti.style.height = confetti.style.width;
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.top = '-10px';
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                    confetti.style.opacity = Math.random() * 0.5 + 0.5;
+                    confetti.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+                    confetti.style.animation = 'particle-fall ' + (Math.random() * 3 + 2) + 's linear forwards';
+                    confetti.style.animationDelay = Math.random() * 2 + 's';
+                    container.appendChild(confetti);
+                }
+            });
+        </script>
+        @endif
+
         @if($class)
         <!-- Main Content Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
@@ -297,6 +559,190 @@
         @keyframes shimmer {
             0% { background-position: -1000px 0; }
             100% { background-position: 1000px 0; }
+        }
+        
+        /* Enhanced Congratulations Banner Animations */
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .animate-gradient-shift {
+            background-size: 200% 200%;
+            animation: gradient-shift 3s ease infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .animate-shimmer {
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes float-celebration {
+            0%, 100% { 
+                transform: translateY(0px) translateX(0px) rotate(0deg) scale(1);
+                opacity: 0.6;
+            }
+            25% { 
+                transform: translateY(-15px) translateX(10px) rotate(5deg) scale(1.1);
+                opacity: 0.8;
+            }
+            50% { 
+                transform: translateY(-25px) translateX(-5px) rotate(-5deg) scale(0.9);
+                opacity: 0.7;
+            }
+            75% { 
+                transform: translateY(-10px) translateX(-10px) rotate(3deg) scale(1.05);
+                opacity: 0.75;
+            }
+        }
+        .animate-float-celebration {
+            animation: float-celebration 4s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+                opacity: 1;
+            }
+            50% { 
+                box-shadow: 0 0 50px rgba(251, 191, 36, 0.9), 0 0 70px rgba(251, 191, 36, 0.5);
+                opacity: 0.8;
+            }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes trophy-bounce {
+            0%, 100% { 
+                transform: translateY(0px) rotate(0deg) scale(1);
+            }
+            25% { 
+                transform: translateY(-10px) rotate(-5deg) scale(1.05);
+            }
+            50% { 
+                transform: translateY(-15px) rotate(0deg) scale(1.1);
+            }
+            75% { 
+                transform: translateY(-10px) rotate(5deg) scale(1.05);
+            }
+        }
+        .animate-trophy-bounce {
+            animation: trophy-bounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes bounce-in {
+            0% { 
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            50% { 
+                transform: scale(1.2) rotate(10deg);
+                opacity: 1;
+            }
+            100% { 
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        .animate-bounce-in {
+            animation: bounce-in 0.6s ease-out;
+        }
+        
+        @keyframes star-spin {
+            0%, 100% { 
+                transform: rotate(0deg) scale(1);
+                opacity: 0.9;
+            }
+            25% { 
+                transform: rotate(90deg) scale(1.1);
+                opacity: 1;
+            }
+            50% { 
+                transform: rotate(180deg) scale(1.2);
+                opacity: 0.95;
+            }
+            75% { 
+                transform: rotate(270deg) scale(1.1);
+                opacity: 1;
+            }
+        }
+        .animate-star-spin {
+            animation: star-spin 3s ease-in-out infinite;
+        }
+        
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.8s ease-out;
+        }
+        
+        /* Creative Design Animations */
+        @keyframes particle-fall {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) translateX(calc(var(--random-x, 0) * 50px)) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        .animate-particle-fall {
+            animation: particle-fall linear forwards;
+        }
+        
+        @keyframes medal-spin {
+            0%, 100% { 
+                transform: rotate(0deg) scale(1);
+            }
+            25% { 
+                transform: rotate(-5deg) scale(1.05);
+            }
+            50% { 
+                transform: rotate(0deg) scale(1.1);
+            }
+            75% { 
+                transform: rotate(5deg) scale(1.05);
+            }
+        }
+        .animate-medal-spin {
+            animation: medal-spin 2s ease-in-out infinite;
+        }
+        
+        @keyframes text-reveal {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .animate-text-reveal {
+            animation: text-reveal 0.8s ease-out;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-10px) translateX(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) translateX(calc(var(--random-x, 0) * 100px)) rotate(720deg);
+                opacity: 0;
+            }
         }
     </style>
 </div>

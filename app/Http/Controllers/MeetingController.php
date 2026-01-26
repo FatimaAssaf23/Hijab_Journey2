@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Meeting;
+use App\Models\MeetingAttendance;
 use App\Models\StudentClass;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -147,6 +148,155 @@ class MeetingController extends Controller
 
         $meeting->load(['studentClass', 'teacher']);
 
-        return view('meetings.show', compact('meeting'));
+        // Get attendance for student if they're a student
+        $attendance = null;
+        if ($user->role === 'student' && $user->student) {
+            $attendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
+                ->where('student_id', $user->student->student_id)
+                ->first();
+        }
+
+        // Get all attendance records for teachers
+        $attendances = collect([]);
+        $allStudents = collect([]);
+        if ($user->role === 'teacher') {
+            $attendances = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
+                ->with(['student.user'])
+                ->orderBy('join_time', 'asc')
+                ->get();
+            
+            // Get all students in the class to show who hasn't attended
+            $allStudents = \App\Models\Student::where('class_id', $meeting->class_id)
+                ->with('user')
+                ->get();
+        }
+
+        return view('meetings.show', compact('meeting', 'attendance', 'attendances', 'allStudents'));
+    }
+
+    /**
+     * Student joins a meeting
+     */
+    public function join(Meeting $meeting)
+    {
+        $user = Auth::user();
+
+        // Only students can join
+        if ($user->role !== 'student') {
+            return response()->json(['error' => 'Only students can join meetings.'], 403);
+        }
+
+        $student = $user->student;
+        if (!$student) {
+            return response()->json(['error' => 'Student profile not found.'], 404);
+        }
+
+        // Check if student belongs to the meeting's class
+        if ($student->class_id !== $meeting->class_id) {
+            return response()->json(['error' => 'You can only join meetings for your class.'], 403);
+        }
+
+        // Check if already joined
+        $existingAttendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
+            ->where('student_id', $student->student_id)
+            ->first();
+
+        if ($existingAttendance) {
+            return response()->json([
+                'error' => 'You have already joined this meeting.',
+                'attendance' => $existingAttendance
+            ], 400);
+        }
+
+        // Create attendance record
+        $attendance = MeetingAttendance::create([
+            'meeting_id' => $meeting->meeting_id,
+            'student_id' => $student->student_id,
+            'join_time' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully joined the meeting.',
+            'attendance' => $attendance
+        ], 200);
+    }
+
+    /**
+     * Student leaves a meeting
+     */
+    public function leave(Request $request, Meeting $meeting)
+    {
+        $user = Auth::user();
+
+        // Only students can leave
+        if ($user->role !== 'student') {
+            if ($request->wantsJson() || $request->expectsJson()) {
+                return response()->json(['error' => 'Only students can leave meetings.'], 403);
+            }
+            return redirect()->back()->with('error', 'Only students can leave meetings.');
+        }
+
+        $student = $user->student;
+        if (!$student) {
+            if ($request->wantsJson() || $request->expectsJson()) {
+                return response()->json(['error' => 'Student profile not found.'], 404);
+            }
+            return redirect()->back()->with('error', 'Student profile not found.');
+        }
+
+        // Find attendance record
+        $attendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
+            ->where('student_id', $student->student_id)
+            ->first();
+
+        if (!$attendance) {
+            if ($request->wantsJson() || $request->expectsJson()) {
+                return response()->json(['error' => 'You have not joined this meeting.'], 404);
+            }
+            return redirect()->back()->with('error', 'You have not joined this meeting.');
+        }
+
+        if ($attendance->leave_time) {
+            if ($request->wantsJson() || $request->expectsJson()) {
+                return response()->json(['error' => 'You have already left this meeting.'], 400);
+            }
+            return redirect()->back()->with('error', 'You have already left this meeting.');
+        }
+
+        // Update leave time
+        $attendance->leave_time = now();
+
+        // Calculate duration in minutes
+        $joinTime = $attendance->join_time;
+        $leaveTime = $attendance->leave_time;
+        $duration = $joinTime->diffInMinutes($leaveTime);
+        $attendance->duration_minutes = $duration;
+
+        // Determine if on time or late (compare join_time with meeting start_time)
+        if ($meeting->start_time) {
+            // Allow 5 minutes grace period
+            $gracePeriod = 5;
+            $lateThreshold = $meeting->start_time->copy()->addMinutes($gracePeriod);
+            
+            if ($attendance->join_time <= $lateThreshold) {
+                $attendance->status = 'on_time';
+            } else {
+                $attendance->status = 'late';
+            }
+        }
+
+        $attendance->save();
+
+        // Return appropriate response based on request type
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully left the meeting.',
+                'attendance' => $attendance
+            ], 200);
+        }
+
+        return redirect()->back()->with('success', 'You have left the meeting.');
     }
 }

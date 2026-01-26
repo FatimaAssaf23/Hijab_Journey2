@@ -18,12 +18,14 @@ use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\Teacher;
 use App\Models\TeacherProfile;
+use App\Models\Meeting;
 use App\Models\Game;
 use App\Models\WordSearchGame;
 use App\Models\MatchingPairsGame;
 // ClockGame model removed - clock games have been dropped
 use App\Models\StudentGameProgress;
 use App\Models\ClassLessonVisibility;
+use App\Models\Payment;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -1326,6 +1328,263 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.classes')->with('success', 'Class deleted successfully!');
+    }
+
+    // STUDENT MANAGEMENT
+    public function students()
+    {
+        $students = Student::with(['user', 'studentClass'])
+            ->whereHas('user') // Only get students that have a user
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($student) {
+                // Get the most recent activity from all lesson progresses
+                // Check last_activity_at first, then fallback to last_watched_at, then updated_at
+                $progresses = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)
+                    ->get();
+                
+                $lastActivity = null;
+                foreach ($progresses as $progress) {
+                    // Get the most recent date from available fields
+                    $dates = array_filter([
+                        $progress->last_activity_at,
+                        $progress->last_watched_at,
+                        $progress->updated_at
+                    ]);
+                    
+                    if (!empty($dates)) {
+                        $maxDate = max($dates);
+                        if (!$lastActivity || $maxDate > $lastActivity) {
+                            $lastActivity = $maxDate;
+                        }
+                    }
+                }
+                
+                $student->last_activity_at = $lastActivity;
+                
+                $student->last_activity_at = $lastActivity ? \Carbon\Carbon::parse($lastActivity) : null;
+                return $student;
+            });
+
+        return view('admin.students.index', compact('students'));
+    }
+
+    public function showStudent($id)
+    {
+        $student = Student::with(['user', 'studentClass', 'lessonProgresses', 'quizAttempts', 'assignmentSubmissions', 'grades', 'payments'])
+            ->findOrFail($id);
+
+        // Calculate statistics
+        $completedLessons = $student->lessonProgresses()->where('is_completed', true)->count();
+        $lessonProgress = $student->lessonProgresses()->count();
+        $quizAttempts = $student->quizAttempts()->count();
+        $assignmentSubmissions = $student->assignmentSubmissions()->count();
+        
+        // Calculate average grade
+        $grades = $student->grades;
+        $averageGrade = $grades->count() > 0 ? $grades->avg('grade') : null;
+
+        // Get payments
+        $payments = $student->payments()->orderBy('created_at', 'desc')->get();
+
+        return view('admin.students.show', compact(
+            'student',
+            'completedLessons',
+            'lessonProgress',
+            'quizAttempts',
+            'assignmentSubmissions',
+            'grades',
+            'averageGrade',
+            'payments'
+        ));
+    }
+
+    public function exportStudents()
+    {
+        $students = Student::with(['user', 'studentClass'])->get();
+
+        $filename = 'students_export_' . date('Y-m-d_His') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($students) {
+            $file = fopen('php://output', 'w');
+            
+            // Add CSV headers
+            fputcsv($file, [
+                'ID',
+                'First Name',
+                'Last Name',
+                'Email',
+                'Phone',
+                'Class',
+                'Total Score',
+                'Plan Type',
+                'Subscription Status',
+                'Date Joined'
+            ]);
+
+            // Add student data
+            foreach ($students as $student) {
+                $user = $student->user;
+                fputcsv($file, [
+                    $student->student_id,
+                    $user->first_name ?? '',
+                    $user->last_name ?? '',
+                    $user->email ?? '',
+                    $user->phone_number ?? '',
+                    $student->studentClass->class_name ?? 'No Class',
+                    $student->total_score ?? 0,
+                    $student->plan_type ?? 'basic',
+                    $student->subscription_status ?? 'inactive',
+                    $user->date_joined ? $user->date_joined->format('Y-m-d') : ''
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // TEACHER MANAGEMENT
+    public function teachers()
+    {
+        $teachers = Teacher::with(['user.teacherProfile'])
+            ->whereHas('user')
+            ->get()
+            ->map(function($teacher) {
+                if ($teacher->user) {
+                    $teacher->classes_count = $teacher->user->taughtClasses()->count();
+                } else {
+                    $teacher->classes_count = 0;
+                }
+                return $teacher;
+            })
+            ->sortByDesc(function($teacher) {
+                return $teacher->user->created_at ?? now();
+            })
+            ->values();
+
+        return view('admin.teachers.index', compact('teachers'));
+    }
+
+    public function showTeacher($id)
+    {
+        $teacher = Teacher::with(['user.teacherProfile'])->findOrFail($id);
+        
+        if (!$teacher->user) {
+            abort(404, 'Teacher user not found');
+        }
+
+        $user = $teacher->user;
+        $profile = $user->teacherProfile;
+        
+        // Get teacher request if exists
+        $teacherRequest = TeacherRequest::where('user_id', $user->user_id)->first();
+        
+        // Get classes taught by this teacher
+        $classes = $user->taughtClasses()->with('students')->get();
+        $classesCount = $classes->count();
+        
+        // Calculate total students across all classes
+        $totalStudents = $classes->sum(function($class) {
+            return $class->students()->count();
+        });
+        
+        // Get assignments created by this teacher
+        $assignments = Assignment::where('teacher_id', $user->user_id)->count();
+        
+        // Get quizzes created by this teacher
+        $quizzes = Quiz::where('teacher_id', $user->user_id)->count();
+        
+        // Get grades given by this teacher
+        $gradesGiven = Grade::where('teacher_id', $user->user_id)->count();
+        
+        // Get upcoming meetings
+        $meetings = Meeting::where('teacher_id', $user->user_id)
+            ->where('scheduled_at', '>=', now())
+            ->orderBy('scheduled_at', 'asc')
+            ->with('studentClass')
+            ->get();
+
+        return view('admin.teachers.show', compact(
+            'teacher',
+            'user',
+            'profile',
+            'teacherRequest',
+            'classes',
+            'classesCount',
+            'totalStudents',
+            'assignments',
+            'quizzes',
+            'gradesGiven',
+            'meetings'
+        ));
+    }
+
+    public function exportTeachers()
+    {
+        $teachers = Teacher::with(['user.teacherProfile'])
+            ->whereHas('user')
+            ->get()
+            ->map(function($teacher) {
+                if ($teacher->user) {
+                    $teacher->classes_count = $teacher->user->taughtClasses()->count();
+                } else {
+                    $teacher->classes_count = 0;
+                }
+                return $teacher;
+            });
+
+        $filename = 'teachers_export_' . date('Y-m-d_His') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($teachers) {
+            $file = fopen('php://output', 'w');
+            
+            // Add CSV headers
+            fputcsv($file, [
+                'ID',
+                'First Name',
+                'Last Name',
+                'Email',
+                'Phone',
+                'Language',
+                'Classes Count',
+                'Bio',
+                'Date Joined'
+            ]);
+
+            // Add teacher data
+            foreach ($teachers as $teacher) {
+                $user = $teacher->user;
+                $profile = $user->teacherProfile ?? null;
+                
+                fputcsv($file, [
+                    $teacher->teacher_id,
+                    $user->first_name ?? '',
+                    $user->last_name ?? '',
+                    $user->email ?? '',
+                    $user->phone_number ?? '',
+                    $user->language ?? '',
+                    $teacher->classes_count ?? 0,
+                    $profile->bio ?? '',
+                    $user->date_joined ? $user->date_joined->format('Y-m-d') : ''
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     // TEACHER REQUESTS

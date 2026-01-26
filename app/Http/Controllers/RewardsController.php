@@ -5,12 +5,35 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Student;
 use App\Models\ClassLessonVisibility;
 use Carbon\Carbon;
 
 class RewardsController extends Controller
 {
+    /**
+     * Base points per activity type (maximum points when 100% completion + 100% performance)
+     * Balanced distribution: Quizzes (highest value, least frequent) > Assignments > Lessons > Games (most frequent)
+     */
+    private const BASE_POINTS = [
+        'assignment' => 20,   // Assignments: 20 points max (moderate frequency, substantial work)
+        'quiz' => 25,         // Quizzes: 25 points max (highest value, least frequent, summative assessment)
+        'lesson' => 15,       // Lessons: 15 points max (foundational content)
+        'game' => 10,         // Games: 10 points max (most frequent, reinforcement/practice)
+    ];
+
+    /**
+     * Completion vs Performance ratio (how much completion matters vs quality)
+     */
+    private const COMPLETION_WEIGHT = 0.4;  // 40% completion, 60% performance
+    private const PERFORMANCE_WEIGHT = 0.6;
+
+    /**
+     * Maximum lesson score for normalization
+     */
+    private const MAX_LESSON_SCORE = 15;
+
     /**
      * Get student's class ID
      */
@@ -58,7 +81,6 @@ class RewardsController extends Controller
         $lessonsCount = count($visibleLessonIds);
 
         // Count available games (games associated with visible lessons)
-        // Games are primarily stored in the games table linked to lessons
         $gamesCount = 0;
         if (count($visibleLessonIds) > 0) {
             $gamesCount = DB::table('games')
@@ -76,6 +98,112 @@ class RewardsController extends Controller
     }
 
     /**
+     * Calculate points for a single activity type
+     * 
+     * @param string $activityType The type of activity (assignment, quiz, lesson, game)
+     * @param int $completed Number of completed activities
+     * @param int $available Number of available activities
+     * @param float $avgScore Average score/grade (0-100 scale)
+     * @return float Points earned for this activity type
+     */
+    private function calculateActivityPoints($activityType, $completed, $available, $avgScore = 0)
+    {
+        if ($available == 0) {
+            return 0;
+        }
+
+        $completionRate = ($completed / $available) * 100;
+        
+        // Normalize score to 0-100 if needed
+        $normalizedScore = min(max($avgScore, 0), 100);
+        
+        // Calculate weighted score: completion rate + performance score
+        $weightedScore = ($completionRate * self::COMPLETION_WEIGHT) + 
+                        ($normalizedScore * self::PERFORMANCE_WEIGHT);
+        
+        // Get base points for this activity type
+        $basePoints = self::BASE_POINTS[$activityType] ?? 10;
+        
+        // Calculate points: weighted score (0-100) * base points for this activity type
+        // Example: 100% completion + 100% performance = 100 weighted score = full base points
+        $points = ($weightedScore / 100) * $basePoints;
+        
+        return $points;
+    }
+
+    /**
+     * Calculate maximum possible score for a student (100% completion + 100% performance)
+     */
+    private function calculateMaxPossibleScore($studentId, $startDate, $endDate)
+    {
+        $student = Student::find($studentId);
+        if (!$student) {
+            return 0;
+        }
+
+        $classId = $student->class_id;
+        $available = $this->getAvailableActivities($classId, $startDate, $endDate);
+        
+        $totalAvailable = $available['assignments'] + $available['quizzes'] + 
+                         $available['lessons'] + $available['games'];
+        if ($totalAvailable == 0) {
+            return 0;
+        }
+
+        $maxScore = 0;
+
+        // Calculate max points for each activity type (assuming 100% completion and 100% performance)
+        if ($available['assignments'] > 0) {
+            $maxScore += $this->calculateActivityPoints(
+                'assignment',
+                $available['assignments'], // All completed
+                $available['assignments'],
+                100 // 100% average grade
+            );
+        }
+
+        if ($available['quizzes'] > 0) {
+            $maxScore += $this->calculateActivityPoints(
+                'quiz',
+                $available['quizzes'], // All completed
+                $available['quizzes'],
+                100 // 100% average score
+            );
+        }
+
+        if ($available['lessons'] > 0) {
+            $maxScore += $this->calculateActivityPoints(
+                'lesson',
+                $available['lessons'], // All completed
+                $available['lessons'],
+                100 // 100% normalized score
+            );
+        }
+
+        if ($available['games'] > 0) {
+            $maxScore += $this->calculateActivityPoints(
+                'game',
+                $available['games'], // All completed
+                $available['games'],
+                100 // 100% average score
+            );
+        }
+
+        // Add maximum completion bonus (100% completion rate)
+        // Calculate max bonus based on available activity types
+        $maxPossibleBase = (
+            (self::BASE_POINTS['assignment'] * ($available['assignments'] > 0 ? 1 : 0)) +
+            (self::BASE_POINTS['quiz'] * ($available['quizzes'] > 0 ? 1 : 0)) +
+            (self::BASE_POINTS['lesson'] * ($available['lessons'] > 0 ? 1 : 0)) +
+            (self::BASE_POINTS['game'] * ($available['games'] > 0 ? 1 : 0))
+        );
+        $maxCompletionBonus = min($maxPossibleBase * 0.1, 10); // Max 10 point bonus
+        $maxScore += $maxCompletionBonus;
+
+        return round($maxScore, 2);
+    }
+
+    /**
      * Calculate performance score for a student within a date range
      * Based on completion rates and grades relative to available activities
      */
@@ -90,16 +218,16 @@ class RewardsController extends Controller
         $available = $this->getAvailableActivities($classId, $startDate, $endDate);
         
         // If no activities available, return 0
-        $totalAvailable = $available['assignments'] + $available['quizzes'] + $available['lessons'] + $available['games'];
+        $totalAvailable = $available['assignments'] + $available['quizzes'] + 
+                         $available['lessons'] + $available['games'];
         if ($totalAvailable == 0) {
             return 0;
         }
 
-        $score = 0;
-        $completedCount = 0;
-        $totalPoints = 0;
+        $totalScore = 0;
+        $totalCompleted = 0;
 
-        // 1. ASSIGNMENTS - Count completed and calculate average grade
+        // 1. ASSIGNMENTS
         if ($available['assignments'] > 0) {
             $completedAssignments = DB::table('assignment_submissions')
                 ->join('assignments', 'assignment_submissions.assignment_id', '=', 'assignments.assignment_id')
@@ -110,7 +238,7 @@ class RewardsController extends Controller
                 ->whereNotNull('assignment_submissions.submitted_at')
                 ->count();
 
-            // Get assignment grades received in this period
+            // Get assignment grades
             $assignmentGrades = DB::table('grades')
                 ->join('assignment_submissions', 'grades.assignment_submission_id', '=', 'assignment_submissions.submission_id')
                 ->join('assignments', 'assignment_submissions.assignment_id', '=', 'assignments.assignment_id')
@@ -122,18 +250,20 @@ class RewardsController extends Controller
                 ->pluck('grades.percentage')
                 ->toArray();
 
-            $assignmentCompletionRate = $available['assignments'] > 0 ? ($completedAssignments / $available['assignments']) * 100 : 0;
-            $assignmentAvgGrade = count($assignmentGrades) > 0 ? array_sum($assignmentGrades) / count($assignmentGrades) : 0;
-            
-            // Score: completion rate (0-100) + average grade (0-100) weighted by number of assignments
-            $assignmentScore = ($assignmentCompletionRate * 0.5 + $assignmentAvgGrade * 0.5) * ($available['assignments'] / 10);
-            $score += $assignmentScore;
-            
-            $completedCount += $completedAssignments;
-            $totalPoints += array_sum($assignmentGrades);
+            $avgGrade = count($assignmentGrades) > 0 
+                ? array_sum($assignmentGrades) / count($assignmentGrades) 
+                : 0;
+
+            $totalScore += $this->calculateActivityPoints(
+                'assignment',
+                $completedAssignments,
+                $available['assignments'],
+                $avgGrade
+            );
+            $totalCompleted += $completedAssignments;
         }
 
-        // 2. QUIZZES - Count completed and calculate average score
+        // 2. QUIZZES
         if ($available['quizzes'] > 0) {
             // Quizzes with grades
             $quizAttemptsWithGrades = DB::table('quiz_attempts')
@@ -148,7 +278,7 @@ class RewardsController extends Controller
                 ->pluck('grades.percentage')
                 ->toArray();
 
-            // Quizzes without grades (use quiz score, assuming it's percentage)
+            // Quizzes without grades (use quiz score)
             $quizAttemptsWithoutGrades = DB::table('quiz_attempts')
                 ->leftJoin('grades', 'quiz_attempts.attempt_id', '=', 'grades.quiz_attempt_id')
                 ->join('quizzes', 'quiz_attempts.quiz_id', '=', 'quizzes.quiz_id')
@@ -165,18 +295,20 @@ class RewardsController extends Controller
             $allQuizScores = array_merge($quizAttemptsWithGrades, $quizAttemptsWithoutGrades);
             $completedQuizzes = count($allQuizScores);
             
-            $quizCompletionRate = $available['quizzes'] > 0 ? ($completedQuizzes / $available['quizzes']) * 100 : 0;
-            $quizAvgScore = $completedQuizzes > 0 ? array_sum($allQuizScores) / $completedQuizzes : 0;
-            
-            // Score: completion rate + average score, weighted higher (2x) and by number of quizzes
-            $quizScore = ($quizCompletionRate * 0.5 + $quizAvgScore * 0.5) * 2 * ($available['quizzes'] / 5);
-            $score += $quizScore;
-            
-            $completedCount += $completedQuizzes;
-            $totalPoints += array_sum($allQuizScores) * 2; // Quizzes weighted 2x
+            $avgScore = $completedQuizzes > 0 
+                ? array_sum($allQuizScores) / $completedQuizzes 
+                : 0;
+
+            $totalScore += $this->calculateActivityPoints(
+                'quiz',
+                $completedQuizzes,
+                $available['quizzes'],
+                $avgScore
+            );
+            $totalCompleted += $completedQuizzes;
         }
 
-        // 3. LESSONS - Count completed
+        // 3. LESSONS
         if ($available['lessons'] > 0) {
             $visibleLessonIds = DB::table('class_lesson_visibilities')
                 ->where('class_id', $classId)
@@ -194,8 +326,6 @@ class RewardsController extends Controller
                     ->whereDate('completed_at', '<=', $endDate)
                     ->count();
 
-                $lessonCompletionRate = ($completedLessons / $available['lessons']) * 100;
-                
                 // Get lesson scores
                 $lessonScores = DB::table('student_lesson_progresses')
                     ->where('student_id', $studentId)
@@ -207,19 +337,26 @@ class RewardsController extends Controller
                     ->pluck('score')
                     ->toArray();
 
-                $avgLessonScore = count($lessonScores) > 0 
-                    ? array_sum($lessonScores) / count($lessonScores) 
-                    : 15; // Default score
+                // Normalize lesson scores (0-15 scale to 0-100)
+                $normalizedScores = array_map(function($score) {
+                    return ($score / self::MAX_LESSON_SCORE) * 100;
+                }, $lessonScores);
 
-                // Score: completion rate + average score, weighted by number of lessons
-                $lessonScore = ($lessonCompletionRate * 0.6 + ($avgLessonScore / 15 * 100) * 0.4) * ($available['lessons'] / 10);
-                $score += $lessonScore;
-                
-                $completedCount += $completedLessons;
+                $avgScore = count($normalizedScores) > 0 
+                    ? array_sum($normalizedScores) / count($normalizedScores) 
+                    : 0;
+
+                $totalScore += $this->calculateActivityPoints(
+                    'lesson',
+                    $completedLessons,
+                    $available['lessons'],
+                    $avgScore
+                );
+                $totalCompleted += $completedLessons;
             }
         }
 
-        // 4. GAMES - Count completed
+        // 4. GAMES
         if ($available['games'] > 0) {
             $visibleLessonIds = DB::table('class_lesson_visibilities')
                 ->where('class_id', $classId)
@@ -228,7 +365,6 @@ class RewardsController extends Controller
                 ->toArray();
 
             if (count($visibleLessonIds) > 0) {
-                // Get game IDs for visible lessons
                 $gameIds = DB::table('games')
                     ->whereIn('lesson_id', $visibleLessonIds)
                     ->pluck('game_id')
@@ -244,8 +380,6 @@ class RewardsController extends Controller
                         ->whereDate('completed_at', '<=', $endDate)
                         ->count();
 
-                    $gameCompletionRate = $available['games'] > 0 ? ($completedGames / $available['games']) * 100 : 0;
-                    
                     // Get game scores
                     $gameScores = DB::table('student_game_progresses')
                         ->where('student_id', $studentId)
@@ -257,51 +391,66 @@ class RewardsController extends Controller
                         ->pluck('score')
                         ->toArray();
 
-                    $avgGameScore = count($gameScores) > 0 
+                    // Game scores are already on 0-100 scale (or should be)
+                    $avgScore = count($gameScores) > 0 
                         ? array_sum($gameScores) / count($gameScores) 
                         : 0;
 
-                    // Score: completion rate + average score (normalized), weighted 1.5x
-                    $normalizedGameScore = min(($avgGameScore / 100) * 100, 100); // Normalize to 0-100
-                    $gameScore = ($gameCompletionRate * 0.6 + $normalizedGameScore * 0.4) * 1.5 * ($available['games'] / 10);
-                    $score += $gameScore;
-                    
-                    $completedCount += $completedGames;
+                    $totalScore += $this->calculateActivityPoints(
+                        'game',
+                        $completedGames,
+                        $available['games'],
+                        $avgScore
+                    );
+                    $totalCompleted += $completedGames;
                 }
             }
         }
 
-        // Overall completion rate bonus (rewards students who complete more activities)
-        $overallCompletionRate = $totalAvailable > 0 ? ($completedCount / $totalAvailable) * 100 : 0;
-        $completionBonus = $overallCompletionRate * 0.2; // Bonus for high completion rate
-        $score += $completionBonus;
+        // Overall completion bonus (encourages completing all activity types)
+        // Bonus is a percentage of the max possible base points, capped at 10 points
+        $overallCompletionRate = ($totalCompleted / $totalAvailable) * 100;
+        $maxPossibleBase = (
+            (self::BASE_POINTS['assignment'] * ($available['assignments'] > 0 ? 1 : 0)) +
+            (self::BASE_POINTS['quiz'] * ($available['quizzes'] > 0 ? 1 : 0)) +
+            (self::BASE_POINTS['lesson'] * ($available['lessons'] > 0 ? 1 : 0)) +
+            (self::BASE_POINTS['game'] * ($available['games'] > 0 ? 1 : 0))
+        );
+        $completionBonus = ($overallCompletionRate / 100) * min($maxPossibleBase * 0.1, 10); // Max 10 point bonus
+        $totalScore += $completionBonus;
 
-        return round($score, 2);
+        return round($totalScore, 2);
     }
 
     /**
-     * Get all students with their performance scores
+     * Get all students with their performance scores (with caching)
      */
-    private function getStudentsWithScores($startDate, $endDate)
+    public function getStudentsWithScores($startDate, $endDate)
     {
-        $students = Student::with('user')
-            ->whereHas('user', function($query) {
-                $query->where('role', 'student');
-            })
-            ->get();
+        // Cache key based on date range and calculation version (change version to clear cache)
+        $cacheVersion = 'v3'; // Update this when calculation logic changes
+        $cacheKey = 'students_scores_' . $cacheVersion . '_' . md5($startDate . $endDate);
+        
+        return Cache::remember($cacheKey, 60, function() use ($startDate, $endDate) {
+            $students = Student::with('user')
+                ->whereHas('user', function($query) {
+                    $query->where('role', 'student');
+                })
+                ->get();
 
-        // Calculate performance score for each student
-        $studentsWithScores = $students->map(function($student) use ($startDate, $endDate) {
-            $student->performance_score = $this->calculatePerformanceScore(
-                $student->student_id,
-                $startDate,
-                $endDate
-            );
-            return $student;
+            // Calculate performance score for each student
+            $studentsWithScores = $students->map(function($student) use ($startDate, $endDate) {
+                $student->performance_score = $this->calculatePerformanceScore(
+                    $student->student_id,
+                    $startDate,
+                    $endDate
+                );
+                return $student;
+            });
+
+            // Sort by performance score descending
+            return $studentsWithScores->sortByDesc('performance_score')->values();
         });
-
-        // Sort by performance score descending
-        return $studentsWithScores->sortByDesc('performance_score')->values();
     }
 
     public function index()
@@ -375,6 +524,51 @@ class RewardsController extends Controller
             $weekEnd
         );
 
+        // Calculate max possible scores for percentage calculation
+        $currentStudentDailyMax = $this->calculateMaxPossibleScore(
+            $currentStudent->student_id,
+            $todayStart,
+            $todayEnd
+        );
+        $currentStudentWeeklyMax = $this->calculateMaxPossibleScore(
+            $currentStudent->student_id,
+            $weekStart,
+            $weekEnd
+        );
+
+        // Calculate percentages
+        $currentStudentDailyPercentage = $currentStudentDailyMax > 0 
+            ? round(($currentStudentDailyScore / $currentStudentDailyMax) * 100, 1) 
+            : 0;
+        $currentStudentWeeklyPercentage = $currentStudentWeeklyMax > 0 
+            ? round(($currentStudentWeeklyScore / $currentStudentWeeklyMax) * 100, 1) 
+            : 0;
+
+        // Calculate max scores and percentages for top students
+        if ($topOfDay) {
+            $topOfDayMax = $this->calculateMaxPossibleScore(
+                $topOfDay->student_id,
+                $todayStart,
+                $todayEnd
+            );
+            $topOfDay->max_score = $topOfDayMax;
+            $topOfDay->percentage = $topOfDayMax > 0 
+                ? round(($topOfDay->performance_score / $topOfDayMax) * 100, 1) 
+                : 0;
+        }
+
+        foreach ($topOfWeek as $student) {
+            $studentMax = $this->calculateMaxPossibleScore(
+                $student->student_id,
+                $weekStart,
+                $weekEnd
+            );
+            $student->max_score = $studentMax;
+            $student->percentage = $studentMax > 0 
+                ? round(($student->performance_score / $studentMax) * 100, 1) 
+                : 0;
+        }
+
         return view('student.rewards', compact(
             'topOfDay',
             'topOfWeek',
@@ -384,7 +578,9 @@ class RewardsController extends Controller
             'currentStudentWeeklyRank',
             'currentStudentInTopWeek',
             'currentStudentDailyScore',
-            'currentStudentWeeklyScore'
+            'currentStudentWeeklyScore',
+            'currentStudentDailyPercentage',
+            'currentStudentWeeklyPercentage'
         ));
     }
 }

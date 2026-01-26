@@ -84,6 +84,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the teacher profile details associated with the user.
+     */
+    public function teacherProfile()
+    {
+        return $this->hasOne(TeacherProfile::class, 'user_id', 'user_id');
+    }
+
+    /**
      * Get the teacher request associated with the user (as guest).
      */
     public function teacherRequest()

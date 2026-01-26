@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use App\Http\Controllers\EmergencyRequestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
@@ -137,7 +138,89 @@ Route::get('/student/dashboard', function () {
     if ($user->role !== 'student') {
         abort(403, 'Unauthorized. Only students can access this page.');
     }
-    return view('dashboard');
+    
+    $student = $user->student;
+    $class = $student?->studentClass;
+    $upcomingAssignments = [];
+    $lessonsCompleted = 0;
+    
+    // Check if student is in top 3 for day or week
+    $isInTop3Day = false;
+    $isInTop3Week = false;
+    $dayRank = null;
+    $weekRank = null;
+    $top3DayPosition = null;
+    $top3WeekPosition = null;
+    
+    if ($student) {
+        $lessonsCompleted = $student->lessonProgresses()->where('status', 'completed')->count();
+        
+        // Calculate rankings using the same logic as RewardsController
+        $rewardsController = new \App\Http\Controllers\RewardsController();
+        
+        // Daily rankings
+        $todayStart = Carbon::today()->startOfDay();
+        $todayEnd = Carbon::today()->endOfDay();
+        $studentsWithDailyScores = $rewardsController->getStudentsWithScores($todayStart, $todayEnd);
+        $top3Day = $studentsWithDailyScores->where('performance_score', '>', 0)->take(3);
+        
+        // Check if current student is in top 3 of day
+        foreach ($top3Day as $index => $topStudent) {
+            if ($topStudent->student_id === $student->student_id) {
+                $isInTop3Day = true;
+                $top3DayPosition = $index + 1;
+                break;
+            }
+        }
+        
+        // Get daily rank
+        $dailyIndex = $studentsWithDailyScores->search(function($s) use ($student) {
+            return $s->student_id === $student->student_id;
+        });
+        if ($dailyIndex !== false) {
+            $dayRank = $dailyIndex + 1;
+        }
+        
+        // Weekly rankings
+        $weekStart = Carbon::now()->startOfWeek()->startOfDay();
+        $weekEnd = Carbon::now()->endOfWeek()->endOfDay();
+        $studentsWithWeeklyScores = $rewardsController->getStudentsWithScores($weekStart, $weekEnd);
+        $top3Week = $studentsWithWeeklyScores->where('performance_score', '>', 0)->take(3);
+        
+        // Check if current student is in top 3 of week
+        foreach ($top3Week as $index => $topStudent) {
+            if ($topStudent->student_id === $student->student_id) {
+                $isInTop3Week = true;
+                $top3WeekPosition = $index + 1;
+                break;
+            }
+        }
+        
+        // Get weekly rank
+        $weeklyIndex = $studentsWithWeeklyScores->search(function($s) use ($student) {
+            return $s->student_id === $student->student_id;
+        });
+        if ($weeklyIndex !== false) {
+            $weekRank = $weeklyIndex + 1;
+        }
+    }
+    
+    if ($class) {
+        $upcomingAssignments = \App\Models\Assignment::where('class_id', $class->class_id)
+            ->whereDate('due_date', '>=', now())
+            ->orderBy('due_date')
+            ->take(5)
+            ->get();
+    }
+    
+    return view('dashboard', compact(
+        'isInTop3Day', 
+        'isInTop3Week', 
+        'dayRank', 
+        'weekRank', 
+        'top3DayPosition', 
+        'top3WeekPosition'
+    ));
 })->middleware(['auth', 'verified'])->name('student.dashboard');
 
 // Teacher dashboard route
@@ -190,7 +273,6 @@ Route::get('/teacher/dashboard', function () {
     $gradeRangeLabels = array_keys($gradeRanges);
     $gradeRangeCounts = array_values($gradeRanges);
     
-    return view('teacher.dashboard', compact('levels', 'levelNames', 'lessonCounts', 'gradeRangeLabels', 'gradeRangeCounts'));
     // Get teacher's classes
     $taughtClasses = \App\Models\StudentClass::where('teacher_id', $user->user_id)
         ->with(['students', 'assignments', 'quizzes'])
@@ -268,11 +350,85 @@ Route::get('/teacher/dashboard', function () {
         $upcomingQuizzes[] = $monthQuizzes;
     }
     
+    // Get upcoming assignments and quizzes for calendar (next 60 days)
+    $upcomingAssignmentsList = collect();
+    $upcomingQuizzesList = collect();
+    
+    if (!empty($classIds)) {
+        $upcomingAssignmentsList = \App\Models\Assignment::whereIn('class_id', $classIds)
+            ->whereDate('due_date', '>=', now())
+            ->whereDate('due_date', '<=', now()->addDays(60))
+            ->with('studentClass')
+            ->orderBy('due_date')
+            ->get()
+            ->map(function($assignment) {
+                return [
+                    'id' => $assignment->assignment_id,
+                    'title' => $assignment->title,
+                    'date' => $assignment->due_date->format('Y-m-d'),
+                    'type' => 'assignment',
+                    'class' => $assignment->studentClass->class_name ?? 'N/A'
+                ];
+            });
+        
+        $upcomingQuizzesList = \App\Models\Quiz::whereIn('class_id', $classIds)
+            ->whereDate('due_date', '>=', now())
+            ->whereDate('due_date', '<=', now()->addDays(60))
+            ->with('studentClass')
+            ->orderBy('due_date')
+            ->get()
+            ->map(function($quiz) {
+                return [
+                    'id' => $quiz->quiz_id,
+                    'title' => $quiz->title,
+                    'date' => $quiz->due_date->format('Y-m-d'),
+                    'type' => 'quiz',
+                    'class' => $quiz->studentClass->class_name ?? 'N/A'
+                ];
+            });
+    }
+    
+    // Get schedule events (active events for all teachers)
+    $scheduleEventsList = \App\Models\ScheduleEvent::active()
+        ->whereDate('event_date', '>=', now())
+        ->whereDate('event_date', '<=', now()->addDays(60))
+        ->orderBy('event_date')
+        ->get()
+        ->map(function($event) {
+            return [
+                'id' => $event->event_id,
+                'title' => $event->title,
+                'date' => $event->event_date->format('Y-m-d'),
+                'type' => 'schedule',
+                'class' => 'Schedule',
+                'color' => $event->color,
+                'description' => $event->description,
+                'event_time' => $event->event_time ? \Carbon\Carbon::parse($event->event_time)->format('H:i') : null,
+            ];
+        });
+    
+    // Combine all events (assignments, quizzes, and schedule events) and group by date for calendar
+    $allEvents = $upcomingAssignmentsList->concat($upcomingQuizzesList)->concat($scheduleEventsList);
+    $calendarEvents = $allEvents
+        ->groupBy('date')
+        ->map(function($events, $date) {
+            return [
+                'date' => $date,
+                'count' => $events->count(),
+                'assignments' => $events->where('type', 'assignment')->count(),
+                'quizzes' => $events->where('type', 'quiz')->count(),
+                'schedules' => $events->where('type', 'schedule')->count(),
+                'events' => $events->values(), // All events for tooltip display
+                'scheduleEvents' => $events->where('type', 'schedule')->values(), // Schedule events with colors
+            ];
+        });
+    
     return view('teacher.dashboard', compact(
-        'levels', 'levelNames', 'lessonCounts',
+        'levels', 'levelNames', 'lessonCounts', 'gradeRangeLabels', 'gradeRangeCounts',
         'totalClasses', 'totalStudents', 'totalAssignments', 'totalQuizzes', 'averageGrade', 'pendingGrading',
         'classNames', 'studentCountsByClass', 'assignmentsByClass', 'quizzesByClass',
-        'activityOverTimeLabels', 'upcomingAssignments', 'upcomingQuizzes'
+        'activityOverTimeLabels', 'upcomingAssignments', 'upcomingQuizzes',
+        'calendarEvents', 'upcomingAssignmentsList', 'upcomingQuizzesList', 'scheduleEventsList'
     ));
 })->middleware(['auth', 'verified', 'can:isTeacher'])->name('teacher.dashboard');
 
@@ -341,6 +497,8 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     
     // Teacher Management
     Route::get('/teachers', [AdminController::class, 'teachers'])->name('admin.teachers.index');
+    Route::get('/teachers/{id}', [AdminController::class, 'showTeacher'])->name('admin.teachers.show');
+    Route::get('/teachers/export', [AdminController::class, 'exportTeachers'])->name('admin.teachers.export');
     
     // Teacher Requests
     Route::get('/requests', [AdminController::class, 'teacherRequests'])->name('admin.requests');
@@ -377,6 +535,15 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     
     // Games
     Route::get('/games', [AdminController::class, 'games'])->name('admin.games');
+    
+    // Schedule Management
+    Route::prefix('schedule')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\ScheduleController::class, 'index'])->name('admin.schedule.index');
+        Route::post('/', [\App\Http\Controllers\Admin\ScheduleController::class, 'store'])->name('admin.schedule.store');
+        Route::put('/{id}', [\App\Http\Controllers\Admin\ScheduleController::class, 'update'])->name('admin.schedule.update');
+        Route::delete('/{id}', [\App\Http\Controllers\Admin\ScheduleController::class, 'destroy'])->name('admin.schedule.destroy');
+        Route::post('/{id}/toggle-status', [\App\Http\Controllers\Admin\ScheduleController::class, 'toggleStatus'])->name('admin.schedule.toggle-status');
+    });
     
     // Lightweight Activities Summary Pages
     Route::prefix('activities')->group(function () {
@@ -440,6 +607,20 @@ Route::get('/lessons/{lesson}/view', function ($lessonId) {
         $progress = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)
             ->where('lesson_id', $lessonId)
             ->first();
+        
+        // Track student activity - update last_activity_at when they access a lesson
+        if ($progress) {
+            $progress->last_activity_at = now();
+            $progress->save();
+        } else {
+            // Create progress record if it doesn't exist to track activity
+            $progress = \App\Models\StudentLessonProgress::create([
+                'student_id' => $student->student_id,
+                'lesson_id' => $lessonId,
+                'status' => 'not_started',
+                'last_activity_at' => now(),
+            ]);
+        }
         
         $hasGame = \App\Models\Game::where('lesson_id', $lessonId)->exists();
         $isVideoCompleted = $progress && ($progress->video_completed ?? false);
@@ -537,6 +718,7 @@ Route::post('/lessons/{lesson}/complete', function ($lessonId) {
     ]);
     $progress->status = 'completed';
     $progress->completed_at = now();
+    $progress->last_activity_at = now();
     $progress->save();
     return redirect()->back()->with('success', 'Lesson marked as completed!');
 })->middleware(['auth', 'verified'])->name('student.lesson.complete');
@@ -550,4 +732,8 @@ Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/meetings', [MeetingController::class, 'index'])->name('meetings.index');
     Route::get('/meetings/{meeting:meeting_id}', [MeetingController::class, 'show'])->name('meetings.show');
+    
+    // Student attendance routes
+    Route::post('/meetings/{meeting:meeting_id}/join', [MeetingController::class, 'join'])->name('meetings.join');
+    Route::post('/meetings/{meeting:meeting_id}/leave', [MeetingController::class, 'leave'])->name('meetings.leave');
 });

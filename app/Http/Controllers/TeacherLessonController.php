@@ -32,13 +32,16 @@ class TeacherLessonController extends Controller
         ]);
         $class_id = $request->input('class_id');
         $teacher_id = Auth::id();
-        $visibility = ClassLessonVisibility::firstOrCreate([
-            'lesson_id' => $lesson_id,
-            'class_id' => $class_id,
-            'teacher_id' => $teacher_id,
-        ]);
-        $visibility->is_visible = true;
-        $visibility->save();
+        $visibility = ClassLessonVisibility::updateOrCreate(
+            [
+                'lesson_id' => $lesson_id,
+                'class_id' => $class_id,
+            ],
+            [
+                'teacher_id' => $teacher_id,
+                'is_visible' => true,
+            ]
+        );
         return back()->with('success', 'Lesson unlocked for students!');
     }
 
@@ -50,13 +53,16 @@ class TeacherLessonController extends Controller
         ]);
         $class_id = $request->input('class_id');
         $teacher_id = Auth::id();
-        $visibility = ClassLessonVisibility::firstOrCreate([
-            'lesson_id' => $lesson_id,
-            'class_id' => $class_id,
-            'teacher_id' => $teacher_id,
-        ]);
-        $visibility->is_visible = false;
-        $visibility->save();
+        $visibility = ClassLessonVisibility::updateOrCreate(
+            [
+                'lesson_id' => $lesson_id,
+                'class_id' => $class_id,
+            ],
+            [
+                'teacher_id' => $teacher_id,
+                'is_visible' => false,
+            ]
+        );
         return back()->with('success', 'Lesson hidden from students!');
     }
 

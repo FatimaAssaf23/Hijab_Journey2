@@ -1,56 +1,206 @@
 @extends('layouts.app')
 
 @section('content')
+@push('styles')
+<style>
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(5deg); }
+    }
+    @keyframes shimmer {
+        0% { background-position: -1000px 0; }
+        100% { background-position: 1000px 0; }
+    }
+    @keyframes gradient-shift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 20px rgba(236, 72, 153, 0.3); }
+        50% { box-shadow: 0 0 40px rgba(236, 72, 153, 0.6); }
+    }
+    @keyframes rotate-gradient {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .float-animation {
+        animation: float 6s ease-in-out infinite;
+    }
+    .shimmer-effect {
+        background-size: 200% 100%;
+        animation: shimmer 3s infinite;
+    }
+    .gradient-animated {
+        background-size: 200% 200%;
+        animation: gradient-shift 5s ease infinite;
+    }
+    .slide-in-up {
+        animation: slideInUp 0.6s ease-out forwards;
+    }
+    .scale-in {
+        animation: scaleIn 0.5s ease-out forwards;
+    }
+    .pulse-glow {
+        animation: pulse-glow 2s ease-in-out infinite;
+    }
+    
+    .game-card {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .game-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s;
+    }
+    .game-card:hover::before {
+        left: 100%;
+    }
+    .game-card:hover {
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    
+    .lesson-header-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 182, 193, 0.1) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 182, 193, 0.3);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    }
+    
+    .lesson-title-display {
+        color: #4b5563;
+        font-weight: 700;
+        position: relative;
+    }
+    
+    .game-container {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .game-container.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .particle {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+        opacity: 0.6;
+    }
+</style>
+@endpush
+
 <div class="min-h-screen bg-gradient-to-br from-pink-50 via-cyan-50/30 to-teal-50/20 relative overflow-hidden">
-    <!-- Animated Background Elements - Light Pink & Turquoise -->
+    <!-- Enhanced Animated Background Elements -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-40 -left-40 w-[400px] h-[400px] bg-pink-200/40 rounded-full opacity-20 blur-3xl animate-pulse"></div>
-        <div class="absolute top-1/2 -right-40 w-[400px] h-[400px] bg-cyan-200/40 rounded-full opacity-20 blur-3xl animate-pulse" style="animation-delay: 1.5s;"></div>
+        <div class="absolute -top-40 -left-40 w-[500px] h-[500px] bg-gradient-to-br from-pink-300/40 to-rose-400/40 rounded-full blur-3xl float-animation"></div>
+        <div class="absolute top-1/2 -right-40 w-[500px] h-[500px] bg-gradient-to-br from-cyan-300/40 to-teal-400/40 rounded-full blur-3xl float-animation" style="animation-delay: 2s;"></div>
+        <div class="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-gradient-to-br from-purple-300/30 to-pink-400/30 rounded-full blur-3xl float-animation" style="animation-delay: 4s;"></div>
     </div>
     
-<div class="container mx-auto pt-2 pb-8 relative z-10">
-    <!-- Lesson Selector - Show at top when lesson is selected -->
+    <!-- Floating Particles -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        @for($i = 0; $i < 20; $i++)
+            <div class="particle" style="
+                width: {{ rand(4, 8) }}px;
+                height: {{ rand(4, 8) }}px;
+                left: {{ rand(0, 100) }}%;
+                top: {{ rand(0, 100) }}%;
+                background: {{ ['#f9a8d4', '#67e8f9', '#a78bfa', '#f472b6'][rand(0, 3)] }};
+                animation: float {{ rand(3, 8) }}s ease-in-out infinite;
+                animation-delay: {{ rand(0, 3) }}s;
+            "></div>
+        @endfor
+    </div>
+    
+<div class="container mx-auto pt-6 pb-12 relative z-10">
+    <!-- Enhanced Lesson Header Card -->
     @if(isset($selectedLessonId) && $selectedLessonId && isset($lessonsWithGames) && $lessonsWithGames->count() > 0)
-        <div class="max-w-6xl mx-auto mb-8">
-            <div class="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-pink-200/40 transform transition-all duration-300 hover:shadow-2xl">
-                <!-- Go Back Button inside the lesson selector section -->
-                <div class="mb-4">
-                    <a href="{{ route('student.dashboard') }}" class="inline-flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="max-w-7xl mx-auto mb-10 slide-in-up">
+            <div class="lesson-header-card rounded-3xl p-8 transform transition-all duration-500 hover:scale-[1.01]">
+                <!-- Go Back Button with Animation -->
+                <div class="mb-6">
+                    @if(isset($lesson) && $lesson)
+                    <a href="{{ route('student.lesson.view', $lesson->lesson_id) }}" class="group inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to Lesson
+                    </a>
+                    @else
+                    <a href="{{ route('student.dashboard') }}" class="group inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                         Go Back
                     </a>
+                    @endif
                 </div>
-                <form method="GET" action="{{ route('student.games') }}">
-                    <div class="flex flex-col md:flex-row gap-5 items-end">
-                        <div class="flex-1">
-                            <label for="lesson_id_top" class="block font-black text-gray-800 mb-3 text-lg flex items-center gap-2">
-                                <div class="w-10 h-10 bg-gradient-to-br from-pink-300 to-cyan-300 rounded-xl flex items-center justify-center shadow-md">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                    </svg>
-                                </div>
-                                Select Lesson:
-                            </label>
-                            <div class="relative">
-                                <select name="lesson_id" id="lesson_id_top" 
-                                        class="w-full bg-white border-2 border-pink-200/60 rounded-xl px-4 py-3.5 pr-12 text-gray-800 font-semibold shadow-md hover:border-pink-300 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all duration-300 appearance-none cursor-pointer"
-                                        onchange="this.form.submit()">
-                                    <option value="">-- Choose Lesson --</option>
-                                    @foreach($lessonsWithGames ?? [] as $lesson)
-                                        <option value="{{ $lesson->lesson_id }}" {{ (isset($selectedLessonId) && $selectedLessonId == $lesson->lesson_id) ? 'selected' : '' }}>{{ $lesson->title }}</option>
-                                    @endforeach
-                                </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                                    <svg class="h-5 w-5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
+                
+                <!-- Lesson Display with Creative Design -->
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-6">
+                        <div class="relative mx-auto w-40 h-40 transform hover:scale-110 transition-all duration-300">
+                            <!-- Decorative background layers -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-pink-400 via-rose-400 to-cyan-400 rounded-full blur-xl opacity-60 transform rotate-6"></div>
+                            <div class="absolute inset-0 bg-gradient-to-br from-pink-300 via-rose-300 to-cyan-300 rounded-full blur-md opacity-40 transform -rotate-6"></div>
+                            
+                            <!-- Main image container - circular -->
+                            <div class="relative w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-white transform rotate-3 hover:rotate-6 transition-transform duration-300">
+                                <img src="{{ asset('storage/levels_page_design/hijab11.jpg') }}" 
+                                     alt="Lesson Icon" 
+                                     class="w-full h-full object-cover">
+                                
+                                <!-- Overlay gradient for depth -->
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
                             </div>
+                            
+                            <!-- Decorative corner accents -->
+                            <div class="absolute -top-2 -right-2 w-6 h-6 bg-pink-400 rounded-full blur-sm opacity-70"></div>
+                            <div class="absolute -bottom-2 -left-2 w-6 h-6 bg-cyan-400 rounded-full blur-sm opacity-70"></div>
                         </div>
                     </div>
-                </form>
+                    <label class="block text-sm font-bold text-gray-600 mb-3 uppercase tracking-wider">Current Lesson</label>
+                    <div class="relative w-full max-w-2xl">
+                        <div class="absolute inset-0 bg-gradient-to-r from-pink-400 via-rose-400 to-cyan-400 rounded-2xl blur-lg opacity-50"></div>
+                        <input type="text" 
+                               id="lesson_display" 
+                               name="lesson_display"
+                               value="{{ isset($lesson) && $lesson ? $lesson->title : '' }}"
+                               readonly
+                               class="relative w-full bg-white/90 backdrop-blur-sm border-3 border-transparent bg-clip-padding rounded-2xl px-6 py-4 text-2xl font-bold text-center lesson-title-display shadow-xl cursor-default text-gray-600">
+                    </div>
+                </div>
             </div>
         </div>
     @endif
@@ -139,50 +289,84 @@
             $clockWords = is_array($clockGame->words) ? $clockGame->words : [];
         @endphp
         @if(!empty($clockWords))
-            <div class="game-container max-w-6xl mx-auto bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 mb-8" data-game-type="clock" data-game-index="{{ $clockGameIndex }}" style="display: none;">
-                <div class="mb-6">
-                    @if(isset($lesson))
-                        <h2 class="text-3xl font-bold text-pink-600 mb-2" style="text-decoration: underline;" dir="rtl">{{ $lesson->title }}</h2>
-                    @endif
-                    <h3 class="text-2xl font-bold mb-4">Clock Game</h3>
-                </div>
-
-                <!-- Clock Game Words Display -->
-                <div class="flex flex-wrap justify-center gap-6 items-start">
-                    @foreach($clockWords as $index => $word)
-                        <div class="clock-game-word-item flex flex-col items-center">
-                            <svg width="100" height="100" class="clock-svg mb-2">
-                                <circle cx="50" cy="50" r="45" fill="white" stroke="#333" stroke-width="2"/>
-                                <!-- Clock numbers -->
-                                @for($i = 1; $i <= 12; $i++)
-                                    @php
-                                        $angle = ($i - 3) * 30 * M_PI / 180;
-                                        $x = 50 + 35 * cos($angle);
-                                        $y = 50 + 35 * sin($angle);
-                                    @endphp
-                                    <text x="{{ $x }}" y="{{ $y + 5 }}" text-anchor="middle" font-size="10" fill="#333">{{ $i }}</text>
-                                @endfor
-                                <!-- Random time for each clock (for visual variety) -->
-                                @php
-                                    $hour = ($index * 2) % 12;
-                                    $minute = ($index * 5) % 60;
-                                    $hourAngle = (($hour % 12) * 30 + $minute * 0.5 - 90) * M_PI / 180;
-                                    $hourX = 50 + 25 * cos($hourAngle);
-                                    $hourY = 50 + 25 * sin($hourAngle);
-                                    $minuteAngle = ($minute * 6 - 90) * M_PI / 180;
-                                    $minuteX = 50 + 35 * cos($minuteAngle);
-                                    $minuteY = 50 + 35 * sin($minuteAngle);
-                                @endphp
-                                <line x1="50" y1="50" x2="{{ $hourX }}" y2="{{ $hourY }}" stroke="#333" stroke-width="3" stroke-linecap="round"/>
-                                <line x1="50" y1="50" x2="{{ $minuteX }}" y2="{{ $minuteY }}" stroke="#333" stroke-width="2" stroke-linecap="round"/>
-                                <circle cx="50" cy="50" r="3" fill="#333"/>
-                            </svg>
-                            <!-- Arrow pointing down -->
-                            <div class="text-2xl mb-1">↓</div>
-                            <!-- Word -->
-                            <div class="word-text text-lg font-semibold text-gray-800 px-3 py-2 bg-pink-50 rounded border border-pink-200" dir="rtl">{{ $word }}</div>
+            <div class="game-container max-w-7xl mx-auto mb-10" data-game-type="clock" data-game-index="{{ $clockGameIndex }}" style="display: none;">
+                <div class="relative">
+                    <!-- Animated Background Glow -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-pink-400/20 via-rose-400/20 to-cyan-400/20 rounded-3xl blur-2xl transform scale-110"></div>
+                    
+                    <!-- Main Game Card -->
+                    <div class="relative bg-gradient-to-br from-white via-pink-50/50 to-rose-50/30 backdrop-blur-xl rounded-3xl shadow-2xl p-8 md:p-12 border-2 border-pink-200/50 overflow-hidden">
+                        <!-- Decorative Top Border -->
+                        <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-pink-400 via-rose-400 to-cyan-400"></div>
+                        
+                        <!-- Game Header -->
+                        <div class="mb-8 text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl shadow-lg mb-4 transform hover:rotate-12 transition-transform duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            @if(isset($lesson))
+                                <h2 class="text-3xl md:text-4xl font-extrabold mb-3 bg-gradient-to-r from-pink-600 via-rose-600 to-cyan-600 bg-clip-text text-transparent" dir="rtl">{{ $lesson->title }}</h2>
+                            @endif
+                            <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Clock Game</h3>
+                            <p class="text-gray-600">Match the time on the clock with the Arabic word</p>
                         </div>
-                    @endforeach
+
+                        <!-- Clock Game Words Display with Enhanced Styling -->
+                        <div class="flex flex-wrap justify-center gap-8 items-start">
+                            @foreach($clockWords as $index => $word)
+                                <div class="clock-game-word-item flex flex-col items-center transform hover:scale-110 transition-all duration-300" style="animation-delay: {{ $index * 0.1 }}s;">
+                                    <!-- Clock Container with Glow -->
+                                    <div class="relative mb-4">
+                                        <div class="absolute inset-0 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full blur-md opacity-50 transform scale-110"></div>
+                                        <svg width="120" height="120" class="clock-svg relative z-10 transform hover:rotate-12 transition-transform duration-500">
+                                            <defs>
+                                                <linearGradient id="clockGradient{{ $index }}" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#f9a8d4;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#67e8f9;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <circle cx="60" cy="60" r="55" fill="url(#clockGradient{{ $index }})" stroke="white" stroke-width="3" class="drop-shadow-lg"/>
+                                            <circle cx="60" cy="60" r="50" fill="white" stroke="#e5e7eb" stroke-width="2"/>
+                                            <!-- Clock numbers -->
+                                            @for($i = 1; $i <= 12; $i++)
+                                                @php
+                                                    $angle = ($i - 3) * 30 * M_PI / 180;
+                                                    $x = 60 + 40 * cos($angle);
+                                                    $y = 60 + 40 * sin($angle);
+                                                @endphp
+                                                <text x="{{ $x }}" y="{{ $y + 6 }}" text-anchor="middle" font-size="12" fill="#4b5563" font-weight="bold">{{ $i }}</text>
+                                            @endfor
+                                            <!-- Random time for each clock -->
+                                            @php
+                                                $hour = ($index * 2) % 12;
+                                                $minute = ($index * 5) % 60;
+                                                $hourAngle = (($hour % 12) * 30 + $minute * 0.5 - 90) * M_PI / 180;
+                                                $hourX = 60 + 30 * cos($hourAngle);
+                                                $hourY = 60 + 30 * sin($hourAngle);
+                                                $minuteAngle = ($minute * 6 - 90) * M_PI / 180;
+                                                $minuteX = 60 + 42 * cos($minuteAngle);
+                                                $minuteY = 60 + 42 * sin($minuteAngle);
+                                            @endphp
+                                            <line x1="60" y1="60" x2="{{ $hourX }}" y2="{{ $hourY }}" stroke="#1f2937" stroke-width="4" stroke-linecap="round" class="drop-shadow"/>
+                                            <line x1="60" y1="60" x2="{{ $minuteX }}" y2="{{ $minuteY }}" stroke="#1f2937" stroke-width="3" stroke-linecap="round" class="drop-shadow"/>
+                                            <circle cx="60" cy="60" r="4" fill="#1f2937"/>
+                                        </svg>
+                                    </div>
+                                    <!-- Animated Arrow -->
+                                    <div class="text-3xl mb-2 text-pink-500 transform animate-bounce">↓</div>
+                                    <!-- Word Card with Gradient -->
+                                    <div class="relative group">
+                                        <div class="absolute inset-0 bg-gradient-to-r from-pink-400 to-rose-400 rounded-xl blur opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                                        <div class="relative word-text text-lg font-bold text-gray-800 px-5 py-3 bg-gradient-to-br from-white to-pink-50 rounded-xl border-2 border-pink-200 shadow-lg transform group-hover:shadow-xl transition-all duration-300" dir="rtl">
+                                            {{ $word }}
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             </div>
         @endif
@@ -245,18 +429,34 @@
             unset($wp); // Unset reference
         @endphp
         @if(!empty($grid) && !empty($words))
-            <div class="game-container max-w-6xl mx-auto bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 mb-8" data-game-type="wordsearch" data-game-index="{{ $wordSearchGameIndex }}" style="display: none;" dir="rtl">
-                <div class="mb-6">
-                    @if(isset($lesson))
-                        <h2 class="text-3xl font-bold text-pink-600 mb-2" style="text-decoration: underline;" dir="rtl">{{ $lesson->title }}</h2>
-                    @endif
-                    <h3 class="text-2xl font-bold mb-2">Word Search Puzzle</h3>
-                    @if(!empty($wordSearchGame->title))
-                        <p class="text-xl font-semibold text-purple-600 mb-4" dir="rtl" style="direction: rtl; text-align: right;">
-                            <strong>عنوان:</strong> {{ $wordSearchGame->title }}
-                        </p>
-                    @endif
-                </div>
+            <div class="game-container max-w-7xl mx-auto mb-10" data-game-type="wordsearch" data-game-index="{{ $wordSearchGameIndex }}" style="display: none;" dir="rtl">
+                <div class="relative">
+                    <!-- Animated Background Glow -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-purple-400/20 via-pink-400/20 to-rose-400/20 rounded-3xl blur-2xl transform scale-110"></div>
+                    
+                    <!-- Main Game Card -->
+                    <div class="relative bg-gradient-to-br from-white via-purple-50/50 to-pink-50/30 backdrop-blur-xl rounded-3xl shadow-2xl p-8 md:p-12 border-2 border-purple-200/50 overflow-hidden">
+                        <!-- Decorative Top Border -->
+                        <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400"></div>
+                        
+                        <!-- Game Header -->
+                        <div class="mb-8 text-center">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg mb-4 transform hover:rotate-12 transition-transform duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                </svg>
+                            </div>
+                            @if(isset($lesson))
+                                <h2 class="text-3xl md:text-4xl font-extrabold mb-3 bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent" dir="rtl">{{ $lesson->title }}</h2>
+                            @endif
+                            <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Word Search Puzzle</h3>
+                            @if(!empty($wordSearchGame->title))
+                                <p class="text-xl font-semibold text-purple-600 mb-4" dir="rtl" style="direction: rtl; text-align: right;">
+                                    <strong>عنوان:</strong> {{ $wordSearchGame->title }}
+                                </p>
+                            @endif
+                            <p class="text-gray-600">Find all the hidden words in the grid</p>
+                        </div>
 
                 <div class="flex flex-col lg:flex-row gap-8">
                     <!-- Word Search Grid -->
@@ -612,25 +812,25 @@
                     </div>
                 </div>
 
-                <div class="relative mb-6">
-                    <div class="grid grid-cols-2" style="gap: 6rem;">
+                <div class="relative mb-6" id="matchingPairsContainer">
+                    <div class="grid grid-cols-2 gap-8 md:gap-12 lg:gap-16 xl:gap-20">
                         <!-- Left Column -->
-                        <div class="left-column">
-                            <h4 class="text-xl font-bold mb-4 text-center text-pink-600">Left Column</h4>
-                            <div id="leftItems" class="space-y-4">
+                        <div class="left-column flex flex-col">
+                            <h4 class="text-xl font-bold mb-6 text-center text-pink-600">Left Column</h4>
+                            <div id="leftItems" class="flex flex-col gap-5 flex-1">
                                 @php
                                     $leftItems = $matchingPairsGame->pairs->shuffle();
                                 @endphp
                                 @foreach($leftItems as $index => $pair)
-                                    <div class="matching-item left-item bg-gradient-to-br from-pink-50 to-purple-50 border-2 border-pink-300 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-105" 
+                                    <div class="matching-item left-item bg-gradient-to-br from-pink-50 to-purple-50 border-2 border-pink-300 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-105 shadow-md" 
                                          data-pair-id="{{ $pair->matching_pair_id }}"
                                          data-index="{{ $index }}">
                                         <div class="flex items-center gap-3">
                                             @if($pair->left_item_image)
-                                                <img src="{{ asset('storage/' . $pair->left_item_image) }}" alt="Left item" class="w-20 h-20 object-cover rounded-lg border-2 border-pink-400">
+                                                <img src="{{ asset('storage/' . $pair->left_item_image) }}" alt="Left item" class="w-20 h-20 object-cover rounded-lg border-2 border-pink-400 flex-shrink-0">
                                             @endif
                                             @if($pair->left_item_text)
-                                                <span class="text-lg font-semibold text-gray-800 flex-1" dir="rtl">{{ $pair->left_item_text }}</span>
+                                                <span class="text-lg font-semibold text-gray-800 flex-1 text-center" dir="rtl">{{ $pair->left_item_text }}</span>
                                             @endif
                                         </div>
                                     </div>
@@ -639,22 +839,22 @@
                         </div>
 
                         <!-- Right Column -->
-                        <div class="right-column">
-                            <h4 class="text-xl font-bold mb-4 text-center text-purple-600">Right Column</h4>
-                            <div id="rightItems" class="space-y-4">
+                        <div class="right-column flex flex-col">
+                            <h4 class="text-xl font-bold mb-6 text-center text-purple-600">Right Column</h4>
+                            <div id="rightItems" class="flex flex-col gap-5 flex-1">
                                 @php
                                     $rightItems = $matchingPairsGame->pairs->shuffle();
                                 @endphp
                                 @foreach($rightItems as $index => $pair)
-                                    <div class="matching-item right-item bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-105" 
+                                    <div class="matching-item right-item bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-105 shadow-md" 
                                          data-pair-id="{{ $pair->matching_pair_id }}"
                                          data-index="{{ $index }}">
                                         <div class="flex items-center gap-3">
                                             @if($pair->right_item_image)
-                                                <img src="{{ asset('storage/' . $pair->right_item_image) }}" alt="Right item" class="w-20 h-20 object-cover rounded-lg border-2 border-purple-400">
+                                                <img src="{{ asset('storage/' . $pair->right_item_image) }}" alt="Right item" class="w-20 h-20 object-cover rounded-lg border-2 border-purple-400 flex-shrink-0">
                                             @endif
                                             @if($pair->right_item_text)
-                                                <span class="text-lg font-semibold text-gray-800 flex-1" dir="rtl">{{ $pair->right_item_text }}</span>
+                                                <span class="text-lg font-semibold text-gray-800 flex-1 text-center" dir="rtl">{{ $pair->right_item_text }}</span>
                                             @endif
                                         </div>
                                     </div>
@@ -664,7 +864,7 @@
                     </div>
 
                     <!-- Connection Canvas -->
-                    <svg id="connectionCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 1;"></svg>
+                    <svg id="connectionCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 1; overflow: visible;"></svg>
                 </div>
 
                 <!-- Completion Message -->
@@ -705,14 +905,20 @@
                 const relativeLeft = elementRect.left - gridRect.left;
                 const centerY = relativeTop + elementRect.height / 2;
                 
+                // Get computed border width to account for it
+                const computedStyle = window.getComputedStyle(element);
+                const borderWidth = parseFloat(computedStyle.borderWidth) || 2; // Default to 2px if not found
+                
                 if (isLeftItem) {
-                    // For left items, get the right edge center (inner side facing right column)
+                    // For left items, get the right edge center at the OUTER edge of the border
+                    // elementRect.width includes border, so we're already at the outer edge
                     return {
                         x: relativeLeft + elementRect.width,
                         y: centerY
                     };
                 } else {
-                    // For right items, get the left edge center (inner side facing left column)
+                    // For right items, get the left edge center at the OUTER edge of the border
+                    // relativeLeft is already at the outer edge
                     return {
                         x: relativeLeft,
                         y: centerY
@@ -730,7 +936,7 @@
                 connectionCanvas.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
             }
             
-            // Function to draw a line between two items
+            // Function to draw a curved line between two items
             function drawLine(leftItem, rightItem, pairId) {
                 if (!connectionCanvas || !gridContainer) return;
                 
@@ -747,22 +953,54 @@
                         return;
                     }
                     
-                    const leftPos = getConnectionPoint(leftItem, true); // Left item: right edge (inner side)
-                    const rightPos = getConnectionPoint(rightItem, false); // Right item: left edge (inner side)
+                    // Remove any existing paths for this pair to avoid duplicates
+                    const existingPaths = connectionCanvas.querySelectorAll(`path[data-pair-id="${pairId}"]`);
+                    existingPaths.forEach(path => path.remove());
                     
-                    // Create SVG line element
-                    // Line goes FROM right box (inner edge) TO left box (inner start)
-                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', rightPos.x); // Start from right box inner edge (left edge)
-                    line.setAttribute('y1', rightPos.y);
-                    line.setAttribute('x2', leftPos.x); // End at left box inner start (right edge)
-                    line.setAttribute('y2', leftPos.y);
-                    line.setAttribute('stroke', '#4b5563'); // Dark grey color like in the picture
-                    line.setAttribute('stroke-width', '2');
-                    line.setAttribute('stroke-linecap', 'round');
-                    line.setAttribute('data-pair-id', pairId);
+                    const leftPos = getConnectionPoint(leftItem, true); // Left item: right edge
+                    const rightPos = getConnectionPoint(rightItem, false); // Right item: left edge
                     
-                    connectionCanvas.appendChild(line);
+                    // Calculate exact edge positions to prevent line from entering boxes
+                    const strokeWidth = 2.5;
+                    const offset = 4; // Offset to keep line clearly outside the border
+                    
+                    // Left item: start line at right edge + offset (outside the border)
+                    const startX = leftPos.x + offset;
+                    // Right item: end line at left edge - offset (outside the border)
+                    const endX = rightPos.x - offset;
+                    const startY = leftPos.y;
+                    const endY = rightPos.y;
+                    
+                    // Calculate control points for a smooth S-curve
+                    // This creates a curved path that avoids overlapping with other lines
+                    const horizontalOffset = Math.min(Math.abs(endX - startX) * 0.3, 80); // Curvature amount
+                    
+                    // Create control points for a smooth bezier curve
+                    // Use different curvature based on vertical distance to avoid overlaps
+                    const verticalDiff = Math.abs(endY - startY);
+                    const curveIntensity = Math.min(verticalDiff * 0.15, 40);
+                    
+                    // Control point 1: slightly to the right of start, with vertical offset
+                    const cp1x = startX + horizontalOffset;
+                    const cp1y = startY + (endY > startY ? curveIntensity : -curveIntensity);
+                    
+                    // Control point 2: slightly to the left of end, with vertical offset
+                    const cp2x = endX - horizontalOffset;
+                    const cp2y = endY + (startY > endY ? curveIntensity : -curveIntensity);
+                    
+                    // Create SVG path element with cubic bezier curve
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const pathData = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
+                    path.setAttribute('d', pathData);
+                    path.setAttribute('stroke', '#6b7280'); // Medium grey color
+                    path.setAttribute('stroke-width', strokeWidth.toString());
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke-linecap', 'round');
+                    path.setAttribute('stroke-linejoin', 'round');
+                    path.setAttribute('data-pair-id', pairId);
+                    path.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))';
+                    
+                    connectionCanvas.appendChild(path);
                 }, 50);
             }
             
@@ -859,9 +1097,14 @@
                 selectedLeftItem = null;
                 selectedRightItem = null;
                 
-                // Update pairs matched count
+                // Update pairs matched count with visual animation
                 const scoreElement = document.getElementById('matchingPairsScore');
-                if (scoreElement) scoreElement.textContent = `Pairs Matched: ${lockedPairs.size}`;
+                if (scoreElement) {
+                    scoreElement.textContent = `Pairs Matched: ${lockedPairs.size}`;
+                    // Visual animation only
+                    scoreElement.classList.add('animate-score');
+                    setTimeout(() => scoreElement.classList.remove('animate-score'), 500);
+                }
             }
             
             function checkMatch() {
@@ -890,6 +1133,11 @@
                     const leftItemForLine = selectedLeftItem;
                     const rightItemForLine = selectedRightItem;
                     drawLine(leftItemForLine, rightItemForLine, leftPairId);
+                    // Add visual animation class to path (visual only)
+                    setTimeout(() => {
+                        const paths = connectionCanvas.querySelectorAll(`path[data-pair-id="${leftPairId}"]`);
+                        paths.forEach(path => path.classList.add('correct-line'));
+                    }, 100);
                     
                     // Add checkmark animation
                     const checkmark1 = document.createElement('span');
@@ -960,25 +1208,26 @@
                             if (leftPairId === rightPairId) {
                                 // Correct match!
                                 correctCount++;
-                                leftItem.classList.add('bg-green-100', 'border-green-500');
-                                rightItem.classList.add('bg-green-100', 'border-green-500');
+                                leftItem.classList.add('bg-green-100', 'border-green-500', 'matched');
+                                rightItem.classList.add('bg-green-100', 'border-green-500', 'matched');
                                 
-                                // Update line color to green
-                                const lines = connectionCanvas.querySelectorAll(`line[data-pair-id="${leftPairId}"]`);
-                                lines.forEach(line => {
-                                    line.setAttribute('stroke', '#22c55e');
-                                    line.setAttribute('stroke-width', '3');
+                                // Update path color to green with visual animation
+                                const paths = connectionCanvas.querySelectorAll(`path[data-pair-id="${leftPairId}"]`);
+                                paths.forEach(path => {
+                                    path.setAttribute('stroke', '#22c55e');
+                                    path.setAttribute('stroke-width', '3');
+                                    path.classList.add('correct-line');
                                 });
                             } else {
                                 // Incorrect match
                                 leftItem.classList.add('bg-red-100', 'border-red-500');
                                 rightItem.classList.add('bg-red-100', 'border-red-500');
                                 
-                                // Update line color to red
-                                const lines = connectionCanvas.querySelectorAll(`line[data-pair-id="${leftPairId}"]`);
-                                lines.forEach(line => {
-                                    line.setAttribute('stroke', '#ef4444');
-                                    line.setAttribute('stroke-width', '2');
+                                // Update path color to red
+                                const paths = connectionCanvas.querySelectorAll(`path[data-pair-id="${leftPairId}"]`);
+                                paths.forEach(path => {
+                                    path.setAttribute('stroke', '#ef4444');
+                                    path.setAttribute('stroke-width', '2.5');
                                 });
                             }
                             
@@ -991,12 +1240,19 @@
                     // Calculate score percentage
                     const scorePercent = Math.round((correctCount / totalPairs) * 100);
                     
-                    // Update score display
+                    // Update score display with visual animation
                     const scoreElement = document.getElementById('matchingPairsScore');
-                    if (scoreElement) scoreElement.textContent = `Score: ${correctCount} / ${totalPairs} (${scorePercent}%)`;
+                    if (scoreElement) {
+                        scoreElement.textContent = `Score: ${correctCount} / ${totalPairs} (${scorePercent}%)`;
+                        // Visual animation only
+                        scoreElement.classList.add('animate-score');
+                        setTimeout(() => scoreElement.classList.remove('animate-score'), 600);
+                    }
                     
-                    // Show completion message
-                    showMatchingPairsCompletion(correctCount, scorePercent);
+                    // Show completion message with slight delay for visual effect
+                    setTimeout(() => {
+                        showMatchingPairsCompletion(correctCount, scorePercent);
+                    }, 500);
                 });
             }
             
@@ -1087,8 +1343,19 @@
     <!-- Game Navigation Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const availableGames = @json($availableGames ?? []);
+        // Make availableGames globally accessible
+        window.availableGames = @json($availableGames ?? []);
+        const availableGames = window.availableGames;
         let currentGameIndex = 0;
+        
+        // Routes for navigation
+        @php
+            $lessonId = isset($lesson) && $lesson ? $lesson->lesson_id : null;
+        @endphp
+        const lessonId = @json($lessonId);
+        window.lessonViewRoute = lessonId ? @json(route('student.lesson.view', $lessonId)) : null;
+        const lessonViewRoute = window.lessonViewRoute;
+        const dashboardRoute = @json(route('student.dashboard'));
         
         // Track scores for each game type
         window.gameScores = {
@@ -1101,17 +1368,26 @@
             matchingpairs: null    // Matching Pairs score (0-100)
         };
         
-        // Show the first game
+        // Show the first game with enhanced animations
         function showGame(index) {
-            // Hide all games and completed messages
+            // Hide all games and completed messages with fade out
             document.querySelectorAll('.game-container').forEach(container => {
-                container.style.display = 'none';
+                container.classList.remove('show');
+                container.style.opacity = '0';
+                container.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    container.style.display = 'none';
+                }, 300);
             });
             document.querySelectorAll('.game-completed-message').forEach(msg => {
-                msg.style.display = 'none';
+                msg.style.opacity = '0';
+                msg.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    msg.style.display = 'none';
+                }, 300);
             });
             
-            // Show the game at the specified index
+            // Show the game at the specified index with animation
             if (availableGames[index]) {
                 const game = availableGames[index];
                 const gameType = game.type;
@@ -1126,9 +1402,11 @@
                         if (!completedMsg) {
                             completedMsg = document.createElement('div');
                             completedMsg.className = 'game-completed-message max-w-6xl mx-auto bg-gradient-to-br from-yellow-50 to-orange-50 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border-2 border-yellow-300 mb-8';
+                            completedMsg.style.opacity = '0';
+                            completedMsg.style.transform = 'scale(0.9)';
                             completedMsg.innerHTML = `
                                 <div class="text-center">
-                                    <div class="mb-4">
+                                    <div class="mb-4 transform animate-bounce">
                                         <svg class="mx-auto h-16 w-16 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
@@ -1144,26 +1422,45 @@
                         }
                         completedMsg.style.display = 'block';
                         
+                        // Animate in
+                        setTimeout(() => {
+                            completedMsg.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                            completedMsg.style.opacity = '1';
+                            completedMsg.style.transform = 'scale(1)';
+                        }, 50);
+                        
                         // Scroll to the message
                         setTimeout(() => {
                             completedMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }, 100);
                     }
                 } else {
-                    // Show the game normally
+                    // Show the game normally with enhanced animation
                     const gameContainer = document.querySelector(`[data-game-type="${gameType}"]`);
                     if (gameContainer) {
                         gameContainer.style.display = 'block';
+                        gameContainer.style.opacity = '0';
+                        gameContainer.style.transform = 'translateY(30px) scale(0.95)';
+                        
+                        // Animate in
+                        setTimeout(() => {
+                            gameContainer.classList.add('show');
+                            gameContainer.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                            gameContainer.style.opacity = '1';
+                            gameContainer.style.transform = 'translateY(0) scale(1)';
+                        }, 100);
+                        
                         // Update canvas size for matching pairs game when it becomes visible
                         if (gameType === 'matchingpairs' && typeof window.updateMatchingPairsCanvas === 'function') {
                             setTimeout(() => {
                                 window.updateMatchingPairsCanvas();
-                            }, 100);
+                            }, 200);
                         }
+                        
                         // Scroll to the game
                         setTimeout(() => {
                             gameContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 100);
+                        }, 200);
                     }
                 }
             }
@@ -1223,29 +1520,108 @@
                 currentGameIndex = nextIndex;
                 showGame(currentGameIndex);
             } else {
-                // All games completed - calculate and show total score
+                // All games completed - show completion popup with options
                 const totalScore = calculateTotalScore();
                 const scoredGamesCount = availableGames.filter(g => window.gameScores[g.type] !== null && window.gameScores[g.type] !== undefined).length;
                 const totalGamesCount = availableGames.length;
                 
+                // Create confetti effect
+                if (typeof createConfetti === 'function') {
+                    createConfetti();
+                }
+                
                 const completionMessage = document.createElement('div');
-                completionMessage.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                completionMessage.className = 'fixed inset-0 z-50 flex items-center justify-center';
+                completionMessage.style.background = 'linear-gradient(135deg, rgba(236, 72, 153, 0.3) 0%, rgba(168, 85, 247, 0.3) 50%, rgba(59, 130, 246, 0.2) 100%)';
+                completionMessage.style.backdropFilter = 'blur(8px)';
+                completionMessage.style.animation = 'fadeInOverlay 0.5s ease';
                 completionMessage.innerHTML = `
-                    <div class="bg-white rounded-3xl p-10 text-center max-w-md">
-                        <div class="text-6xl mb-4">🎉</div>
-                        <h2 class="text-3xl font-bold text-pink-600 mb-4">Congratulations!</h2>
-                        <p class="text-xl text-gray-700 mb-4">You have completed all ${totalGamesCount} game${totalGamesCount > 1 ? 's' : ''}!</p>
-                        ${scoredGamesCount > 0 ? `
-                            <div class="bg-pink-50 border-2 border-pink-300 rounded-lg p-4 mb-4">
-                                <div class="text-2xl font-bold text-pink-600 mb-2">Total Score</div>
-                                <div class="text-4xl font-bold text-pink-700">${totalScore}%</div>
-                                <div class="text-sm text-gray-600 mt-2">Average of ${scoredGamesCount} scored game${scoredGamesCount > 1 ? 's' : ''}</div>
+                    <div class="relative max-w-xl w-full mx-4">
+                        <!-- Animated Background Circles -->
+                        <div class="absolute -top-16 -left-16 w-32 h-32 rounded-full opacity-30 blur-3xl animate-pulse" style="background-color: #FC8EAC; animation-duration: 3s;"></div>
+                        <div class="absolute -bottom-16 -right-16 w-32 h-32 rounded-full opacity-30 blur-3xl animate-pulse" style="background-color: #F8C5C8; animation-duration: 4s; animation-delay: 1s;"></div>
+                        
+                        <!-- Main Card - Using #F8C5C8 (lightest pink) -->
+                        <div class="relative rounded-2xl p-6 md:p-8 text-center shadow-2xl border-3 backdrop-blur-xl overflow-hidden" style="background-color: #F8C5C8; border-color: rgba(252, 142, 172, 0.5); animation: slideUpBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);">
+                            <!-- Decorative Sparkles -->
+                            <div class="absolute top-3 right-3 text-2xl animate-bounce" style="animation-duration: 2s;">✨</div>
+                            <div class="absolute top-5 left-5 text-xl animate-bounce" style="animation-duration: 2.5s; animation-delay: 0.3s;">⭐</div>
+                            
+                            <!-- Celebration Emoji -->
+                            <div class="relative mb-4">
+                                <div class="text-5xl mb-1 inline-block" style="animation: celebration 1.5s ease-in-out infinite; filter: drop-shadow(0 4px 8px rgba(252, 142, 172, 0.4));">🎉</div>
                             </div>
-                        ` : ''}
-                        <button onclick="this.closest('.fixed').remove()" class="px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors font-semibold">Close</button>
+                            
+                            <!-- Title -->
+                            <h2 class="text-2xl md:text-3xl font-black mb-3 bg-gradient-to-r from-pink-600 via-rose-600 to-pink-500 bg-clip-text text-transparent" dir="rtl" style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                تهانينا! / Congratulations!
+                            </h2>
+                            
+                            <!-- Subtitle -->
+                            <p class="text-base md:text-lg text-gray-700 mb-5 font-semibold" dir="rtl">
+                                لقد أكملت جميع الألعاب بنجاح! / You have completed all ${totalGamesCount} game${totalGamesCount > 1 ? 's' : ''} successfully!
+                            </p>
+                            
+                            ${scoredGamesCount > 0 ? `
+                                <!-- Score Card - Using #FC8EAC (medium pink) -->
+                                <div class="relative mb-5 rounded-xl p-4 shadow-lg" style="background-color: #FC8EAC; border: 3px solid rgba(248, 197, 200, 0.6);">
+                                    <div class="relative">
+                                        <div class="text-lg md:text-xl font-bold text-white mb-2 flex items-center justify-center gap-2" dir="rtl" style="text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                                            <span class="text-2xl">🏆</span>
+                                            <span>النتيجة الإجمالية / Total Score</span>
+                                        </div>
+                                        <div class="text-4xl md:text-5xl font-black mb-2 text-white" style="text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                                            ${totalScore}%
+                                        </div>
+                                        <div class="text-xs md:text-sm text-white/90 font-medium" dir="rtl" style="text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                                            متوسط ${scoredGamesCount} لعبة / Average of ${scoredGamesCount} scored game${scoredGamesCount > 1 ? 's' : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex flex-col sm:flex-row gap-3 justify-center items-center mt-5">
+                                ${lessonViewRoute ? `
+                                    <!-- Button 1 - Using #F8C5C8 (lightest pink) -->
+                                    <a href="${lessonViewRoute}" class="group relative px-6 py-3 rounded-xl font-bold text-base md:text-lg shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2 overflow-hidden border-2" style="background-color: #F8C5C8; border-color: #FC8EAC;">
+                                        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style="background-color: #FC8EAC;"></div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 relative z-10 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color: #FC8EAC;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                        </svg>
+                                        <span class="relative z-10" dir="rtl" style="color: #FC8EAC; font-weight: bold;">العودة إلى محتوى الدرس / Return to Lesson</span>
+                                        <div class="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                                    </a>
+                                ` : ''}
+                                <!-- Button 2 - Using #FC8EAC (medium pink) -->
+                                <a href="${dashboardRoute}" class="group relative px-6 py-3 text-white rounded-xl font-bold text-base md:text-lg shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2 overflow-hidden border-2" style="background-color: #FC8EAC; border-color: #F8C5C8;">
+                                    <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style="background-color: #F8C5C8;"></div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 relative z-10 transform group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color: white;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                    </svg>
+                                    <span class="relative z-10" dir="rtl" style="color: white; font-weight: bold;">لوحة التحكم / Go to Dashboard</span>
+                                    <div class="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                                </a>
+                            </div>
+                            
+                            <!-- Bottom Decoration -->
+                            <div class="mt-5 pt-4" style="border-top: 2px solid rgba(252, 142, 172, 0.3);">
+                                <p class="text-xs text-gray-600 italic">Keep up the great work! 🌟</p>
+                            </div>
+                        </div>
                     </div>
                 `;
                 document.body.appendChild(completionMessage);
+                
+                // Add sparkle animation on buttons after a delay
+                setTimeout(() => {
+                    const buttons = completionMessage.querySelectorAll('a');
+                    buttons.forEach((btn, index) => {
+                        setTimeout(() => {
+                            btn.style.animation = 'pulse 2s ease-in-out infinite';
+                        }, index * 200);
+                    });
+                }, 500);
             }
         };
         
@@ -1549,6 +1925,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const wordClockCorrectOrder = @json($wordClockCorrectOrder ?? []);
     const gameId = @json($wordClockArrangementGame->game_id ?? null);
     const saveScoreRoute = @json(route('student.games.saveScore'));
+    
+    // Get the lesson ID for this specific game
+    const wordClockLessonId = @json($wordClockArrangementGame->lesson_id ?? null);
+    const wordClockLessonRoute = wordClockLessonId ? @json(route('student.lesson.view', $wordClockArrangementGame->lesson_id)) : null;
     
     // Confetti animation function
     function createConfetti() {
@@ -1884,14 +2264,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(() => moveToNextGame(), 2000);
                 }
             } else {
+                // Wrong answer - disable button, show correct answer, show score, and redirect
+                wordClockCheckAnswerBtn.disabled = true;
+                wordClockCheckAnswerBtn.style.opacity = '0.5';
+                wordClockCheckAnswerBtn.style.cursor = 'not-allowed';
+                
                 // Partial or incorrect answer - show detailed score breakdown
-                let errorMsg = '✗ إجابة غير صحيحة.';
-                if (!isTimeOrdered) {
-                    errorMsg += ' الساعات غير مرتبة حسب الوقت (من الأصغر إلى الأكبر).';
-                }
-                if (!isSentenceCorrect) {
-                    errorMsg += ' الإجابة الصحيحة هي: <strong>' + wordClockCorrectSentence + '</strong>';
-                }
+                let errorMsg = '✗ إجابة غير صحيحة.<br><br>';
+                errorMsg += '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg">';
+                errorMsg += '<strong>الإجابة الصحيحة هي:</strong><br>';
+                errorMsg += '<span class="text-xl font-bold text-green-700">' + wordClockCorrectSentence + '</span>';
+                errorMsg += '</div>';
                 
                 // Add detailed score breakdown
                 errorMsg += '<div style="margin-top: 15px; padding: 15px; background: #fef3c7; border-radius: 8px; text-align: right; direction: rtl;">';
@@ -1908,6 +2291,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 wordClockResultMessage.className = 'mt-6 p-4 rounded-lg text-center text-lg font-semibold bg-red-100 text-red-800 border border-red-300';
                 wordClockResultMessage.innerHTML = errorMsg;
+                
+                // Redirect to lesson page after 3 seconds (use this game's specific lesson)
+                if (wordClockLessonRoute) {
+                    setTimeout(() => {
+                        window.location.href = wordClockLessonRoute;
+                    }, 3000);
+                }
             }
         });
     }
@@ -1922,6 +2312,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const arrangedSentence = document.getElementById('arrangedSentence');
     const checkAnswerBtn = document.getElementById('checkAnswerBtn');
     const resultMessage = document.getElementById('resultMessage');
+    
+    // Get the lesson ID for this specific game
+    const scrambledClocksLessonId = @json($scrambledClocksGame->lesson_id ?? null);
+    const scrambledClocksLessonRoute = scrambledClocksLessonId ? @json(route('student.lesson.view', $scrambledClocksGame->lesson_id)) : null;
     
     const correctSentence = @json($correctSentence);
     const allWords = @json($words);
@@ -2040,15 +2434,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => moveToNextGame(), 2000);
             }
         } else {
-            let errorMsg = '✗ إجابة غير صحيحة.';
-            if (!isTimeOrdered) {
-                errorMsg += ' الساعات غير مرتبة حسب الوقت (من الأصغر إلى الأكبر).';
+            // Wrong answer - disable button, show correct answer, show score, and redirect
+            checkAnswerBtn.disabled = true;
+            checkAnswerBtn.style.opacity = '0.5';
+            checkAnswerBtn.style.cursor = 'not-allowed';
+            
+            // Set score to 0 for wrong answer
+            if (typeof window.gameScores !== 'undefined') {
+                window.gameScores.scrambledclocks = 0;
             }
-            if (!isSentenceCorrect) {
-                errorMsg += ' الإجابة الصحيحة هي: <strong>' + correctSentence + '</strong>';
-            }
+            
+            // Show correct answer and score
+            let errorMsg = '✗ إجابة غير صحيحة.<br><br>';
+            errorMsg += '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg">';
+            errorMsg += '<strong>الإجابة الصحيحة هي:</strong><br>';
+            errorMsg += '<span class="text-xl font-bold text-green-700">' + correctSentence + '</span>';
+            errorMsg += '</div>';
+            errorMsg += '<div class="mt-4 p-3 bg-blue-50 border border-blue-300 rounded-lg">';
+            errorMsg += '<strong>النتيجة:</strong> <span class="text-2xl font-bold text-blue-700">0</span>';
+            errorMsg += '</div>';
+            
             resultMessage.className = 'mt-6 p-4 rounded-lg text-center text-lg font-semibold bg-red-100 text-red-800 border border-red-300';
             resultMessage.innerHTML = errorMsg;
+            
+            // Redirect to lesson page after 3 seconds (use this game's specific lesson)
+            if (scrambledClocksLessonRoute) {
+                setTimeout(() => {
+                    window.location.href = scrambledClocksLessonRoute;
+                }, 3000);
+            }
         }
     });
 });
@@ -2102,16 +2516,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (overlay) {
             overlay.classList.add('hidden');
             overlay.style.display = 'none';
-            // Move to next game after closing (only if there are more games)
+            // Always call moveToNextGame - it will handle showing completion popup if last game
             if (typeof moveToNextGame === 'function') {
-                const wordSearchIndex = availableGames.findIndex(g => g.type === 'wordsearch');
-                // Only move to next game if word search is not the last game
-                if (wordSearchIndex !== -1 && wordSearchIndex < availableGames.length - 1) {
-                    setTimeout(() => moveToNextGame(), 500);
-                } else if (wordSearchIndex !== -1 && wordSearchIndex === availableGames.length - 1) {
-                    // This is the last game, show completion message
-                    setTimeout(() => moveToNextGame(), 500);
-                }
+                setTimeout(() => moveToNextGame(), 500);
             }
         }
     };
@@ -2697,8 +3104,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Check if all words are found
         if (foundWords.size === words.length) {
-                // Calculate final score
-                const finalScore = Math.min(100, score);
+                console.log('All words found! Total words:', words.length, 'Found:', foundWords.size);
+                // Calculate final score - if all words are found, set to exactly 100 to avoid rounding errors
+                const finalScore = 100;
+                console.log('Final score calculated:', finalScore);
                 
                 // Store score for word search game
                 if (typeof window.gameScores !== 'undefined') {
@@ -2730,7 +3139,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
 
                     // Create confetti celebration
-                    createConfetti();
+                    if (typeof createConfetti === 'function') {
+                        createConfetti();
+                    }
                     
                     // Save score
                     const gameId = @json($wordSearchGame->game_id ?? null);
@@ -2761,22 +3172,49 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (typeof window.gameScores !== 'undefined') {
                                 window.gameScores.wordsearch = finalScore;
                             }
-                            // Check if this is the last game - if so, show completion message
-                            const wordSearchIndex = availableGames.findIndex(g => g.type === 'wordsearch');
-                            if (wordSearchIndex !== -1 && wordSearchIndex === availableGames.length - 1) {
-                                // This is the last game, show completion message after closing overlay
-                                setTimeout(() => {
-                                    if (typeof moveToNextGame === 'function') {
-                                        moveToNextGame(); // This will show the completion message
-                                    }
-                                }, 500);
-                            }
+                            // Auto-close the word search completion overlay and show final popup after 3 seconds
+                            setTimeout(() => {
+                                const overlay = document.getElementById('completionMessageOverlay');
+                                if (overlay) {
+                                    overlay.classList.add('hidden');
+                                    overlay.style.display = 'none';
+                                }
+                                // Always call moveToNextGame - it will show completion popup if last game
+                                if (typeof moveToNextGame === 'function') {
+                                    console.log('Calling moveToNextGame after word search completion');
+                                    moveToNextGame();
+                                } else {
+                                    console.error('moveToNextGame function not found!');
+                                }
+                            }, 3000); // Show word search completion for 3 seconds, then show final popup
                         })
                         .catch(error => {
                             console.error('Error saving Word Search score:', error);
+                            // Even if save fails, still show the final completion popup
+                            setTimeout(() => {
+                                const overlay = document.getElementById('completionMessageOverlay');
+                                if (overlay) {
+                                    overlay.classList.add('hidden');
+                                    overlay.style.display = 'none';
+                                }
+                                if (typeof moveToNextGame === 'function') {
+                                    moveToNextGame();
+                                }
+                            }, 3000);
                         });
                     } else {
                         console.error('Word Search game_id is null - cannot save score');
+                        // Even without game_id, show final completion popup after delay
+                        setTimeout(() => {
+                            const overlay = document.getElementById('completionMessageOverlay');
+                            if (overlay) {
+                                overlay.classList.add('hidden');
+                                overlay.style.display = 'none';
+                            }
+                            if (typeof moveToNextGame === 'function') {
+                                moveToNextGame();
+                            }
+                        }, 3000);
                     }
                 }, animationDelay + 200);
         }
@@ -2910,26 +3348,140 @@ document.addEventListener('DOMContentLoaded', function() {
     
     /* Matching Pairs Game Styles */
     .matching-item {
-        transition: all 0.3s ease;
-        min-height: 100px;
-        height: 100px;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        min-height: 110px;
         display: flex;
         align-items: center;
         position: relative;
+        animation: slideInFade 0.6s ease-out backwards;
+        width: 100%;
+    }
+    
+    /* Ensure consistent spacing between items */
+    #leftItems, #rightItems {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+    
+    /* Better alignment for columns */
+    .left-column, .right-column {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    #matchingPairsContainer {
+        padding: 1rem 0;
+    }
+    
+    /* Staggered entrance animation delays */
+    .left-item:nth-child(1), .right-item:nth-child(1) { animation-delay: 0.1s; }
+    .left-item:nth-child(2), .right-item:nth-child(2) { animation-delay: 0.2s; }
+    .left-item:nth-child(3), .right-item:nth-child(3) { animation-delay: 0.3s; }
+    .left-item:nth-child(4), .right-item:nth-child(4) { animation-delay: 0.4s; }
+    .left-item:nth-child(5), .right-item:nth-child(5) { animation-delay: 0.5s; }
+    .left-item:nth-child(6), .right-item:nth-child(6) { animation-delay: 0.6s; }
+    .left-item:nth-child(7), .right-item:nth-child(7) { animation-delay: 0.7s; }
+    .left-item:nth-child(8), .right-item:nth-child(8) { animation-delay: 0.8s; }
+    .left-item:nth-child(n+9), .right-item:nth-child(n+9) { animation-delay: 0.9s; }
+    
+    @keyframes slideInFade {
+        0% {
+            opacity: 0;
+            transform: translateY(30px) scale(0.9);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
     }
     
     .matching-item .flex {
         width: 100%;
         height: 100%;
         align-items: center;
+        justify-content: center;
+        min-height: 100px;
+    }
+    
+    /* Ensure items are properly aligned */
+    .matching-item {
+        box-sizing: border-box;
+    }
+    
+    /* Better visual separation */
+    .left-column, .right-column {
+        position: relative;
     }
     
     .matching-item:hover {
-        transform: scale(1.05);
+        transform: scale(1.08) translateY(-3px);
+        box-shadow: 0 12px 30px rgba(236, 72, 153, 0.3);
     }
     
     .matching-item img {
         flex-shrink: 0;
+        transition: transform 0.3s ease;
+    }
+    
+    .matching-item:hover img {
+        transform: scale(1.1) rotate(2deg);
+    }
+    
+    /* Selection animation */
+    .matching-item.selected {
+        animation: bounceSelect 0.4s ease, pulseGlow 1.5s ease-in-out infinite;
+        z-index: 10;
+    }
+    
+    @keyframes bounceSelect {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    @keyframes pulseGlow {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7);
+        }
+        50% {
+            box-shadow: 0 0 0 12px rgba(236, 72, 153, 0);
+        }
+    }
+    
+    /* Success animation */
+    .matching-item.matched {
+        animation: successBounce 0.6s ease, successGlow 2s ease-in-out infinite;
+    }
+    
+    @keyframes successBounce {
+        0% { transform: scale(1); }
+        30% { transform: scale(1.15) rotate(2deg); }
+        60% { transform: scale(1.1) rotate(-2deg); }
+        100% { transform: scale(1); }
+    }
+    
+    @keyframes successGlow {
+        0%, 100% {
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+        }
+        50% {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.8), 0 0 30px rgba(34, 197, 94, 0.6);
+        }
+    }
+    
+    @keyframes scaleIn {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.3);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
     }
     
     .matching-item span {
@@ -2944,9 +3496,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     
     @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-10px); }
-        75% { transform: translateX(10px); }
+        0%, 100% { transform: translateX(0) rotate(0deg); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-10px) rotate(-2deg); }
+        20%, 40%, 60%, 80% { transform: translateX(10px) rotate(2deg); }
     }
     
     #connectionCanvas {
@@ -2955,6 +3507,176 @@ document.addEventListener('DOMContentLoaded', function() {
         left: 0;
         width: 100%;
         height: 100%;
+        pointer-events: none;
+    }
+    
+    /* Line drawing animation */
+    @keyframes drawLine {
+        from {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+        }
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+    
+    #connectionCanvas path {
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: drawLine 0.8s ease-out forwards;
+        transition: stroke 0.3s ease, stroke-width 0.3s ease;
+    }
+    
+    #connectionCanvas path.correct-line {
+        animation: drawLine 0.8s ease-out forwards, linePulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes linePulse {
+        0%, 100% {
+            stroke-width: 3;
+            opacity: 1;
+        }
+        50% {
+            stroke-width: 4;
+            opacity: 0.9;
+        }
+    }
+    
+    /* Score counter animation */
+    @keyframes scorePop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.3); }
+        100% { transform: scale(1); }
+    }
+    
+    #matchingPairsScore {
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+    
+    #matchingPairsScore.animate-score {
+        animation: scorePop 0.5s ease;
+        color: #ec4899;
+        font-weight: bold;
+    }
+    
+    /* Button animations */
+    #submitMatchingPairsBtn, #resetMatchingPairsBtn {
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    #submitMatchingPairsBtn:hover {
+        transform: scale(1.05) translateY(-2px);
+        box-shadow: 0 10px 20px rgba(34, 197, 94, 0.4);
+    }
+    
+    #submitMatchingPairsBtn:active {
+        transform: scale(0.98);
+    }
+    
+    #resetMatchingPairsBtn:hover {
+        transform: scale(1.05) translateY(-2px);
+        box-shadow: 0 10px 20px rgba(168, 85, 247, 0.4);
+    }
+    
+    #resetMatchingPairsBtn:active {
+        transform: scale(0.98);
+    }
+    
+    /* Game container entrance */
+    .game-container[data-game-type="matchingpairs"] {
+        animation: fadeInScale 0.5s ease-out;
+    }
+    
+    @keyframes fadeInScale {
+        0% {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    /* Column headers animation */
+    .left-column h4, .right-column h4 {
+        animation: fadeInDown 0.6s ease-out;
+    }
+    
+    @keyframes fadeInDown {
+        0% {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Completion message animations */
+    @keyframes slideUpBounce {
+        0% {
+            opacity: 0;
+            transform: translateY(50px) scale(0.8);
+        }
+        60% {
+            transform: translateY(-10px) scale(1.05);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    
+    @keyframes celebration {
+        0%, 100% { transform: scale(1) rotate(0deg); }
+        25% { transform: scale(1.2) rotate(-10deg); }
+        75% { transform: scale(1.2) rotate(10deg); }
+    }
+    
+    #matchingPairsCompletionMessage {
+        animation: fadeInOverlay 0.3s ease;
+    }
+    
+    @keyframes fadeInOverlay {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    #matchingPairsCompletionMessage > div {
+        animation: slideUpBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    #matchingPairsCompletionMessage .text-6xl {
+        animation: celebration 1s ease-in-out infinite;
+        display: inline-block;
+    }
+    
+    /* Sparkle effect for matched items */
+    @keyframes sparkle {
+        0%, 100% {
+            opacity: 0;
+            transform: scale(0) rotate(0deg);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.2) rotate(180deg);
+        }
+    }
+    
+    .matching-item.matched::after {
+        content: '✨';
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        font-size: 20px;
+        animation: sparkle 1.5s ease-in-out;
+        z-index: 25;
         pointer-events: none;
     }
     

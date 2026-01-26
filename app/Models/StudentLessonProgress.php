@@ -26,6 +26,7 @@ class StudentLessonProgress extends Model
         'max_watched_time',
         'last_watched_at',
         'video_completed',
+        'last_activity_at',
     ];
 
     protected function casts(): array
@@ -34,6 +35,7 @@ class StudentLessonProgress extends Model
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'last_watched_at' => 'datetime',
+            'last_activity_at' => 'datetime',
             'score' => 'integer',
             'time_spent_minutes' => 'integer',
             'watched_seconds' => 'integer',

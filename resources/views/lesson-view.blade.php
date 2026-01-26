@@ -7,25 +7,41 @@
     /* Custom styling to match existing design */
     .video-js {
         width: 100%;
-        height: 100%;
+        height: auto;
+        min-height: 400px;
+        border-radius: 0.75rem;
+        background-color: #000;
+    }
+    .video-js .vjs-tech {
         border-radius: 0.75rem;
     }
     .vjs-poster {
         border-radius: 0.75rem;
     }
-    /* Warning message styling */
-    .video-seek-warning {
-        animation: slideDown 0.3s ease-out;
+    /* Ensure video container has proper aspect ratio */
+    #lesson-video-player {
+        width: 100%;
+        max-width: 100%;
     }
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translate(-50%, -20px);
-        }
-        to {
-            opacity: 1;
-            transform: translate(-50%, 0);
-        }
+    /* Warning message styling for forward seeking */
+    .video-seek-warning {
+        position: fixed !important;
+        background-color: #ef4444 !important;
+        color: white !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0.5rem !important;
+        font-size: 0.875rem !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+        z-index: 99999 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+        animation: slideUpVolume 0.3s ease-out !important;
+        pointer-events: none !important;
+        min-width: 220px !important;
+        text-align: center !important;
+        opacity: 1 !important;
+        display: block !important;
+        visibility: visible !important;
     }
     /* Progress bar styling */
     .video-progress-bar {
@@ -69,6 +85,99 @@
         font-weight: 600;
         box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
     }
+    /* Rewind 10 seconds button styling inside video player */
+    .vjs-rewind-10-button {
+        font-family: VideoJS;
+        font-weight: normal;
+        font-style: normal;
+    }
+    .vjs-rewind-10-button:before {
+        content: "\f11a"; /* Video.js rewind icon */
+        font-size: 1.8em;
+        line-height: 1.67;
+    }
+    .vjs-rewind-10-button:hover:before {
+        text-shadow: 0 0 1em #fff;
+    }
+    .vjs-rewind-10-button .vjs-icon-placeholder {
+        cursor: pointer;
+        width: 2em;
+        height: 100%;
+    }
+    /* Forward 10 seconds button styling inside video player */
+    .vjs-forward-10-button {
+        font-family: VideoJS;
+        font-weight: normal;
+        font-style: normal;
+        cursor: pointer;
+    }
+    .vjs-forward-10-button:before {
+        content: "\f11a"; /* Video.js rewind icon (same as first rewind button) */
+        font-size: 1.8em;
+        line-height: 1.67;
+        display: block;
+    }
+    .vjs-forward-10-button:hover:before {
+        text-shadow: 0 0 1em #fff;
+    }
+    .vjs-forward-10-button .vjs-icon-placeholder {
+        cursor: pointer;
+        width: 2em;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .vjs-forward-10-button.vjs-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    /* Ensure buttons are visible */
+    .vjs-rewind-10-button,
+    .vjs-forward-10-button {
+        display: inline-block;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    /* Volume warning message styling */
+    .volume-warning-message {
+        position: fixed !important;
+        background-color: #ef4444 !important;
+        color: white !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0.5rem !important;
+        font-size: 0.875rem !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+        z-index: 99999 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+        animation: slideUpVolume 0.3s ease-out !important;
+        pointer-events: none !important;
+        min-width: 220px !important;
+        text-align: center !important;
+        opacity: 1 !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+    .volume-warning-message::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 8px solid transparent;
+        border-top-color: #ef4444;
+    }
+    @keyframes slideUpVolume {
+        from {
+            opacity: 0;
+            transform: translate(-50%, 15px);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+    }
 </style>
 @endpush
 
@@ -81,6 +190,15 @@
                 <circle cx="100" cy="100" r="100" fill="#f472b6"/>
             </svg>
             <div class="relative z-10">
+                <!-- Go Back Button -->
+                <div class="mb-6">
+                    <a href="{{ route('student.dashboard') }}" class="inline-flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Go Back
+                    </a>
+                </div>
                 <div class="flex items-center gap-4 mb-4">
                     <span class="text-5xl drop-shadow">{{ $lesson->icon ?? '📘' }}</span>
                     <div class="flex-1">
@@ -97,23 +215,29 @@
                     </div>
                 </div>
 
-                {{-- Video Progress Bar --}}
-                @if(isset($progress) && $progress && $lesson->content_url && Str::endsWith($lesson->content_url, ['.mp4', '.mov', '.avi']))
-                    <div class="mb-4">
+                {{-- Video Progress Bar - Always show for video lessons --}}
+                @php
+                    $isVideo = $lesson->content_url && Str::endsWith($lesson->content_url, ['.mp4', '.mov', '.avi', '.mkv', '.wmv', '.flv', '.webm']);
+                    $initialProgress = isset($progress) && $progress ? round($progress->watched_percentage ?? 0, 1) : 0;
+                @endphp
+                @if($isVideo)
+                    <div class="mb-4" id="video-progress-container">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm font-semibold text-pink-600">Video Progress</span>
                             <span class="text-sm text-gray-600" id="video-progress-percentage">
-                                {{ round($progress->watched_percentage ?? 0, 1) }}%
+                                {{ $initialProgress }}%
                             </span>
                         </div>
                         <div class="video-progress-bar">
-                            <div class="video-progress-fill" id="video-progress-bar" style="width: {{ $progress->watched_percentage ?? 0 }}%"></div>
+                            <div class="video-progress-fill" id="video-progress-bar" style="width: {{ $initialProgress }}%"></div>
                         </div>
-                        @if(($progress->watched_percentage ?? 0) >= 80)
-                            <p class="text-xs text-green-600 mt-1 font-medium">✓ Video completed! Game unlocked.</p>
-                        @else
-                            <p class="text-xs text-gray-500 mt-1">Watch {{ round(80 - ($progress->watched_percentage ?? 0), 1) }}% more to unlock game</p>
-                        @endif
+                        <div id="video-progress-message">
+                            @if($initialProgress >= 80)
+                                <p class="text-xs text-green-600 mt-1 font-medium">✓ Lesson completed! Game unlocked.</p>
+                            @else
+                                <p class="text-xs text-gray-500 mt-1">Watch {{ round(80 - $initialProgress, 1) }}% more to complete lesson and unlock game</p>
+                            @endif
+                        </div>
                     </div>
                 @endif
 
@@ -125,7 +249,7 @@
                 
                 {{-- Game Button - Locked/Unlocked States --}}
                 @if(isset($hasGame) && $hasGame)
-                    <div class="mb-6 mt-6">
+                    <div class="mb-6 mt-6" id="game-button-container">
                         @if(isset($isVideoCompleted) && $isVideoCompleted)
                             {{-- Unlocked Game Button --}}
                             <a href="{{ route('student.games', ['lesson_id' => $lesson->lesson_id]) }}" 
@@ -140,12 +264,12 @@
                             </a>
                         @else
                             {{-- Locked Game Button --}}
-                            <div class="inline-flex items-center gap-2 bg-gray-200 text-gray-500 font-semibold py-3 px-8 rounded-full shadow cursor-not-allowed relative">
+                            <div id="locked-game-button" class="inline-flex items-center gap-2 bg-gray-200 text-gray-500 font-semibold py-3 px-8 rounded-full shadow cursor-not-allowed relative">
                                 <span class="text-xl opacity-50">🔒</span>
                                 <span>Play Game</span>
                                 <span class="ml-2 bg-gray-400 px-2 py-1 rounded-full text-xs text-white">Locked</span>
                             </div>
-                            <p class="text-sm text-gray-600 mt-2 ml-2">
+                            <p id="game-unlock-message" class="text-sm text-gray-600 mt-2 ml-2">
                                 ⏳ Watch 80% of the video to unlock this game
                             </p>
                         @endif
@@ -168,10 +292,20 @@
                                 <a href="{{ $storageUrl }}" target="_blank" class="inline-block bg-pink-100 text-pink-700 px-4 py-2 rounded-lg shadow hover:bg-pink-200 transition text-base font-semibold mt-2">Open PDF in New Tab</a>
                             </div>
                         @elseif($isVideo)
-                            <video controls width="100%" class="rounded-xl border border-pink-100 shadow">
-                                <source src="{{ $storageUrl }}" type="video/{{ $fileExtension }}">
-                                Your browser does not support the video tag.
-                            </video>
+                            <div class="video-container rounded-xl border border-pink-100 shadow overflow-hidden" style="background-color: #000;">
+                                <video
+                                    id="lesson-video-player"
+                                    class="video-js vjs-default-skin"
+                                    controls
+                                    preload="auto"
+                                    width="100%">
+                                    <source src="{{ $storageUrl }}" type="video/{{ $fileExtension }}">
+                                    <p class="vjs-no-js">
+                                        To view this video please enable JavaScript, and consider upgrading to a web browser that
+                                        <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>.
+                                    </p>
+                                </video>
+                            </div>
                             @if($lesson->video_duration_seconds)
                                 <p class="text-sm text-gray-500 mt-2">Duration: {{ gmdate('i:s', $lesson->video_duration_seconds) }}</p>
                             @endif
@@ -203,7 +337,25 @@ document.addEventListener('DOMContentLoaded', function() {
         fluid: true,
         responsive: true,
         aspectRatio: '16:9',
-        playbackRates: [0.5, 1, 1.25, 1.5, 2]
+        playbackRates: [0.25, 0.5, 0.75, 1],
+        controls: true,
+        preload: 'auto',
+        width: '100%',
+        height: 'auto',
+        controlBar: {
+            rewindButton: false,  // Disable default rewind button
+            muteToggle: false     // Disable mute button
+        }
+    }, function() {
+        // Player is ready
+        console.log('Video.js player initialized');
+        
+        // Ensure video is visible
+        const videoElement = this.el();
+        if (videoElement) {
+            videoElement.style.width = '100%';
+            videoElement.style.height = 'auto';
+        }
     });
 
     // Track variables
@@ -216,6 +368,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let sessionStartPosition = 0;   // Video position when current session started
     let sessionStartTimestamp = null; // Real-time timestamp when current session started
     let isSeekingForward = false;   // Flag to track if forward seek is being attempted
+    let lastUpdateTime = 0;         // Timestamp of last progress update (for throttling)
+    let timeBeforeSeek = 0;         // Time before a seek operation starts (for detecting forward seeks)
     
     // Track watched segments to prevent double-counting rewatched sections
     // Format: [{start: 10, end: 25}, {start: 30, end: 45}]
@@ -223,6 +377,220 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Get lesson ID from Laravel
     const lessonId = {{ $lesson->lesson_id }};
+
+    /**
+     * Custom Video.js Control: Rewind 10 seconds button
+     */
+    const RewindButton = videojs.getComponent('Button');
+    
+    class Rewind10Button extends RewindButton {
+        constructor() {
+            super(...arguments);
+            this.controlText('Rewind 10 seconds');
+        }
+        
+        handleClick() {
+            const currentTime = player.currentTime();
+            const newTime = Math.max(0, currentTime - 10); // Don't go below 0
+            
+            // Explicitly set flag BEFORE seeking to indicate this is a backward seek
+            isSeekingForward = false;
+            
+            // Store current position before seeking
+            const previousPosition = lastPosition;
+            lastPosition = currentTime;
+            
+            // Seek backward - this should always be allowed
+            console.log('Rewind button clicked: Rewinding from', currentTime, 'to', newTime, 'maxWatchedTime:', maxWatchedTime);
+            
+            // Directly seek - the seeking event handler will see isSeekingForward=false and allow it
+            player.currentTime(newTime);
+            
+            // Update positions after a brief delay to ensure seek completes
+            setTimeout(() => {
+                const actualTime = player.currentTime();
+                lastPosition = actualTime;
+                console.log('Rewind completed: new position', actualTime);
+                updateProgressBarRealTime();
+            }, 150);
+        }
+        
+        buildCSSClass() {
+            return 'vjs-rewind-10-button vjs-control vjs-button';
+        }
+    }
+    
+    /**
+     * Custom Video.js Control: Rewind 10 seconds button (second button)
+     * This is the button beside the sound button - also rewinds 10 seconds
+     */
+    class Forward10Button extends RewindButton {
+        constructor() {
+            super(...arguments);
+            this.controlText('Rewind 10 seconds');
+        }
+        
+        handleClick() {
+            const currentTime = player.currentTime();
+            const duration = player.duration();
+            
+            // Calculate new time (10 seconds back, but not below 0)
+            let newTime = Math.max(0, currentTime - 10);
+            
+            // Make sure we have valid values
+            if (isNaN(currentTime) || currentTime <= 0) {
+                console.log('Invalid current time, using 0');
+                newTime = 0;
+            }
+            
+            // Explicitly set flag BEFORE seeking to indicate this is a backward seek
+            isSeekingForward = false;
+            
+            // Store current position before seeking
+            lastPosition = currentTime;
+            
+            // Seek backward - this should always be allowed
+            console.log('Rewind button (second) clicked: Rewinding from', currentTime, 'to', newTime, 'maxWatchedTime:', maxWatchedTime);
+            
+            // Use requestAnimationFrame to ensure the seek happens after flag is set
+            requestAnimationFrame(() => {
+                // Directly set the time
+                if (player && !player.isDisposed()) {
+                    player.currentTime(newTime);
+                    
+                    // Update positions immediately
+                    lastPosition = newTime;
+                    
+                    // Verify the seek worked
+                    setTimeout(() => {
+                        const actualTime = player.currentTime();
+                        console.log('Rewind completed: new position', actualTime, 'expected:', newTime);
+                        
+                        // If seek didn't work, try again
+                        if (Math.abs(actualTime - newTime) > 0.5) {
+                            console.log('Seek verification failed, retrying...');
+                            player.currentTime(newTime);
+                            lastPosition = newTime;
+                        }
+                        
+                        updateProgressBarRealTime();
+                    }, 100);
+                }
+            });
+        }
+        
+        buildCSSClass() {
+            return 'vjs-forward-10-button vjs-control vjs-button';
+        }
+    }
+    
+    // Register the custom button components
+    videojs.registerComponent('Rewind10Button', Rewind10Button);
+    videojs.registerComponent('Forward10Button', Forward10Button);
+    
+    // Prevent playback speed from exceeding 1x
+    player.ready(function() {
+        // Set initial playback rate to 1.0
+        player.playbackRate(1.0);
+        
+        // Listen for rate changes and enforce cap (prevents programmatic changes above 1x)
+        let isResetting = false;
+        player.on('ratechange', function() {
+            if (isResetting) return; // Prevent infinite loop
+            
+            const currentRate = player.playbackRate();
+            if (currentRate > 1.0) {
+                console.log('Playback speed exceeded 1.0x, resetting to 1.0x');
+                isResetting = true;
+                player.playbackRate(1.0);
+                setTimeout(() => {
+                    isResetting = false;
+                }, 100);
+            }
+        });
+        
+        // Also monitor the native video element if accessible
+        const tech = player.tech();
+        if (tech && tech.el_) {
+            const videoEl = tech.el_;
+            if (videoEl && videoEl.addEventListener) {
+                videoEl.addEventListener('ratechange', function() {
+                    if (videoEl.playbackRate > 1.0) {
+                        console.log('Native video playback rate exceeded 1.0x, resetting');
+                        videoEl.playbackRate = 1.0;
+                        player.playbackRate(1.0);
+                    }
+                });
+            }
+        }
+    });
+    
+    // Add the buttons to the player when ready
+    player.ready(function() {
+        // Wait for control bar to be fully ready
+        setTimeout(() => {
+            const controlBar = player.getChild('controlBar');
+            if (!controlBar) {
+                console.error('Control bar not found');
+                return;
+            }
+            
+            console.log('Control bar found, adding buttons...');
+            const children = controlBar.children();
+            console.log('Control bar children:', children.map(c => c.name()));
+            
+            // Find components
+            const playToggle = controlBar.getChild('playToggle');
+            const volumeControl = controlBar.getChild('volumeControl');
+            const currentTimeDisplay = controlBar.getChild('currentTimeDisplay');
+            
+            // Remove default rewind button if it exists
+            const rewindControl = controlBar.getChild('rewindControl');
+            if (rewindControl) {
+                controlBar.removeChild(rewindControl);
+                console.log('Default rewind button removed');
+            }
+            
+            // Don't add custom rewind button - user only wants forward button
+            
+            // Add forward button after volume control (beside sound button)
+            if (volumeControl) {
+                const volumeIndex = children.indexOf(volumeControl);
+                // Add after volume control
+                controlBar.addChild('Forward10Button', {}, volumeIndex + 1);
+                console.log('Forward button added after volume control at index:', volumeIndex + 1);
+            } else if (currentTimeDisplay) {
+                // If no volume control, add after current time display
+                const timeIndex = children.indexOf(currentTimeDisplay);
+                controlBar.addChild('Forward10Button', {}, timeIndex + 1);
+                console.log('Forward button added after time display at index:', timeIndex + 1);
+            } else {
+                // Add at position 2 (after rewind and play)
+                controlBar.addChild('Forward10Button', {}, 2);
+                console.log('Forward button added at index 2');
+            }
+            
+            // Verify buttons were added and make them visible
+            setTimeout(() => {
+                const rewindBtn = controlBar.getChild('Rewind10Button');
+                const forwardBtn = controlBar.getChild('Forward10Button');
+                console.log('Rewind button added:', !!rewindBtn);
+                console.log('Forward button added:', !!forwardBtn);
+                
+                if (rewindBtn && rewindBtn.el()) {
+                    rewindBtn.el().style.display = 'inline-block';
+                    rewindBtn.el().style.visibility = 'visible';
+                    console.log('Rewind button element:', rewindBtn.el());
+                }
+                
+                if (forwardBtn && forwardBtn.el()) {
+                    forwardBtn.el().style.display = 'inline-block';
+                    forwardBtn.el().style.visibility = 'visible';
+                    console.log('Forward button element:', forwardBtn.el());
+                }
+            }, 200);
+        }, 500);
+    });
 
     /**
      * Calculate total watched seconds from segments
@@ -262,11 +630,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ensure start < end and values are valid
         if (start >= end || start < 0 || isNaN(start) || isNaN(end)) return;
         
+        // Cap segment end at video duration to prevent >100%
+        const duration = player.duration();
+        if (duration && duration > 0) {
+            start = Math.min(start, duration);
+            end = Math.min(end, duration);
+            // If start >= end after capping, skip this segment
+            if (start >= end) return;
+        }
+        
         // Add or extend segment
         watchedSegments.push({ start: start, end: end });
         
         // Recalculate total
         watchedSeconds = calculateWatchedSeconds();
+        
+        // Final cap: ensure watchedSeconds never exceeds video duration
+        if (duration && duration > 0) {
+            watchedSeconds = Math.min(watchedSeconds, duration);
+        }
     }
 
     /**
@@ -274,18 +656,247 @@ document.addEventListener('DOMContentLoaded', function() {
      * Intercepts clicks on progress bar and prevents forward seeking
      */
     player.ready(function() {
+        const MIN_VOLUME = 0.25; // 25% minimum volume
+        
+        // Set initial volume and ensure not muted
+        player.volume(MIN_VOLUME);
+        player.muted(false);
+        
+        // Remove mute button from control bar completely
+        const controlBar = player.getChild('controlBar');
+        const volumeControl = controlBar.getChild('volumeControl');
+        if (volumeControl) {
+            const muteToggle = volumeControl.getChild('muteToggle');
+            if (muteToggle) {
+                // Completely remove mute button
+                muteToggle.dispose();
+                // Or hide it and disable
+                muteToggle.hide();
+                muteToggle.disable();
+                // Prevent all click events
+                muteToggle.off();
+                muteToggle.on('click', function(e) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    e.stopPropagation();
+                    player.muted(false);
+                    player.volume(MIN_VOLUME);
+                    showVolumeWarning('You cannot mute the video');
+                    return false;
+                });
+            }
+        }
+        
+        // Override muted() method to always return false
+        const originalMuted = player.muted.bind(player);
+        let muteWarningShown = false;
+        player.muted = function(mute) {
+            if (arguments.length > 0 && mute === true) {
+                // Prevent muting - always keep unmuted
+                if (!muteWarningShown) {
+                    muteWarningShown = true;
+                    showVolumeWarning('You cannot mute the video');
+                    setTimeout(() => {
+                        muteWarningShown = false;
+                    }, 3000);
+                }
+                return originalMuted(false);
+            }
+            return originalMuted();
+        };
+        
+        // Override volume() method to enforce minimum
+        const originalVolume = player.volume.bind(player);
+        let volumeWarningShown = false;
+        player.volume = function(vol) {
+            if (arguments.length > 0) {
+                const currentVol = originalVolume();
+                // If setting volume, enforce minimum
+                if (vol < MIN_VOLUME) {
+                    vol = MIN_VOLUME;
+                    // Show warning if user was trying to decrease (not initial set)
+                    if (currentVol >= MIN_VOLUME && !volumeWarningShown) {
+                        volumeWarningShown = true;
+                        showVolumeWarning('Volume cannot be decreased below 25%');
+                        setTimeout(() => {
+                            volumeWarningShown = false;
+                        }, 3000);
+                    }
+                }
+                // Also ensure not muted
+                originalMuted(false);
+                return originalVolume(vol);
+            }
+            return originalVolume();
+        };
+        
+        // Listen to volume changes and enforce minimum and no muting
+        let lastVolume = MIN_VOLUME;
+        let isInitializing = true;
+        
+        // Set flag after initial setup
+        setTimeout(() => {
+            isInitializing = false;
+        }, 1000);
+        
+        player.on('volumechange', function() {
+            const currentVolume = player.volume();
+            const wasMuted = player.muted();
+            
+            // Always prevent muting
+            if (player.muted()) {
+                player.muted(false);
+                if (!isInitializing) {
+                    showVolumeWarning('You cannot mute the video');
+                }
+            }
+            
+            // Always enforce minimum volume
+            if (currentVolume < MIN_VOLUME) {
+                const attemptedVolume = currentVolume;
+                player.volume(MIN_VOLUME);
+                // Only show warning if user was trying to decrease (not initial set)
+                if (!isInitializing && lastVolume >= MIN_VOLUME && attemptedVolume < MIN_VOLUME) {
+                    showVolumeWarning('Volume cannot be decreased below 25%');
+                }
+            }
+            
+            lastVolume = player.volume();
+        });
+        
+        // Intercept volume slider interactions directly
+        if (volumeControl) {
+            const volumeBar = volumeControl.getChild('volumeBar');
+            if (volumeBar) {
+                const volumeLevel = volumeBar.getChild('volumeLevel');
+                const volumeHandle = volumeBar.getChild('volumeHandle');
+                
+                // Track previous volume to detect attempts
+                let previousVolume = player.volume();
+                
+                // Intercept all mouse events on volume bar
+                const handleVolumeInteraction = function(e) {
+                    const rect = volumeBar.el().getBoundingClientRect();
+                    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                    const requestedVolume = percent;
+                    const newVolume = Math.max(MIN_VOLUME, percent); // Enforce minimum
+                    
+                    // Show warning if user tried to go below minimum
+                    if (requestedVolume < MIN_VOLUME && previousVolume >= MIN_VOLUME) {
+                        showVolumeWarning('Volume cannot be decreased below 25%');
+                    }
+                    
+                    // Set volume directly, bypassing normal flow
+                    originalVolume(newVolume);
+                    originalMuted(false);
+                    
+                    // Update the visual slider
+                    if (volumeLevel) {
+                        volumeLevel.el().style.width = (newVolume * 100) + '%';
+                    }
+                    if (volumeHandle) {
+                        volumeHandle.el().style.left = (newVolume * 100) + '%';
+                    }
+                    
+                    previousVolume = newVolume;
+                };
+                
+                volumeBar.on('mousedown', handleVolumeInteraction);
+                volumeBar.on('touchstart', handleVolumeInteraction);
+                
+                if (volumeLevel) {
+                    volumeLevel.on('mousedown', handleVolumeInteraction);
+                    volumeLevel.on('touchstart', handleVolumeInteraction);
+                }
+                
+                if (volumeHandle) {
+                    volumeHandle.on('mousedown', function(e) {
+                        e.preventDefault();
+                        const handleMove = function(moveEvent) {
+                            handleVolumeInteraction(moveEvent);
+                        };
+                        const handleUp = function() {
+                            document.removeEventListener('mousemove', handleMove);
+                            document.removeEventListener('mouseup', handleUp);
+                        };
+                        document.addEventListener('mousemove', handleMove);
+                        document.addEventListener('mouseup', handleUp);
+                    });
+                }
+            }
+        }
+        
+        // Set initial volume to ensure it's at least 25%
+        player.volume(MIN_VOLUME);
+        player.muted(false);
+        
         // Disable forward seeking on progress bar
         const progressControl = player.getChild('progressControl');
         if (progressControl) {
             const seekBar = progressControl.getChild('seekBar');
-            if (seekBar) {
-                // Intercept mouse/touch events on seek bar
-                seekBar.on('mousedown', function(e) {
-                    handleSeekAttempt(e);
-                });
-                seekBar.on('touchstart', function(e) {
-                    handleSeekAttempt(e);
-                });
+            if (seekBar && seekBar.el()) {
+                const seekBarElement = seekBar.el();
+                
+                // Capture time before any seek interaction
+                let mouseDownTime = 0;
+                
+                // Intercept mousedown FIRST (before Video.js processes it)
+                seekBarElement.addEventListener('mousedown', function(e) {
+                    console.log('Direct mousedown on seek bar element - capturing time');
+                    // Capture current time IMMEDIATELY before any seek
+                    const currentTime = player.currentTime();
+                    mouseDownTime = currentTime;
+                    timeBeforeSeek = Math.max(currentTime, maxWatchedTime, lastPosition);
+                    console.log('Time captured - currentTime:', currentTime, 'timeBeforeSeek:', timeBeforeSeek, 'maxWatchedTime:', maxWatchedTime);
+                }, true); // Use capture phase to intercept before Video.js
+                
+                // Intercept click to block forward seeks
+                seekBarElement.addEventListener('click', function(e) {
+                    console.log('Click on seek bar element');
+                    
+                    // Use the time we captured on mousedown, or current time as fallback
+                    const referenceTime = timeBeforeSeek > 0 ? timeBeforeSeek : Math.max(player.currentTime(), maxWatchedTime, lastPosition);
+                    
+                    // Calculate target time from mouse position
+                    const rect = seekBarElement.getBoundingClientRect();
+                    const mousePosX = e.clientX - rect.left;
+                    const percent = Math.max(0, Math.min(1, mousePosX / rect.width));
+                    const duration = player.duration();
+                    
+                    if (duration > 0) {
+                        const targetTime = percent * duration;
+                        
+                        console.log('Click seek - referenceTime:', referenceTime, 'target:', targetTime, 'maxWatchedTime:', maxWatchedTime);
+                        
+                        // Block forward seeking
+                        if (targetTime > referenceTime + 0.1) {
+                            console.log('BLOCKING FORWARD SEEK - showing warning');
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            
+                            // Prevent Video.js from processing this seek
+                            player.currentTime(referenceTime);
+                            
+                            // Show warning
+                            showSeekWarning('Forward seeking is completely disabled. You can only rewind.');
+                            
+                            // Reset mouseDownTime
+                            mouseDownTime = 0;
+                            return false;
+                        } else {
+                            // Backward seek allowed - update timeBeforeSeek for seeking event
+                            timeBeforeSeek = referenceTime;
+                        }
+                    }
+                }, true); // Use capture phase
+                
+                // Also handle touch events
+                seekBarElement.addEventListener('touchstart', function(e) {
+                    const currentTime = player.currentTime();
+                    mouseDownTime = currentTime;
+                    timeBeforeSeek = Math.max(currentTime, maxWatchedTime, lastPosition);
+                }, true);
             }
         }
         
@@ -306,30 +917,59 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Handle seek attempt on progress bar
      * Checks if user is trying to seek forward and blocks it
+     * Allows backward seeking only - NO forward seeking allowed
      */
     function handleSeekAttempt(event) {
-        const seekBar = player.getChild('progressControl').getChild('seekBar');
-        if (!seekBar) return;
+        console.log('Seek attempt detected');
         
-        const mousePosX = event.offsetX || (event.touches && event.touches[0] ? event.touches[0].clientX : 0);
+        // Capture current time before seek (if not already captured)
+        const currentTime = player.currentTime();
+        if (timeBeforeSeek === 0) {
+            timeBeforeSeek = Math.max(currentTime, maxWatchedTime, lastPosition);
+        }
+        const referenceTime = timeBeforeSeek > 0 ? timeBeforeSeek : Math.max(currentTime, maxWatchedTime, lastPosition);
+        
+        const progressControl = player.getChild('progressControl');
+        if (!progressControl) {
+            console.log('Progress control not found');
+            return;
+        }
+        
+        const seekBar = progressControl.getChild('seekBar');
+        if (!seekBar || !seekBar.el()) {
+            console.log('Seek bar not found');
+            return;
+        }
+        
         const rect = seekBar.el().getBoundingClientRect();
-        const percent = mousePosX / rect.width;
+        const mousePosX = event.offsetX !== undefined ? event.offsetX : 
+                         (event.touches && event.touches[0] ? event.touches[0].clientX - rect.left : 0);
+        const percent = Math.max(0, Math.min(1, mousePosX / rect.width));
         const duration = player.duration();
         
-        if (duration) {
+        if (duration && duration > 0) {
             const targetTime = percent * duration;
             
-            // Check if seeking forward beyond allowed position
-            if (targetTime > lastAllowedPosition) {
+            console.log('handleSeekAttempt - referenceTime:', referenceTime, 'target:', targetTime, 'timeBeforeSeek:', timeBeforeSeek);
+            
+            // BLOCK ALL FORWARD SEEKING - even within watched content
+            // Only allow backward seeking (target time less than reference time)
+            if (targetTime > referenceTime + 0.1) {
+                console.log('Forward seek blocked in handleSeekAttempt - showing warning');
                 event.preventDefault();
                 event.stopPropagation();
+                event.stopImmediatePropagation();
                 
-                // Revert to last allowed position
-                player.currentTime(lastAllowedPosition);
+                // Revert to reference position (block forward seeking)
+                player.currentTime(referenceTime);
                 
-                showSeekWarning('You cannot seek forward. You can only rewind.');
+                // Show warning immediately
+                showSeekWarning('Forward seeking is completely disabled. You can only rewind.');
+                
+                timeBeforeSeek = 0; // Reset
                 return false;
             }
+            // Backward seeking is allowed - let it proceed naturally
         }
     }
 
@@ -337,6 +977,8 @@ document.addEventListener('DOMContentLoaded', function() {
      * Show warning message when forward seeking is attempted
      */
     function showSeekWarning(message) {
+        console.log('showSeekWarning called with message:', message);
+        
         // Remove existing warning if any
         const existingWarning = document.querySelector('.video-seek-warning');
         if (existingWarning) {
@@ -345,16 +987,178 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Create warning element
         const warning = document.createElement('div');
-        warning.className = 'video-seek-warning fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-center font-semibold';
+        warning.className = 'video-seek-warning';
         warning.textContent = message;
         document.body.appendChild(warning);
         
-        // Auto-remove after 3 seconds
+        // Force initial styles
+        warning.style.display = 'block';
+        warning.style.visibility = 'visible';
+        warning.style.opacity = '1';
+        
+        console.log('Warning element created and added to DOM');
+        
+        let centerX, topY;
+        
+        // Try to find the video player to position at top edge (same as volume warning)
+        function findVideoPlayerPosition() {
+            try {
+                const videoPlayer = document.getElementById('lesson-video-player');
+                if (videoPlayer) {
+                    const playerRect = videoPlayer.getBoundingClientRect();
+                    if (playerRect.width > 0 && playerRect.height > 0) {
+                        centerX = playerRect.left + (playerRect.width / 2);
+                        topY = playerRect.top + 20; // Position at top edge of video
+                        return true;
+                    }
+                }
+            } catch(e) {
+                console.log('Error finding video player:', e);
+            }
+            return false;
+        }
+        
+        // Try to find video player position
+        if (!findVideoPlayerPosition()) {
+            // Retry after a short delay
+            setTimeout(() => {
+                if (!findVideoPlayerPosition()) {
+                    // Fallback: center of screen
+                    centerX = window.innerWidth / 2;
+                    topY = 100;
+                }
+                positionWarning();
+            }, 50);
+        } else {
+            positionWarning();
+        }
+        
+        function positionWarning() {
+            if (!centerX) centerX = window.innerWidth / 2;
+            if (!topY) topY = 100;
+            
+            // Position the warning (same as volume warning)
+            warning.style.position = 'fixed';
+            warning.style.left = centerX + 'px';
+            warning.style.top = topY + 'px';
+            warning.style.transform = 'translateX(-50%)';
+            warning.style.zIndex = '99999';
+            warning.style.backgroundColor = '#ef4444';
+            warning.style.color = 'white';
+            warning.style.padding = '0.75rem 1rem';
+            warning.style.borderRadius = '0.5rem';
+            warning.style.fontSize = '0.875rem';
+            warning.style.fontWeight = '600';
+            warning.style.whiteSpace = 'nowrap';
+            warning.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.5)';
+            warning.style.animation = 'slideUpVolume 0.3s ease-out';
+            warning.style.pointerEvents = 'none';
+            warning.style.minWidth = '220px';
+            warning.style.textAlign = 'center';
+            
+            console.log('Warning positioned at:', centerX, topY);
+            console.log('Warning element:', warning);
+            console.log('Warning computed style:', window.getComputedStyle(warning));
+        }
+        
+        // Auto-remove after 2.5 seconds
         setTimeout(() => {
             if (warning.parentNode) {
-                warning.remove();
+                warning.style.opacity = '0';
+                warning.style.transition = 'opacity 0.3s ease-out';
+                setTimeout(() => {
+                    if (warning.parentNode) {
+                        warning.remove();
+                    }
+                }, 300);
             }
-        }, 3000);
+        }, 2500);
+    }
+
+    /**
+     * Show volume warning message above the sound button
+     */
+    function showVolumeWarning(message) {
+        console.log('showVolumeWarning called with message:', message);
+        
+        // Remove existing volume warning if any
+        const existingWarning = document.querySelector('.volume-warning-message');
+        if (existingWarning) {
+            existingWarning.remove();
+        }
+        
+        // Create warning element
+        const warning = document.createElement('div');
+        warning.className = 'volume-warning-message';
+        warning.textContent = message;
+        document.body.appendChild(warning);
+        
+        // Force initial styles
+        warning.style.display = 'block';
+        warning.style.visibility = 'visible';
+        warning.style.opacity = '1';
+        
+        let centerX, topY;
+        
+        // Try to find the video player to position at top edge (same as seek warning)
+        function findVideoPlayerPosition() {
+            try {
+                const videoPlayer = document.getElementById('lesson-video-player');
+                if (videoPlayer) {
+                    const playerRect = videoPlayer.getBoundingClientRect();
+                    if (playerRect.width > 0 && playerRect.height > 0) {
+                        centerX = playerRect.left + (playerRect.width / 2);
+                        topY = playerRect.top + 20; // Position at top edge of video
+                        return true;
+                    }
+                }
+            } catch(e) {
+                console.log('Error finding video player:', e);
+            }
+            return false;
+        }
+        
+        // Try to find video player position
+        if (!findVideoPlayerPosition()) {
+            // Retry after a short delay
+            setTimeout(() => {
+                if (!findVideoPlayerPosition()) {
+                    // Fallback: center of screen
+                    centerX = window.innerWidth / 2;
+                    topY = 100;
+                }
+                positionWarning();
+            }, 50);
+        } else {
+            positionWarning();
+        }
+        
+        function positionWarning() {
+            if (!centerX) centerX = window.innerWidth / 2;
+            if (!topY) topY = 100;
+            
+            // Position the warning
+            warning.style.position = 'fixed';
+            warning.style.left = centerX + 'px';
+            warning.style.top = topY + 'px';
+            warning.style.transform = 'translateX(-50%)';
+            warning.style.zIndex = '99999';
+            
+            console.log('Volume warning positioned at:', centerX, topY);
+        }
+        
+        // Auto-remove after 2.5 seconds
+        setTimeout(() => {
+            if (warning.parentNode) {
+                warning.style.opacity = '0';
+                warning.style.transition = 'opacity 0.3s ease-out';
+                setTimeout(() => {
+                    if (warning.parentNode) {
+                        warning.remove();
+                    }
+                }, 300);
+            }
+        }, 2500);
     }
 
     /**
@@ -363,39 +1167,61 @@ document.addEventListener('DOMContentLoaded', function() {
      * Action: Block forward seeking, allow backward seeking only
      * 
      * LOGIC:
-     * 1. Detect if user is trying to seek forward (targetTime > lastAllowedPosition)
-     * 2. If forward seek detected: prevent it immediately and revert to lastAllowedPosition
-     * 3. If backward seek: allow it and update lastAllowedPosition
-     * 4. lastAllowedPosition is updated continuously as video plays forward
+     * 1. Detect if user is trying to seek forward (targetTime > maxWatchedTime)
+     * 2. If forward seek detected: prevent it immediately and revert to maxWatchedTime
+     * 3. If backward seek: allow it completely (don't interfere)
+     * 4. maxWatchedTime is the furthest point reached through normal playback
      */
     player.on('seeking', function() {
         const targetTime = player.currentTime();
-        const seekThreshold = 0.5; // Allow 0.5 seconds tolerance for normal playback variance
+        const seekThreshold = 0.3; // Allow 0.3 seconds tolerance for normal playback variance
         
-        // Check if attempting to seek forward beyond allowed position
-        if (targetTime > lastAllowedPosition + seekThreshold) {
-            console.log('ANTI-CHEAT: Forward seeking blocked at', targetTime, '- reverting to', lastAllowedPosition);
+        // Get the actual current time before this seek
+        // Use timeBeforeSeek if it was set, otherwise use max of lastPosition and maxWatchedTime
+        const currentTimeBeforeSeek = timeBeforeSeek > 0 ? timeBeforeSeek : Math.max(lastPosition, maxWatchedTime);
+        
+        console.log('Seeking event - target:', targetTime, 'currentTimeBeforeSeek:', currentTimeBeforeSeek, 'timeBeforeSeek:', timeBeforeSeek, 'lastPosition:', lastPosition, 'maxWatchedTime:', maxWatchedTime);
+        
+        // If isSeekingForward is explicitly false, it's a backward seek - allow it
+        if (isSeekingForward === false) {
+            console.log('Backward seek detected (flag) - allowing:', targetTime);
+            // Allow backward seeking - don't interfere
+            timeBeforeSeek = 0; // Reset
+            return;
+        }
+        
+        // Check if this is a backward seek (target time is less than current position)
+        if (targetTime < currentTimeBeforeSeek - seekThreshold) {
+            console.log('Backward seek detected (time < currentTimeBeforeSeek) - allowing:', targetTime);
+            isSeekingForward = false;
+            timeBeforeSeek = 0; // Reset
+            // Allow backward seeking - don't interfere
+            return;
+        }
+        
+        // BLOCK ALL FORWARD SEEKING - even within watched content
+        // Only allow backward seeking or normal forward playback
+        if (targetTime > currentTimeBeforeSeek + seekThreshold) {
+            console.log('ANTI-CHEAT: Forward seeking blocked at', targetTime, '- reverting to', currentTimeBeforeSeek);
             isSeekingForward = true;
             
-            // Immediately revert to last allowed position
-            player.currentTime(lastAllowedPosition);
+            // Immediately revert to the position before seek
+            player.currentTime(currentTimeBeforeSeek);
             
-            // Show warning message
-            showSeekWarning('Forward seeking is disabled. You can only rewind to review content.');
+            // Show warning message immediately
+            console.log('Showing forward seek warning');
+            showSeekWarning('Forward seeking is completely disabled. You can only rewind to review content.');
+            
+            // Reset timeBeforeSeek
+            timeBeforeSeek = 0;
             
             // Prevent the seek from completing
             return false;
-        } else {
-            // Backward seek or small forward movement (allowed)
-            isSeekingForward = false;
-            
-            // If seeking backward, update lastAllowedPosition to allow rewinding
-            if (targetTime < lastAllowedPosition) {
-                // Allow backward seeking - update allowed position
-                lastAllowedPosition = targetTime;
-                console.log('Backward seek allowed - new allowed position:', lastAllowedPosition);
-            }
         }
+        
+        // Small movement within threshold (likely normal playback) - allow it
+        isSeekingForward = false;
+        timeBeforeSeek = 0; // Reset after processing
     });
 
     /**
@@ -424,6 +1250,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sessionStartPosition > lastAllowedPosition) {
             lastAllowedPosition = sessionStartPosition;
         }
+        
+        // Start initial progress update immediately
+        updateWatchProgress();
     });
 
     /**
@@ -432,7 +1261,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * Action: Calculate watched segment and accumulate to total, send update to backend
      */
     player.on('pause', function() {
-        console.log('Video paused - stopping watch time tracking');
+        console.log('Video paused - finalizing current session');
         
         // Finalize current session
         if (isPlaying && sessionStartTimestamp !== null) {
@@ -443,12 +1272,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 addWatchedSegment(sessionStartPosition, currentPosition);
             }
             
+            // Recalculate watched seconds
+            watchedSeconds = calculateWatchedSeconds();
+            
             // Update max watched time
             if (currentPosition > maxWatchedTime) {
                 maxWatchedTime = currentPosition;
             }
             
             lastPosition = currentPosition;
+            
+            // Update UI immediately
+            const duration = player.duration() || 0;
+            if (duration > 0) {
+                const pausedPercentage = Math.min(100, (watchedSeconds / duration) * 100);
+                updateProgressBarUI(pausedPercentage, pausedPercentage >= 80);
+            }
         }
         
         isPlaying = false;
@@ -460,12 +1299,72 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     /**
+     * Unlock game button immediately when 80% is reached
+     */
+    function unlockGameButton() {
+        const gameButtonContainer = document.getElementById('game-button-container');
+        const lockedGameButton = document.getElementById('locked-game-button');
+        const gameUnlockMessage = document.getElementById('game-unlock-message');
+        
+        if (!gameButtonContainer) return;
+        
+        // Check if game is already unlocked
+        const existingUnlockedButton = gameButtonContainer.querySelector('a[href*="games"]');
+        if (existingUnlockedButton) {
+            return; // Already unlocked
+        }
+        
+        // Replace locked button with unlocked button
+        if (lockedGameButton) {
+            const lessonId = {{ $lesson->lesson_id }};
+            const gameUrl = '{{ route("student.games", ["lesson_id" => $lesson->lesson_id]) }}';
+            
+            // Create unlocked button
+            const unlockedButton = document.createElement('a');
+            unlockedButton.href = gameUrl;
+            unlockedButton.className = 'inline-flex items-center gap-2 bg-gradient-to-r from-green-400 via-green-300 to-green-200 hover:from-green-500 hover:to-green-300 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all text-base transform hover:scale-105';
+            unlockedButton.innerHTML = `
+                <span class="text-xl">🎮</span>
+                <span>Play Game</span>
+                <span class="ml-2 bg-green-600 px-2 py-1 rounded-full text-xs">Unlocked</span>
+            `;
+            
+            // Add animation
+            unlockedButton.style.opacity = '0';
+            unlockedButton.style.transform = 'scale(0.9)';
+            
+            // Replace locked button with unlocked button
+            lockedGameButton.replaceWith(unlockedButton);
+            
+            // Animate in
+            setTimeout(() => {
+                unlockedButton.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+                unlockedButton.style.opacity = '1';
+                unlockedButton.style.transform = 'scale(1)';
+            }, 10);
+            
+            // Remove unlock message
+            if (gameUnlockMessage) {
+                gameUnlockMessage.style.transition = 'opacity 0.3s ease-out';
+                gameUnlockMessage.style.opacity = '0';
+                setTimeout(() => {
+                    gameUnlockMessage.remove();
+                }, 300);
+            }
+            
+            console.log('Game button unlocked immediately at 80%');
+        }
+    }
+
+    /**
      * Update progress bar in real-time during playback
      */
     function updateProgressBarRealTime() {
         const duration = player.duration();
         if (duration && watchedSeconds > 0) {
-            const currentPercentage = (watchedSeconds / duration) * 100;
+            // Cap percentage at 100%
+            const cappedWatchedSeconds = Math.min(watchedSeconds, duration);
+            const currentPercentage = Math.min(100, (cappedWatchedSeconds / duration) * 100);
             const progressBar = document.getElementById('video-progress-bar');
             const progressPercentage = document.getElementById('video-progress-percentage');
             
@@ -487,45 +1386,92 @@ document.addEventListener('DOMContentLoaded', function() {
      * - If video is somehow ahead of lastAllowedPosition (shouldn't happen), block it
      */
     player.on('timeupdate', function() {
-        // Only track if actively playing AND tab is visible
-        if (!isPlaying || !isTabVisible || sessionStartTimestamp === null) {
-            return;
-        }
-        
         const currentTime = player.currentTime();
         
-        // ANTI-CHEAT: Ensure video cannot play beyond allowed position
+        // Reset timeBeforeSeek during normal playback (not seeking)
+        // This ensures it's only set when user actually interacts with progress bar
+        if (isPlaying && !isSeekingForward && timeBeforeSeek > 0) {
+            // If we're playing forward normally, reset timeBeforeSeek
+            // Only keep it if we're very close to when it was set (within 1 second)
+            if (Math.abs(currentTime - timeBeforeSeek) > 1) {
+                timeBeforeSeek = 0;
+            }
+        }
+        
+        // ANTI-CHEAT: Ensure video cannot play beyond max watched time
         // This catches any forward seeking that somehow got past the seeking event
-        if (currentTime > lastAllowedPosition + 0.5) {
-            console.log('ANTI-CHEAT: Video ahead of allowed position - reverting');
-            player.currentTime(lastAllowedPosition);
+        // Only check this if video is playing forward (not during backward seeking)
+        if (isPlaying && !isSeekingForward && currentTime > maxWatchedTime + 0.5) {
+            console.log('ANTI-CHEAT: Video ahead of max watched time - reverting');
+            player.currentTime(maxWatchedTime);
             return;
         }
         
-        // Only count forward progress (real watching, not backward seeking)
-        if (currentTime > lastPosition) {
-            // We're making forward progress - this is real watch time
-            
-            // Update max watched time and last allowed position
-            if (currentTime > maxWatchedTime) {
-                maxWatchedTime = currentTime;
-            }
-            if (currentTime > lastAllowedPosition) {
+        // Only track watch time if actively playing AND tab is visible
+        if (isPlaying && isTabVisible && sessionStartTimestamp !== null) {
+            // Only count forward progress (real watching, not backward seeking)
+            if (currentTime > lastPosition) {
+                // We're making forward progress - this is real watch time
+                
+                // Update max watched time (this is the furthest point reached)
+                if (currentTime > maxWatchedTime) {
+                    maxWatchedTime = currentTime;
+                }
+                // Update last allowed position to current position
                 lastAllowedPosition = currentTime;
+                
+                lastPosition = currentTime;
+                
+                // Calculate watched time based on max watched time for real-time display
+                // This gives immediate feedback without waiting for segment finalization
+                const duration = player.duration() || 0;
+                if (duration > 0) {
+                    // Use maxWatchedTime for real-time progress calculation
+                    const realTimeWatched = Math.min(maxWatchedTime, duration);
+                    const realTimePercentage = (realTimeWatched / duration) * 100;
+                    
+                    // Update progress bar in real-time with current position
+                    const progressBar = document.getElementById('video-progress-bar');
+                    const progressPercentage = document.getElementById('video-progress-percentage');
+                    if (progressBar && progressPercentage) {
+                        progressBar.style.width = Math.min(100, realTimePercentage) + '%';
+                        progressPercentage.textContent = parseFloat(Math.min(100, realTimePercentage)).toFixed(1) + '%';
+                    }
+                }
+                
+                // Trigger progress update more frequently when approaching 80%
+                if (duration > 0) {
+                    const realTimePercentage = (maxWatchedTime / duration) * 100;
+                    
+                    // Unlock game immediately when 80% is reached in real-time
+                    if (realTimePercentage >= 80) {
+                        unlockGameButton();
+                        updateProgressBarUI(realTimePercentage, true);
+                    }
+                    
+                    // Update more frequently when close to 80%
+                    if (realTimePercentage >= 70 && realTimePercentage < 85 && isPlaying) {
+                        // Trigger update every 2 seconds when close to completion
+                        const now = Date.now();
+                        if (now - lastUpdateTime > 2000) {
+                            updateWatchProgress();
+                            lastUpdateTime = now;
+                        }
+                    }
+                }
+            } else if (currentTime < lastPosition) {
+                // User seeked backward - just update lastPosition, don't interfere
+                // Allow backward seeking to any point before maxWatchedTime (including 10+ seconds back)
+                lastPosition = currentTime;
+                
+                // Update progress bar even when seeking backward
+                updateProgressBarRealTime();
             }
-            
-            lastPosition = currentTime;
-            
-            // Update progress bar in real-time
-            updateProgressBarRealTime();
-        } else if (currentTime < lastPosition) {
-            // User seeked backward - update lastPosition but don't add to watched time
-            // Also update lastAllowedPosition to allow this backward position
-            lastAllowedPosition = currentTime;
-            lastPosition = currentTime;
-            
-            // Update progress bar even when seeking backward
-            updateProgressBarRealTime();
+        } else if (!isPlaying) {
+            // When paused, allow backward seeking - just update position
+            if (currentTime < lastPosition) {
+                lastPosition = currentTime;
+            }
         }
     });
 
@@ -535,19 +1481,28 @@ document.addEventListener('DOMContentLoaded', function() {
      * Action: Finalize previous segment and restart tracking from new position
      * 
      * ANTI-CHEAT LOGIC:
-     * - Double-check that seek didn't go beyond lastAllowedPosition
+     * - Double-check that seek didn't go beyond maxWatchedTime
      * - If forward seek somehow completed, revert it immediately
-     * - Only allow backward seeks to finalize
+     * - Allow backward seeks completely - don't interfere
      */
     player.on('seeked', function() {
         const currentTime = player.currentTime();
+        const referenceTime = Math.max(timeBeforeSeek, maxWatchedTime, lastPosition);
         
-        // ANTI-CHEAT: Final safety check - ensure we didn't seek forward
-        if (currentTime > lastAllowedPosition + 0.5) {
-            console.log('ANTI-CHEAT: Seek completed beyond allowed - reverting');
-            player.currentTime(lastAllowedPosition);
+        console.log('Seeked event - currentTime:', currentTime, 'referenceTime:', referenceTime, 'lastPosition:', lastPosition, 'maxWatchedTime:', maxWatchedTime);
+        
+        // ANTI-CHEAT: Final safety check - block ALL forward seeking
+        // Check if we seeked forward (beyond reference position)
+        if (currentTime > referenceTime + 0.3) {
+            console.log('ANTI-CHEAT: Forward seek detected in seeked event - reverting to', referenceTime);
+            player.currentTime(referenceTime);
+            isSeekingForward = false;
+            showSeekWarning('Forward seeking is completely disabled.');
             return;
         }
+        
+        // Reset seeking flag
+        isSeekingForward = false;
         
         // Finalize previous watching session if we were tracking
         if (isPlaying && sessionStartTimestamp !== null && lastPosition > sessionStartPosition) {
@@ -557,10 +1512,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update positions
         lastPosition = currentTime;
         
-        // If backward seek, update lastAllowedPosition to allow it
-        if (currentTime < lastAllowedPosition) {
+        // If backward seek, don't update maxWatchedTime - allow free backward seeking
+        // Only update maxWatchedTime if we're making forward progress through normal playback
+        // (not through seeking)
+        if (currentTime > maxWatchedTime && isPlaying) {
+            maxWatchedTime = currentTime;
             lastAllowedPosition = currentTime;
         }
+        
+        console.log('Seek completed to:', currentTime, 'lastPosition:', lastPosition, 'maxWatchedTime:', maxWatchedTime);
         
         // If still playing, start new session from this position
         if (isPlaying && isTabVisible) {
@@ -578,28 +1538,102 @@ document.addEventListener('DOMContentLoaded', function() {
      * Action: Finalize current watch time segment and mark as completed
      */
     player.on('ended', function() {
-        console.log('Video ended');
+        console.log('Video ended - finalizing progress immediately');
+        
+        const duration = player.duration() || 0;
         
         // Finalize current session
-        if (sessionStartTimestamp !== null) {
-            const endPosition = player.currentTime();
+        if (sessionStartTimestamp !== null && isPlaying) {
+            const endPosition = duration; // Use full duration, not currentTime (which might be slightly less)
             if (endPosition > sessionStartPosition) {
                 addWatchedSegment(sessionStartPosition, endPosition);
             }
         }
         
+        // Ensure we have a segment covering the full video if video was watched
+        // Add a segment from 0 to duration to ensure 100% completion
+        if (duration > 0) {
+            // Check if we already have a segment covering the full duration
+            let hasFullSegment = false;
+            for (const segment of watchedSegments) {
+                if (segment.start <= 0 && segment.end >= duration * 0.8) {
+                    hasFullSegment = true;
+                    break;
+                }
+            }
+            
+            // If we don't have a full segment, add one from 0 to duration
+            // This ensures 100% completion when video ends
+            if (!hasFullSegment && maxWatchedTime >= duration * 0.8) {
+                // Video was watched to at least 80%, mark as fully watched
+                watchedSegments = [{ start: 0, end: duration }];
+                watchedSeconds = duration;
+            }
+        }
+        
         // Update max watched time to video duration
-        const duration = player.duration();
         if (duration && duration > maxWatchedTime) {
             maxWatchedTime = duration;
         }
         
-        lastPosition = duration || 0;
+        lastPosition = duration;
         isPlaying = false;
         sessionStartTimestamp = null;
         
-        // Final update with completion status
-        updateWatchProgress(true);
+        // Recalculate watched seconds to ensure accuracy
+        watchedSeconds = calculateWatchedSeconds();
+        // Cap at duration
+        if (duration > 0) {
+            watchedSeconds = Math.min(watchedSeconds, duration);
+        }
+        
+        // Calculate final percentage
+        const finalPercentage = duration > 0 ? Math.min(100, (watchedSeconds / duration) * 100) : 0;
+        
+        // Update UI immediately
+        updateProgressBarUI(finalPercentage, true);
+        
+        // Force immediate update to backend (bypass throttle)
+        clearTimeout(updateTimer);
+        
+        const data = {
+            lesson_id: lessonId,
+            watched_seconds: Math.floor(watchedSeconds),
+            watched_percentage: parseFloat(finalPercentage.toFixed(2)),
+            current_position: parseFloat(duration.toFixed(2)),
+            max_watched_time: parseFloat(duration.toFixed(2)),
+            is_completed: true
+        };
+
+        // Send immediate update to backend
+        fetch('/api/lessons/' + lessonId + '/video/track', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(responseData => {
+            if (responseData.success) {
+                console.log('Video ended - progress finalized:', responseData.data);
+                
+                // Update UI with server response
+                updateProgressBarUI(responseData.data.watched_percentage, true);
+                
+                // Reload page to show completion status
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                console.error('Error finalizing progress:', responseData.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error finalizing watch progress:', error);
+        });
     });
 
     /**
@@ -675,11 +1709,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /**
      * Update watch progress on backend
-     * Throttled to prevent too many API calls
+     * Uses adaptive throttling - more frequent updates when approaching 80%
      */
     let updateTimer = null;
+    let lastUpdatePercentage = 0;
     function updateWatchProgress(isCompleted = false) {
         clearTimeout(updateTimer);
+        
+        // Calculate current percentage to determine update frequency
+        const duration = player.duration() || 0;
+        const currentWatchedSeconds = Math.min(Math.floor(watchedSeconds), Math.floor(duration));
+        const currentPercentage = duration > 0 ? Math.min(100, (currentWatchedSeconds / duration) * 100) : 0;
+        
+        // Adaptive update interval:
+        // - Every 2 seconds when between 75-85% (very close to completion)
+        // - Every 5 seconds when between 70-90% (approaching completion)
+        // - Every 10 seconds otherwise
+        let updateInterval = 10000; // Default 10 seconds
+        if (currentPercentage >= 75 && currentPercentage < 85) {
+            updateInterval = 2000; // Every 2 seconds when very close
+        } else if (currentPercentage >= 70 && currentPercentage < 90) {
+            updateInterval = 5000; // Every 5 seconds when approaching
+        }
         
         updateTimer = setTimeout(function() {
             // Finalize any ongoing session before sending update
@@ -694,16 +1745,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastPosition = currentPosition;
             }
             
-            const duration = player.duration() || 0;
-            const watchedPercentage = duration > 0 ? (watchedSeconds / duration) * 100 : 0;
+            // Recalculate after finalizing session
+            const finalWatchedSeconds = Math.min(Math.floor(watchedSeconds), Math.floor(duration));
+            const watchedPercentage = duration > 0 ? Math.min(100, (finalWatchedSeconds / duration) * 100) : 0;
             const isEightyPercentWatched = watchedPercentage >= 80;
-
+            
+            // Update UI immediately with current progress (before API call)
+            updateProgressBarUI(watchedPercentage, isEightyPercentWatched);
+            
             const data = {
                 lesson_id: lessonId,
-                watched_seconds: Math.floor(watchedSeconds),
+                watched_seconds: finalWatchedSeconds,
                 watched_percentage: parseFloat(watchedPercentage.toFixed(2)),
                 current_position: parseFloat(lastPosition.toFixed(2)),
-                max_watched_time: parseFloat(maxWatchedTime.toFixed(2)),
+                max_watched_time: parseFloat(Math.min(maxWatchedTime, duration).toFixed(2)),
                 is_completed: isCompleted || isEightyPercentWatched
             };
 
@@ -722,8 +1777,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (responseData.success) {
                     console.log('Watch progress updated:', responseData.data);
                     
-                    // Update UI: Progress bar and percentage
+                    // Update UI with server response (more accurate)
                     updateProgressBarUI(responseData.data.watched_percentage, responseData.data.video_completed);
+                    
+                    // Check if we just crossed 80% threshold
+                    const justReached80 = watchedPercentage >= 80 && lastUpdatePercentage < 80;
+                    lastUpdatePercentage = watchedPercentage;
+                    
+                    // If lesson is completed (80% reached)
+                    const isLessonCompleted = responseData.data.is_completed || responseData.data.status === 'completed';
+                    const isEightyPercent = responseData.data.watched_percentage >= 80;
+                    
+                    // Unlock game immediately when 80% is reached
+                    if (justReached80 || isEightyPercent) {
+                        console.log('Just reached 80% - unlocking game immediately');
+                        unlockGameButton();
+                        updateProgressBarUI(responseData.data.watched_percentage, true);
+                    }
+                    
+                    // Reload page after a delay to show completion badge (but game is already unlocked)
+                    if (isLessonCompleted && isEightyPercent) {
+                        console.log('Lesson completed at 80% - will reload to show completion badge');
+                        // Small delay to ensure UI updates are visible before reload
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    }
                 } else {
                     console.error('Error updating progress:', responseData.message);
                 }
@@ -731,7 +1810,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error updating watch progress:', error);
             });
-        }, 10000); // Update every 10 seconds
+        }, updateInterval);
     }
 
     /**
@@ -740,6 +1819,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateProgressBarUI(watchedPercentage, videoCompleted) {
         const progressBar = document.getElementById('video-progress-bar');
         const progressPercentage = document.getElementById('video-progress-percentage');
+        const progressMessage = document.getElementById('video-progress-message');
+        const progressContainer = document.getElementById('video-progress-container');
+        
+        // Ensure progress container is visible
+        if (progressContainer) {
+            progressContainer.style.display = 'block';
+        }
         
         if (progressBar && progressPercentage) {
             // Update progress bar width
@@ -747,80 +1833,139 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Update percentage text
             progressPercentage.textContent = parseFloat(watchedPercentage).toFixed(1) + '%';
-            
-            // Update progress message
-            const progressMessage = progressBar.parentElement.nextElementSibling;
-            if (progressMessage) {
-                if (videoCompleted || watchedPercentage >= 80) {
-                    progressMessage.innerHTML = '<p class="text-xs text-green-600 mt-1 font-medium">✓ Video completed! Game unlocked.</p>';
-                } else {
-                    const remaining = 80 - watchedPercentage;
-                    progressMessage.innerHTML = '<p class="text-xs text-gray-500 mt-1">Watch ' + remaining.toFixed(1) + '% more to unlock game</p>';
-                }
+        }
+        
+        // Update progress message
+        if (progressMessage) {
+            if (videoCompleted || watchedPercentage >= 80) {
+                progressMessage.innerHTML = '<p class="text-xs text-green-600 mt-1 font-medium">✓ Lesson completed! Game unlocked.</p>';
+            } else {
+                const remaining = 80 - watchedPercentage;
+                progressMessage.innerHTML = '<p class="text-xs text-gray-500 mt-1">Watch ' + remaining.toFixed(1) + '% more to complete lesson and unlock game</p>';
             }
         }
         
-        // Update game button state if video just completed
-        if (videoCompleted) {
-            const gameButton = document.querySelector('[href*="games"]');
-            if (gameButton && gameButton.classList.contains('cursor-not-allowed')) {
-                // Reload page to show unlocked button (or update via JS)
-                location.reload();
-            }
+        // Unlock game button immediately when 80% is reached
+        if (videoCompleted || watchedPercentage >= 80) {
+            unlockGameButton();
         }
     }
 
-    // Load existing progress on page load
-    player.ready(function() {
+    /**
+     * Load existing progress immediately on page load
+     * This ensures progress bar is visible and tracking starts right away
+     */
+    function loadVideoProgress() {
         fetch('/api/lessons/' + lessonId + '/video/progress', {
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
             }
         })
         .then(response => response.json())
         .then(data => {
-            if (data) {
-                // Restore max watched time (prevents forward seeking)
-                if (data.max_watched_time !== undefined) {
-                    maxWatchedTime = parseFloat(data.max_watched_time) || 0;
+            if (data && data.success && data.data) {
+                const progressData = data.data;
+                
+                // Update UI immediately with saved progress (before video duration is available)
+                if (progressData.watched_percentage !== undefined) {
+                    const savedPercentage = parseFloat(progressData.watched_percentage) || 0;
+                    updateProgressBarUI(savedPercentage, progressData.video_completed || false);
                 }
                 
-                // Restore last allowed position (key anti-cheat variable)
-                if (data.max_watched_time !== undefined) {
-                    lastAllowedPosition = parseFloat(data.max_watched_time) || 0;
-                } else if (data.last_position !== undefined) {
-                    // Fallback to last_position if max_watched_time not available
-                    lastAllowedPosition = parseFloat(data.last_position) || 0;
-                }
+                // Wait for video duration to be available for accurate tracking
+                const checkDuration = setInterval(() => {
+                    const duration = player.duration();
+                    if (duration && duration > 0) {
+                        clearInterval(checkDuration);
+                        
+                        // Restore max watched time (prevents forward seeking)
+                        if (progressData.max_watched_time !== undefined) {
+                            maxWatchedTime = Math.min(parseFloat(progressData.max_watched_time) || 0, duration);
+                        }
+                        
+                        // Restore last allowed position (key anti-cheat variable)
+                        if (progressData.max_watched_time !== undefined) {
+                            lastAllowedPosition = Math.min(parseFloat(progressData.max_watched_time) || 0, duration);
+                        } else if (progressData.last_position !== undefined) {
+                            // Fallback to last_position if max_watched_time not available
+                            lastAllowedPosition = Math.min(parseFloat(progressData.last_position) || 0, duration);
+                        }
+                        
+                        // Restore watched seconds - CAP at video duration to prevent >100%
+                        const savedWatchedSeconds = parseFloat(progressData.watched_seconds) || 0;
+                        watchedSeconds = Math.min(savedWatchedSeconds, duration);
+                        
+                        // Reconstruct watched segments from saved progress
+                        // If max_watched_time exists, create segment from 0 to max_watched_time
+                        // This represents all the content that has been watched
+                        if (maxWatchedTime > 0) {
+                            watchedSegments = [{ start: 0, end: Math.min(maxWatchedTime, duration) }];
+                            // Recalculate to ensure consistency
+                            watchedSeconds = calculateWatchedSeconds();
+                        }
+                        
+                        // Restore last position and resume from there
+                        // Ensure we don't resume beyond lastAllowedPosition
+                        if (progressData.last_position !== undefined && progressData.last_position > 0) {
+                            const resumePosition = Math.min(
+                                parseFloat(progressData.last_position) || 0,
+                                lastAllowedPosition,
+                                duration
+                            );
+                            player.currentTime(resumePosition);
+                            lastPosition = resumePosition;
+                        }
+                        
+                        // Update UI with accurate loaded progress
+                        const loadedPercentage = duration > 0 ? Math.min(100, (watchedSeconds / duration) * 100) : 0;
+                        updateProgressBarUI(loadedPercentage, progressData.video_completed || false);
+                        
+                        console.log('Progress loaded and tracking initialized:', {
+                            maxWatchedTime: maxWatchedTime,
+                            lastAllowedPosition: lastAllowedPosition,
+                            watchedSeconds: watchedSeconds,
+                            watchedPercentage: loadedPercentage,
+                            lastPosition: lastPosition,
+                            videoCompleted: progressData.video_completed
+                        });
+                    }
+                }, 100);
                 
-                // Restore watched seconds
-                if (data.watched_seconds !== undefined) {
-                    watchedSeconds = parseFloat(data.watched_seconds) || 0;
-                }
-                
-                // Restore last position and resume from there
-                // Ensure we don't resume beyond lastAllowedPosition
-                if (data.last_position !== undefined && data.last_position > 0) {
-                    const resumePosition = Math.min(
-                        parseFloat(data.last_position) || 0,
-                        lastAllowedPosition
-                    );
-                    player.currentTime(resumePosition);
-                    lastPosition = resumePosition;
-                }
-                
-                console.log('Progress loaded:', {
-                    maxWatchedTime: maxWatchedTime,
-                    lastAllowedPosition: lastAllowedPosition,
-                    watchedSeconds: watchedSeconds,
-                    lastPosition: lastPosition
-                });
+                // Timeout after 5 seconds if duration never loads
+                setTimeout(() => {
+                    clearInterval(checkDuration);
+                }, 5000);
+            } else {
+                // No progress found - initialize with 0%
+                updateProgressBarUI(0, false);
+                console.log('No existing progress found - starting fresh');
             }
         })
         .catch(error => {
             console.error('Error loading video progress:', error);
+            // Initialize with 0% on error
+            updateProgressBarUI(0, false);
         });
+    }
+    
+    // Load progress immediately when player is ready
+    player.ready(function() {
+        // Load progress right away
+        loadVideoProgress();
+        
+        // Also start tracking immediately
+        console.log('Video player ready - tracking initialized');
     });
+    
+    // Also try to load progress immediately on DOM ready (before player is ready)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(loadVideoProgress, 500);
+        });
+    } else {
+        setTimeout(loadVideoProgress, 500);
+    }
 
     // Cleanup on page unload - finalize and save progress
     window.addEventListener('beforeunload', function() {
