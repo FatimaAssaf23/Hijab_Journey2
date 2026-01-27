@@ -34,7 +34,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Mail\TeacherRejectedMail;
 use App\Mail\TeacherApprovedMail;
-use App\Services\ScheduleService;
 
 class AdminController extends Controller
 {
@@ -2335,23 +2334,6 @@ class AdminController extends Controller
 
         $class->teacher_id = $validated['teacher_id'];
         $class->save();
-
-        // Auto-generate default schedule for the teacher
-        try {
-            $scheduleService = new ScheduleService();
-            $scheduleEvents = $scheduleService->generateDefaultScheduleForTeacher(
-                $validated['teacher_id'],
-                $classId
-            );
-            
-            // Log if schedules were created
-            if (count($scheduleEvents) > 0) {
-                \Log::info("Auto-generated " . count($scheduleEvents) . " schedule events for teacher {$validated['teacher_id']} and class {$classId}");
-            }
-        } catch (\Exception $e) {
-            // Log error but don't fail the assignment
-            \Log::error("Failed to auto-generate schedule for teacher {$validated['teacher_id']}: " . $e->getMessage());
-        }
 
         if ($request->expectsJson()) {
             return response()->json([

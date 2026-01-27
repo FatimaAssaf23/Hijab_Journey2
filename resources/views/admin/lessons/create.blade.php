@@ -107,6 +107,34 @@
                             document.getElementById('emojiGrid').classList.remove('grid');
                             emojiGridVisible = false;
                         }
+
+                        // Ensure URL and file upload are mutually exclusive
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const contentUrlInput = document.querySelector('input[name="content_url"]');
+                            const contentFileInput = document.getElementById('content_file');
+
+                            if (contentFileInput) {
+                                contentFileInput.addEventListener('change', function() {
+                                    if (this.files && this.files.length > 0) {
+                                        // Clear URL if file is selected
+                                        if (contentUrlInput) {
+                                            contentUrlInput.value = '';
+                                        }
+                                    }
+                                });
+                            }
+
+                            if (contentUrlInput) {
+                                contentUrlInput.addEventListener('input', function() {
+                                    if (this.value.trim() !== '') {
+                                        // Clear file input if URL is entered
+                                        if (contentFileInput) {
+                                            contentFileInput.value = '';
+                                        }
+                                    }
+                                });
+                            }
+                        });
                     </script>
 
                     <!-- Skills -->
@@ -139,6 +167,15 @@
                         <input type="url" name="content_url" value="{{ old('content_url') }}" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/...">
                         <p class="text-gray-500 text-xs mt-1">Enter a YouTube link or any other content URL.</p>
                         @error('content_url') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- OR Upload Lesson Content File -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">OR Upload Lesson Content File <span class="text-gray-400 font-normal">(Optional)</span></label>
+                        <input type="file" name="content_file" id="content_file" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-500 file:text-white hover:file:bg-pink-600 file:cursor-pointer">
+                        <p class="text-gray-500 text-xs mt-1">Leave empty to keep current file. Accepted formats: PDF, MP4, MOV, AVI (Max 100MB).</p>
+                        <p class="text-gray-500 text-xs mt-1">URL above or file upload, not both.</p>
+                        @error('content_file') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                     </div>
 
                     <!-- Duration -->

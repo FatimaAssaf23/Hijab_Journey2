@@ -23,18 +23,15 @@
                             Event Calendar & Schedule
                         </h1>
                         <p class="text-sm lg:text-base text-gray-700 font-medium">
-                            Schedules are automatically generated when teachers are assigned to classes. You can edit existing events or add supplementary events.
+                            Manage and organize events, tasks, and deadlines for teachers
                         </p>
                     </div>
-                    <div class="flex flex-col gap-2">
-                        <button id="addEventBtn" class="bg-gradient-to-r from-cyan-500 to-teal-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Supplementary Event
-                        </button>
-                        <small class="text-xs text-gray-600 text-center">Add extra events beyond auto-generated schedules</small>
-                    </div>
+                    <button id="addEventBtn" class="bg-gradient-to-r from-pink-500 to-cyan-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add New Event
+                    </button>
                 </div>
             </div>
         </div>
@@ -100,12 +97,7 @@
         <!-- Events Table -->
         <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-pink-200/40 overflow-hidden">
             <div class="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-black text-white">All Events</h3>
-                        <p class="text-xs text-white/90 mt-1">Auto-generated schedules appear when teachers are assigned to classes</p>
-                    </div>
-                </div>
+                <h3 class="text-lg font-black text-white">All Events</h3>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -153,42 +145,12 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Teacher</label>
-                    <select id="eventTeacherId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                        <option value="">Global Event (All Teachers)</option>
-                        @foreach($teachers as $teacher)
-                            <option value="{{ $teacher->user_id }}">{{ $teacher->first_name }} {{ $teacher->last_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Class</label>
-                    <select id="eventClassId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                        <option value="">No Specific Class</option>
-                        @foreach($classes as $class)
-                            <option value="{{ $class->class_id }}">{{ $class->class_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">Date *</label>
                     <input type="date" id="eventDate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">Time</label>
                     <input type="time" id="eventTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Shift From</label>
-                    <input type="time" id="eventShiftFrom" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Shift To</label>
-                    <input type="time" id="eventShiftTo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
@@ -224,30 +186,7 @@
 let currentDate = new Date();
 let selectedDate = null;
 let editingEventId = null;
-const events = @json($events->map(function($event) {
-    return [
-        'event_id' => $event->event_id,
-        'title' => $event->title,
-        'description' => $event->description,
-        'event_date' => $event->event_date->format('Y-m-d'),
-        'event_time' => $event->event_time ? $event->event_time->format('H:i:s') : null,
-        'shift_from' => $event->shift_from ? $event->shift_from->format('H:i:s') : null,
-        'shift_to' => $event->shift_to ? $event->shift_to->format('H:i:s') : null,
-        'event_type' => $event->event_type,
-        'color' => $event->color,
-        'is_active' => $event->is_active,
-        'is_auto_generated' => $event->is_auto_generated,
-        'teacher_id' => $event->teacher_id,
-        'class_id' => $event->class_id,
-        'teacher' => $event->teacher ? [
-            'first_name' => $event->teacher->first_name,
-            'last_name' => $event->teacher->last_name,
-        ] : null,
-        'student_class' => $event->studentClass ? [
-            'class_name' => $event->studentClass->class_name,
-        ] : null,
-    ];
-}));
+const events = @json($events);
 
 function renderCalendar() {
     const year = currentDate.getFullYear();
@@ -331,19 +270,11 @@ function renderEventsList() {
 function renderEventsTable() {
     const tbody = document.getElementById('eventsTableBody');
     if (events.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">No events found. Schedules are auto-generated when teachers are assigned to classes.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No events found</td></tr>';
         return;
     }
     
-    tbody.innerHTML = events.map(event => {
-        const teacherName = event.teacher ? `${event.teacher.first_name || ''} ${event.teacher.last_name || ''}`.trim() : 'Global';
-        const className = event.student_class ? event.student_class.class_name : '-';
-        const teacherClassInfo = event.teacher_id ? `${teacherName}${className !== '-' ? ` / ${className}` : ''}` : 'Global Event';
-        const source = event.is_auto_generated ? 
-            '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Auto-Generated</span>' :
-            '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">Manual</span>';
-        
-        return `
+    tbody.innerHTML = events.map(event => `
         <tr class="hover:bg-pink-50/50 transition">
             <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center gap-2">
@@ -352,19 +283,13 @@ function renderEventsTable() {
                 </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                ${teacherClassInfo}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                 ${new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                ${event.event_time ? event.event_time.substring(0, 5) : (event.shift_from ? `${event.shift_from.substring(0, 5)} - ${event.shift_to ? event.shift_to.substring(0, 5) : ''}` : '-')}
+                ${event.event_time || '-'}
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-pink-100 text-pink-800">${event.event_type || 'lesson'}</span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                ${source}
+                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-pink-100 text-pink-800">${event.event_type}</span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 py-1 text-xs font-semibold rounded-full ${event.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
@@ -373,13 +298,12 @@ function renderEventsTable() {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex items-center gap-2">
-                    <button onclick="editEvent(${event.event_id})" class="text-pink-600 hover:text-pink-800" title="Edit Event">Edit</button>
-                    <button onclick="deleteEvent(${event.event_id})" class="text-red-600 hover:text-red-800" title="Delete Event">Delete</button>
+                    <button onclick="editEvent(${event.event_id})" class="text-pink-600 hover:text-pink-800">Edit</button>
+                    <button onclick="deleteEvent(${event.event_id})" class="text-red-600 hover:text-red-800">Delete</button>
                 </div>
             </td>
         </tr>
-        `;
-    }).join('');
+    `).join('');
 }
 
 function openModal(eventId = null) {
@@ -394,15 +318,11 @@ function openModal(eventId = null) {
         document.getElementById('eventTitle').value = event.title;
         document.getElementById('eventDescription').value = event.description || '';
         document.getElementById('eventDate').value = event.event_date;
-        document.getElementById('eventTime').value = event.event_time ? event.event_time.substring(0, 5) : '';
-        document.getElementById('eventType').value = event.event_type || 'lesson';
-        document.getElementById('eventColor').value = event.color || '#F472B6';
-        document.getElementById('eventTeacherId').value = event.teacher_id || '';
-        document.getElementById('eventClassId').value = event.class_id || '';
-        document.getElementById('eventShiftFrom').value = event.shift_from ? event.shift_from.substring(0, 5) : '';
-        document.getElementById('eventShiftTo').value = event.shift_to ? event.shift_to.substring(0, 5) : '';
+        document.getElementById('eventTime').value = event.event_time || '';
+        document.getElementById('eventType').value = event.event_type;
+        document.getElementById('eventColor').value = event.color;
     } else {
-        document.getElementById('modalTitle').textContent = 'Add Supplementary Event';
+        document.getElementById('modalTitle').textContent = 'Add New Event';
         form.reset();
         document.getElementById('eventId').value = '';
         if (selectedDate) {
@@ -424,12 +344,6 @@ async function saveEvent(formData) {
         ? `/admin/schedule/${editingEventId}`
         : '/admin/schedule';
     const method = editingEventId ? 'PUT' : 'POST';
-    
-    // Add teacher and class IDs to form data
-    formData.teacher_id = document.getElementById('eventTeacherId').value || null;
-    formData.class_id = document.getElementById('eventClassId').value || null;
-    formData.shift_from = document.getElementById('eventShiftFrom').value || null;
-    formData.shift_to = document.getElementById('eventShiftTo').value || null;
     
     try {
         const response = await fetch(url, {
