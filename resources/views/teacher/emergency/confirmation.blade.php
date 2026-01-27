@@ -4,7 +4,7 @@
 <div class="max-w-xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8">
     <!-- Go Back Button -->
     <div class="mb-6">
-        <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
+        <button onclick="goBackOrRedirect('{{ route('teacher.emergency.create') }}')" 
                 class="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" 
                 style="background: linear-gradient(135deg, #FC8EAC, #6EC6C5);">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -33,8 +33,21 @@
     </div>
     <div class="mb-4">
         <label class="block text-gray-700 font-semibold mb-2">Status</label>
-        <div class="px-4 py-2 bg-yellow-100 text-yellow-800 rounded font-semibold">Pending</div>
+        <div class="px-4 py-2 bg-yellow-100 text-yellow-800 rounded font-semibold">{{ ucfirst($request->status) }}</div>
     </div>
-    <a href="{{ route('dashboard') }}" class="block w-full text-center py-2 bg-[#EC769A] text-white rounded-lg font-bold hover:bg-[#FC8EAC] transition mt-6">Back to Dashboard</a>
+    
+    @if($request->status === 'pending')
+        <div class="flex gap-3 mt-6">
+            <a href="{{ route('teacher.emergency.edit', $request->id) }}" class="flex-1 text-center py-2 bg-[#3DD9C4] text-white rounded-lg font-bold hover:bg-[#25A99E] transition flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Request
+            </a>
+            <a href="{{ route('teacher.dashboard') }}" class="flex-1 text-center py-2 bg-[#EC769A] text-white rounded-lg font-bold hover:bg-[#FC8EAC] transition">Back to Dashboard</a>
+        </div>
+    @else
+        <a href="{{ route('teacher.dashboard') }}" class="block w-full text-center py-2 bg-[#EC769A] text-white rounded-lg font-bold hover:bg-[#FC8EAC] transition mt-6">Back to Dashboard</a>
+    @endif
 </div>
 @endsection

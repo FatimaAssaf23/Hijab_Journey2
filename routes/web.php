@@ -111,6 +111,8 @@ Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto'])->name('
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/teacher/emergency', [EmergencyRequestController::class, 'create'])->name('teacher.emergency.create')->middleware('can:isTeacher');
     Route::post('/teacher/emergency', [EmergencyRequestController::class, 'store'])->name('teacher.emergency.store')->middleware('can:isTeacher');
+    Route::get('/teacher/emergency/{id}/edit', [EmergencyRequestController::class, 'edit'])->name('teacher.emergency.edit')->middleware('can:isTeacher');
+    Route::put('/teacher/emergency/{id}', [EmergencyRequestController::class, 'update'])->name('teacher.emergency.update')->middleware('can:isTeacher');
 });
 
 // Admin/Teacher Emergency Absence Requests Page (avoid route conflict)

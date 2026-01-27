@@ -547,6 +547,36 @@ function settingsPage() {
             }
         },
         
+        disableAllNotifications() {
+            try {
+                // Find all notification-related checkboxes
+                const notificationSelectors = [
+                    'input[name="email_notifications_enabled"]',
+                    'input[name="notify_admin_on_teacher_requests"]',
+                    'input[name="notify_admin_on_emergency_requests"]',
+                    'input[name="notify_admin_on_new_registrations"]'
+                ];
+                
+                let count = 0;
+                notificationSelectors.forEach(selector => {
+                    const checkbox = document.querySelector(selector);
+                    if (checkbox) {
+                        checkbox.checked = false;
+                        count++;
+                    }
+                });
+                
+                if (count > 0) {
+                    this.showToast(`✅ Disabled ${count} notification setting(s)! Don't forget to save.`);
+                } else {
+                    this.showToast('⚠️ No notification settings found.');
+                }
+            } catch (error) {
+                console.error('Error disabling notifications:', error);
+                this.showToast('❌ Error disabling notifications. Please try again.');
+            }
+        },
+        
         enableAllModeration() {
             try {
                 // Find all moderation-related checkboxes

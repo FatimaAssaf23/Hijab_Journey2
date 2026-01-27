@@ -16,6 +16,7 @@ class EmergencyRequest extends Model
         'reason',
         'status',
         'rejection_reason',
+        'is_read',
     ];
 
     public function teacher()

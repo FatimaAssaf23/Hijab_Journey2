@@ -392,6 +392,20 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Get unread emergency requests (only if notifications are enabled)
+        $notifyAdminOnEmergency = \App\Models\AdminSetting::get('notify_admin_on_emergency_requests', true);
+        $unreadEmergencyRequests = collect([]);
+        $unreadEmergencyRequestsCount = 0;
+        
+        if ($notifyAdminOnEmergency) {
+            $unreadEmergencyRequests = \App\Models\EmergencyRequest::with('teacher')
+                ->where('is_read', false)
+                ->where('status', 'pending')
+                ->orderBy('created_at', 'desc')
+                ->get();
+            $unreadEmergencyRequestsCount = $unreadEmergencyRequests->count();
+        }
+
         // Calculate class status counts
         $fullClassesCount = StudentClass::where(function($query) {
             $query->where('status', 'full')
@@ -447,6 +461,8 @@ class AdminController extends Controller
             'unreadRequestsCount' => $unreadRequests->count(),
             'unreadNewStudents' => $unreadNewStudents,
             'unreadNewStudentsCount' => $unreadNewStudents->count(),
+            'unreadEmergencyRequests' => $unreadEmergencyRequests,
+            'unreadEmergencyRequestsCount' => $unreadEmergencyRequestsCount,
             'approvedTeachersCount' => $approvedTeachersCount,
             'rejectedTeachersCount' => $rejectedTeachersCount,
             // New KPI data
@@ -1763,10 +1779,29 @@ class AdminController extends Controller
     // EMERGENCY
     public function emergency()
     {
+        $requests = \App\Models\EmergencyRequest::with('teacher')->latest()->get();
+        // For each request, get affected classes
+        foreach ($requests as $request) {
+            $request->affected_classes = \App\Models\StudentClass::where('teacher_id', $request->teacher_id)->pluck('class_name');
+        }
+        
+        // Get unread emergency requests count
+        $unreadEmergencyRequestsCount = \App\Models\EmergencyRequest::where('is_read', false)
+            ->where('status', 'pending')
+            ->count();
+        
+        // Mark all pending unread requests as read when admin views the page
+        if ($unreadEmergencyRequestsCount > 0) {
+            \App\Models\EmergencyRequest::where('is_read', false)
+                ->where('status', 'pending')
+                ->update(['is_read' => true]);
+        }
+        
         return view('admin.emergency.index', [
-            'requests' => $this->getEmergencyCasesFromDb(),
+            'requests' => $requests,
             'teachers' => $this->getTeachersFromDb(),
             'classes' => $this->getClassesFromDb(),
+            'unreadEmergencyRequestsCount' => $unreadEmergencyRequestsCount,
         ]);
     }
 
