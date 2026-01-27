@@ -111,6 +111,8 @@ Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto'])->name('
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/teacher/emergency', [EmergencyRequestController::class, 'create'])->name('teacher.emergency.create')->middleware('can:isTeacher');
     Route::post('/teacher/emergency', [EmergencyRequestController::class, 'store'])->name('teacher.emergency.store')->middleware('can:isTeacher');
+    Route::get('/teacher/emergency/{id}/edit', [EmergencyRequestController::class, 'edit'])->name('teacher.emergency.edit')->middleware('can:isTeacher');
+    Route::put('/teacher/emergency/{id}', [EmergencyRequestController::class, 'update'])->name('teacher.emergency.update')->middleware('can:isTeacher');
 });
 
 // Admin/Teacher Emergency Absence Requests Page (avoid route conflict)
@@ -388,24 +390,39 @@ Route::get('/teacher/dashboard', function () {
             });
     }
     
-    // Get schedule events (active events for all teachers)
-    $scheduleEventsList = \App\Models\ScheduleEvent::active()
-        ->whereDate('event_date', '>=', now())
-        ->whereDate('event_date', '<=', now()->addDays(60))
-        ->orderBy('event_date')
-        ->get()
-        ->map(function($event) {
-            return [
-                'id' => $event->event_id,
-                'title' => $event->title,
-                'date' => $event->event_date->format('Y-m-d'),
-                'type' => 'schedule',
-                'class' => 'Schedule',
-                'color' => $event->color,
-                'description' => $event->description,
-                'event_time' => $event->event_time ? \Carbon\Carbon::parse($event->event_time)->format('H:i') : null,
-            ];
-        });
+    // Get schedule events (active events for this teacher + global events)
+    $teacherId = Auth::id();
+    $today = now()->toDateString();
+    $futureDate = now()->addDays(60)->toDateString();
+    
+    try {
+        $scheduleEventsList = \App\Models\ScheduleEvent::active()
+            ->forTeacher($teacherId) // Use the scope to get teacher-specific + global events
+            ->where('event_date', '>=', $today)
+            ->where('event_date', '<=', $futureDate)
+            ->orderBy('event_date')
+            ->orderBy('event_time')
+            ->get()
+            ->map(function($event) {
+                return [
+                    'id' => $event->event_id,
+                    'title' => $event->title,
+                    'date' => $event->event_date->format('Y-m-d'),
+                    'type' => 'schedule',
+                    'class' => 'Schedule',
+                    'color' => $event->color ?? '#9333EA',
+                    'description' => $event->description,
+                    'event_time' => $event->event_time ? \Carbon\Carbon::parse($event->event_time)->format('H:i') : null,
+                    'shift_from' => $event->shift_from ? \Carbon\Carbon::parse($event->shift_from)->format('H:i') : null,
+                    'shift_to' => $event->shift_to ? \Carbon\Carbon::parse($event->shift_to)->format('H:i') : null,
+                    'is_auto_generated' => $event->is_auto_generated ?? false,
+                ];
+            });
+    } catch (\Exception $e) {
+        // Log error and return empty collection
+        \Log::error('Error fetching schedule events: ' . $e->getMessage());
+        $scheduleEventsList = collect([]);
+    }
     
     // Combine all events (assignments, quizzes, and schedule events) and group by date for calendar
     $allEvents = $upcomingAssignmentsList->concat($upcomingQuizzesList)->concat($scheduleEventsList);
@@ -543,6 +560,7 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
         Route::put('/{id}', [\App\Http\Controllers\Admin\ScheduleController::class, 'update'])->name('admin.schedule.update');
         Route::delete('/{id}', [\App\Http\Controllers\Admin\ScheduleController::class, 'destroy'])->name('admin.schedule.destroy');
         Route::post('/{id}/toggle-status', [\App\Http\Controllers\Admin\ScheduleController::class, 'toggleStatus'])->name('admin.schedule.toggle-status');
+        Route::post('/regenerate/{teacherId}', [\App\Http\Controllers\Admin\ScheduleController::class, 'regenerateSchedule'])->name('admin.schedule.regenerate');
     });
     
     // Lightweight Activities Summary Pages

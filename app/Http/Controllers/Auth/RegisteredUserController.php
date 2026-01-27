@@ -37,6 +37,12 @@ class RegisteredUserController extends Controller
             'last_name' => ['required', 'string', 'max:100'],
             'country' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'date_of_birth' => [
+                'required',
+                'date',
+                'before_or_equal:' . now()->subYears(8)->format('Y-m-d'), // At least 8 years old
+                'after_or_equal:' . now()->subYears(12)->format('Y-m-d'), // At most 12 years old
+            ],
             'password' => [
                 'required',
                 'confirmed',
@@ -87,6 +93,7 @@ class RegisteredUserController extends Controller
             $student = \App\Models\Student::create([
                 'user_id' => $user->user_id,
                 'class_id' => $studentClass ? $studentClass->class_id : null,
+                'date_of_birth' => $request->date_of_birth,
                 'is_read' => false, // Mark as unread for admin notification
             ]);
             
@@ -135,6 +142,7 @@ class RegisteredUserController extends Controller
             $student = \App\Models\Student::create([
                 'user_id' => $user->user_id,
                 'class_id' => null,
+                'date_of_birth' => $request->date_of_birth,
                 'is_read' => false,
             ]);
         }

@@ -34,6 +34,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Mail\TeacherRejectedMail;
 use App\Mail\TeacherApprovedMail;
+use App\Services\ScheduleService;
 
 class AdminController extends Controller
 {
@@ -392,6 +393,20 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Get unread emergency requests (only if notifications are enabled)
+        $notifyAdminOnEmergency = \App\Models\AdminSetting::get('notify_admin_on_emergency_requests', true);
+        $unreadEmergencyRequests = collect([]);
+        $unreadEmergencyRequestsCount = 0;
+        
+        if ($notifyAdminOnEmergency) {
+            $unreadEmergencyRequests = \App\Models\EmergencyRequest::with('teacher')
+                ->where('is_read', false)
+                ->where('status', 'pending')
+                ->orderBy('created_at', 'desc')
+                ->get();
+            $unreadEmergencyRequestsCount = $unreadEmergencyRequests->count();
+        }
+
         // Calculate class status counts
         $fullClassesCount = StudentClass::where(function($query) {
             $query->where('status', 'full')
@@ -447,6 +462,8 @@ class AdminController extends Controller
             'unreadRequestsCount' => $unreadRequests->count(),
             'unreadNewStudents' => $unreadNewStudents,
             'unreadNewStudentsCount' => $unreadNewStudents->count(),
+            'unreadEmergencyRequests' => $unreadEmergencyRequests,
+            'unreadEmergencyRequestsCount' => $unreadEmergencyRequestsCount,
             'approvedTeachersCount' => $approvedTeachersCount,
             'rejectedTeachersCount' => $rejectedTeachersCount,
             // New KPI data
@@ -1763,10 +1780,29 @@ class AdminController extends Controller
     // EMERGENCY
     public function emergency()
     {
+        $requests = \App\Models\EmergencyRequest::with('teacher')->latest()->get();
+        // For each request, get affected classes
+        foreach ($requests as $request) {
+            $request->affected_classes = \App\Models\StudentClass::where('teacher_id', $request->teacher_id)->pluck('class_name');
+        }
+        
+        // Get unread emergency requests count
+        $unreadEmergencyRequestsCount = \App\Models\EmergencyRequest::where('is_read', false)
+            ->where('status', 'pending')
+            ->count();
+        
+        // Mark all pending unread requests as read when admin views the page
+        if ($unreadEmergencyRequestsCount > 0) {
+            \App\Models\EmergencyRequest::where('is_read', false)
+                ->where('status', 'pending')
+                ->update(['is_read' => true]);
+        }
+        
         return view('admin.emergency.index', [
-            'requests' => $this->getEmergencyCasesFromDb(),
+            'requests' => $requests,
             'teachers' => $this->getTeachersFromDb(),
             'classes' => $this->getClassesFromDb(),
+            'unreadEmergencyRequestsCount' => $unreadEmergencyRequestsCount,
         ]);
     }
 
@@ -2299,6 +2335,23 @@ class AdminController extends Controller
 
         $class->teacher_id = $validated['teacher_id'];
         $class->save();
+
+        // Auto-generate default schedule for the teacher
+        try {
+            $scheduleService = new ScheduleService();
+            $scheduleEvents = $scheduleService->generateDefaultScheduleForTeacher(
+                $validated['teacher_id'],
+                $classId
+            );
+            
+            // Log if schedules were created
+            if (count($scheduleEvents) > 0) {
+                \Log::info("Auto-generated " . count($scheduleEvents) . " schedule events for teacher {$validated['teacher_id']} and class {$classId}");
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the assignment
+            \Log::error("Failed to auto-generate schedule for teacher {$validated['teacher_id']}: " . $e->getMessage());
+        }
 
         if ($request->expectsJson()) {
             return response()->json([

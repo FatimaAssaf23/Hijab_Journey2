@@ -28,8 +28,11 @@
         <div style="display: flex; gap: 20px; margin-top: 16px;">
             <div style="flex: 1;">
                 <label for="date_of_birth" class="auth-label">{{ __('Date of Birth') }}</label>
-                <input id="date_of_birth" type="date" name="date_of_birth" class="auth-input block mt-1 w-full" required />
+                <input id="date_of_birth" type="date" name="date_of_birth" class="auth-input block mt-1 w-full" required 
+                       min="{{ date('Y-m-d', strtotime('-12 years')) }}" 
+                       max="{{ date('Y-m-d', strtotime('-8 years')) }}" />
                 <x-input-error :messages="$errors->get('date_of_birth')" class="mt-2" />
+                <small style="display: block; margin-top: 4px; font-size: 12px; color: #6b7280;">Age must be between 8 and 12 years</small>
             </div>
             <div style="flex: 1;">
                 <label for="phone_number" class="auth-label">{{ __('Phone Number') }}</label>
