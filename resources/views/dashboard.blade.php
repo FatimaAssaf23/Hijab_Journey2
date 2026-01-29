@@ -31,10 +31,10 @@
     <div class="absolute bottom-20 left-20 w-40 h-40 bg-cyan-200/30 rounded-full blur-3xl animate-bounce" style="animation-duration: 5s; animation-delay: 1s;"></div>
     <div class="absolute top-1/2 left-1/4 w-28 h-28 bg-teal-200/30 rounded-full blur-2xl animate-bounce" style="animation-duration: 6s; animation-delay: 2s;"></div>
 
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="relative z-10 w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <!-- Hero Section with Hijab7 Girl - Classy Light Pink & Turquoise -->
         <div class="relative mb-8 flex justify-center">
-            <div class="relative w-full max-w-4xl bg-gradient-to-br from-pink-200/80 via-rose-100/70 to-cyan-200/80 rounded-2xl shadow-xl overflow-hidden transform transition-all duration-500 hover:shadow-2xl border border-pink-200/50 backdrop-blur-sm">
+            <div class="relative w-full max-w-6xl bg-gradient-to-br from-pink-200/80 via-rose-100/70 to-cyan-200/80 rounded-2xl shadow-xl overflow-hidden transform transition-all duration-500 hover:shadow-2xl border border-pink-200/50 backdrop-blur-sm">
                 <!-- Elegant Pattern Overlay -->
                 <div class="absolute inset-0 opacity-5">
                     <div class="absolute top-0 left-0 w-full h-full" style="background-image: radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px); background-size: 25px 25px;"></div>
@@ -43,7 +43,7 @@
                 <!-- Subtle gradient overlay -->
                 <div class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
                 
-                <div class="relative flex flex-col lg:flex-row items-center justify-between p-6 lg:p-8">
+                <div class="relative flex flex-col lg:flex-row items-center justify-between p-8 lg:p-12">
                     <!-- Left Content -->
                     <div class="flex-1 text-center lg:text-left mb-5 lg:mb-0 z-10">
                         <div class="inline-flex items-center gap-2 bg-white/40 backdrop-blur-md px-3 py-1.5 rounded-full mb-3 border border-pink-300/30 shadow-md">

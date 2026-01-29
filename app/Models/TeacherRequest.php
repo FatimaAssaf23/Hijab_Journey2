@@ -23,6 +23,7 @@ class TeacherRequest extends Model
         'experience_years',
         'university_major',
         'courses_done',
+        'certification_file',
         'status',
         'request_date',
         'processed_date',

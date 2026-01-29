@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<div class="max-w-2xl mx-auto py-12">
+<div class="w-full max-w-full mx-auto py-12 px-4 sm:px-6 lg:px-8">
     <div class="bg-white shadow-2xl rounded-3xl p-10 border border-pink-200">
         <h2 class="text-3xl font-extrabold mb-8 text-pink-600 flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

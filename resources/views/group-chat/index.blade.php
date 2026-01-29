@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50">
-    <div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
             <div class="flex items-center justify-between">

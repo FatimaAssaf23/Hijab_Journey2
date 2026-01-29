@@ -71,9 +71,9 @@
     <div class="absolute top-20 right-20 w-32 h-32 bg-pink-300/15 rounded-full blur-2xl animate-bounce" style="animation-duration: 6s;"></div>
     <div class="absolute bottom-20 left-20 w-40 h-40 bg-cyan-300/15 rounded-full blur-2xl animate-bounce" style="animation-duration: 8s; animation-delay: 2s;"></div>
     
-    <div class="container mx-auto py-8 relative z-10">
+    <div class="w-full min-h-screen px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <!-- Enhanced Header Section -->
-        <div class="max-w-7xl mx-auto mb-8">
+        <div class="w-full mb-8">
             <div class="relative bg-gradient-to-br from-white/98 via-pink-50/96 to-cyan-50/96 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border-2 border-pink-300/40 overflow-hidden transform transition-all duration-500 hover:shadow-3xl">
                 <!-- Decorative pattern overlay -->
                 <div class="absolute inset-0 opacity-6">
@@ -176,6 +176,9 @@
                         @if(isset($selectedLessonId) && $selectedLessonId)
                             <input type="hidden" name="lesson_id" value="{{ $selectedLessonId }}" id="lesson_id_hidden">
                         @endif
+                        @if(isset($selectedClassId) && $selectedClassId)
+                            <input type="hidden" name="class_id" value="{{ $selectedClassId }}" id="class_id_hidden">
+                        @endif
                         
                         <!-- Step 1: Select Lesson -->
                         <div class="mb-8">
@@ -213,12 +216,12 @@
                             </div>
                         </div>
 
-                        <!-- Step 2: Select Game Type (Only shown when lesson is selected) -->
+                        <!-- Step 2: Select Class (Only shown when lesson is selected) -->
                         @if(isset($selectedLessonId) && $selectedLessonId)
                         <div class="mb-8">
                             <div class="flex items-center gap-4 mb-6">
-                                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 text-white font-bold text-lg shadow-lg {{ isset($selectedGameType) && $selectedGameType ? 'ring-4 ring-purple-200' : '' }}">
-                                    @if(isset($selectedGameType) && $selectedGameType)
+                                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 text-white font-bold text-lg shadow-lg {{ isset($selectedClassId) && $selectedClassId ? 'ring-4 ring-cyan-200' : '' }}">
+                                    @if(isset($selectedClassId) && $selectedClassId)
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                         </svg>
@@ -227,7 +230,44 @@
                                     @endif
                                 </div>
                                 <div class="flex-1">
-                                    <h3 class="text-xl font-bold text-gray-800 mb-1">Step 2: Choose Game Type</h3>
+                                    <h3 class="text-xl font-bold text-gray-800 mb-1">Step 2: Choose Your Class <span class="text-red-500">*</span></h3>
+                                    <p class="text-sm text-gray-600">Select the class this game will be assigned to (Required)</p>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <select name="class_id" id="class_id" 
+                                        class="w-full bg-white/90 backdrop-blur-sm border-3 border-cyan-300/60 rounded-2xl px-6 py-4 pr-14 text-gray-800 font-semibold text-lg shadow-lg hover:border-cyan-400 hover:shadow-xl focus:border-cyan-500 focus:ring-4 focus:ring-cyan-200/50 transition-all duration-300 appearance-none cursor-pointer"
+                                        onchange="this.form.submit();"
+                                        required>
+                                    <option value="">👥 Select a class (Required)...</option>
+                                    @foreach($classes ?? [] as $class)
+                                        <option value="{{ $class->class_id }}" {{ (isset($selectedClassId) && $selectedClassId == $class->class_id) ? 'selected' : '' }}>{{ $class->class_name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-6 pointer-events-none">
+                                    <svg class="h-7 w-7 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Step 3: Select Game Type (Only shown when lesson and class are selected) -->
+                        @if(isset($selectedLessonId) && $selectedLessonId && isset($selectedClassId) && $selectedClassId)
+                        <div class="mb-8">
+                            <div class="flex items-center gap-4 mb-6">
+                                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 text-white font-bold text-lg shadow-lg {{ isset($selectedGameType) && $selectedGameType ? 'ring-4 ring-purple-200' : '' }}">
+                                    @if(isset($selectedGameType) && $selectedGameType)
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    @else
+                                        3
+                                    @endif
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-1">Step 3: Choose Game Type</h3>
                                     <p class="text-sm text-gray-600">Pick the type of interactive game you want to create</p>
                                 </div>
                             </div>
@@ -307,32 +347,6 @@
                             </div>
                         </div>
 
-                        <!-- Step 3: Assign to Class (Optional) -->
-                        <div class="mb-6">
-                            <div class="flex items-center gap-4 mb-4">
-                                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 text-white font-bold text-lg shadow-lg">
-                                    3
-                                </div>
-                                <div class="flex-1">
-                                    <h3 class="text-xl font-bold text-gray-800 mb-1">Step 3: Assign to Class <span class="text-sm font-normal text-gray-500">(Optional)</span></h3>
-                                    <p class="text-sm text-gray-600">Optionally assign this game to a specific class</p>
-                                </div>
-                            </div>
-                            <div class="relative">
-                                <select name="class_id" id="class_id" 
-                                        class="w-full bg-white/90 backdrop-blur-sm border-3 border-cyan-300/60 rounded-2xl px-6 py-4 pr-14 text-gray-800 font-semibold text-lg shadow-lg hover:border-cyan-400 hover:shadow-xl focus:border-cyan-500 focus:ring-4 focus:ring-cyan-200/50 transition-all duration-300 appearance-none cursor-pointer">
-                                    <option value="">👥 Select a class (optional)...</option>
-                                    @foreach($classes ?? [] as $class)
-                                        <option value="{{ $class->class_id }}">{{ $class->class_name }}</option>
-                                    @endforeach
-                                </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-6 pointer-events-none">
-                                    <svg class="h-7 w-7 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
                         @endif
                     </form>
                 </div>
@@ -341,7 +355,7 @@
 
         @if(isset($selectedLessonId) && $selectedLessonId)
         <!-- Enhanced Word Search Game Section -->
-        <div class="game-section max-w-7xl mx-auto mb-8" data-game-type="word_search" style="display: {{ (isset($selectedGameType) && $selectedGameType == 'word_search') ? 'block' : 'none' }};">
+        <div class="game-section w-full mb-8" data-game-type="word_search" style="display: {{ (isset($selectedGameType) && $selectedGameType == 'word_search') ? 'block' : 'none' }};">
             <div class="relative bg-gradient-to-br from-white/96 via-pink-50/92 to-cyan-50/92 backdrop-blur-xl rounded-3xl shadow-2xl p-8 pt-10 border-2 border-pink-300/40 transform transition-all duration-500 hover:shadow-3xl hover:scale-[1.01] overflow-visible">
                 <!-- Decorative elements -->
                 <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-pink-300/18 to-rose-300/18 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
@@ -706,7 +720,7 @@
         </div>
 
         <!-- Word Clock Arrangement Game Section -->
-        <div class="game-section max-w-7xl mx-auto mb-8" data-game-type="word_clock_arrangement" style="display: {{ (isset($selectedGameType) && $selectedGameType == 'word_clock_arrangement') ? 'block' : 'none' }};">
+        <div class="game-section w-full mb-8" data-game-type="word_clock_arrangement" style="display: {{ (isset($selectedGameType) && $selectedGameType == 'word_clock_arrangement') ? 'block' : 'none' }};">
             <div class="bg-gradient-to-br from-pink-50/60 via-white/80 to-cyan-50/90 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-cyan-200/40 transform transition-all duration-300 hover:shadow-2xl">
                 <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-pink-200/50">
                     <div class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
@@ -1119,7 +1133,7 @@
         </div>
 
         <!-- Matching Pairs Game Section -->
-        <div class="game-section max-w-7xl mx-auto mb-8" data-game-type="matching_pairs" style="display: {{ (isset($selectedGameType) && $selectedGameType == 'matching_pairs') ? 'block' : 'none' }};">
+        <div class="game-section w-full mb-8" data-game-type="matching_pairs" style="display: {{ (isset($selectedGameType) && $selectedGameType == 'matching_pairs') ? 'block' : 'none' }};">
             <div class="bg-gradient-to-br from-pink-50/60 via-white/80 to-teal-50/90 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-teal-200/40 transform transition-all duration-300 hover:shadow-2xl">
                 <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-teal-200/50">
                     <div class="w-12 h-12 bg-gradient-to-br from-pink-400 via-teal-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
@@ -1354,7 +1368,7 @@
         </div>
 
         <!-- Scrambled Letters Game - Word/Definition Pairs Section -->
-        <div class="game-section max-w-7xl mx-auto mb-8" data-game-type="scramble" style="display: {{ (isset($selectedGameType) && $selectedGameType == 'scramble') ? 'block' : 'none' }};">
+        <div class="game-section w-full mb-8" data-game-type="scramble" style="display: {{ (isset($selectedGameType) && $selectedGameType == 'scramble') ? 'block' : 'none' }};">
             <div class="bg-gradient-to-br from-pink-50/60 via-white/80 to-teal-50/90 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-teal-200/40 transform transition-all duration-300 hover:shadow-2xl">
                 <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-teal-200/50">
                     <div class="w-12 h-12 bg-gradient-to-br from-pink-400 via-teal-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
@@ -1379,6 +1393,11 @@
                                 <div class="pair-row border-2 border-teal-300 rounded-xl p-4 flex flex-col gap-2 relative bg-gradient-to-r from-pink-50 to-white shadow-sm hover:shadow-md transition-shadow" data-id="{{ $pair->id }}">
                                     <div class="font-bold text-teal-800 text-lg word-text" dir="rtl">{{ $pair->word }}</div>
                                     <div class="text-gray-700 def-text">{{ $pair->definition }}</div>
+                                    <button type="button" class="deleteSavedPairBtn absolute top-2 right-2 px-3 py-2 bg-gradient-to-r from-red-200 via-red-300 to-red-300 text-white rounded-lg font-bold shadow-md hover:from-red-300 hover:via-red-400 hover:to-red-400 transform hover:scale-105 transition-all duration-200 border border-red-200/50 flex items-center justify-center" data-id="{{ $pair->id }}" title="Delete this pair">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
                                 </div>
                             @endforeach
                         </div>
@@ -1401,22 +1420,24 @@
                     
                     <div class="mb-4">
                         <label class="block font-bold text-gray-800 mb-3 text-lg">Add New Word/Definition Pair:</label>
-                            <div class="flex flex-col md:flex-row gap-3">
-                            <input type="text" name="words[]" class="flex-1 bg-pink-50 border-2 border-pink-200 rounded-xl px-4 py-3 text-gray-800 font-medium shadow-md hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Word" required>
-                            <input type="text" name="definitions[]" class="flex-2 bg-pink-50 border-2 border-pink-200 rounded-xl px-4 py-3 text-gray-800 font-medium shadow-md hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Definition" required>
-                            <button type="button" class="addPairBtn px-6 py-3 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-bold rounded-xl shadow-lg hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 border border-pink-200/50">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                </svg>
-                                Add
-                            </button>
-                        </div>
-                        <div class="mt-3">
+                        <div class="mb-3">
                             <button type="button" id="clearAllScrambledPairsBtn" class="px-6 py-3 bg-gradient-to-r from-red-200 via-red-300 to-red-300 text-white font-bold rounded-xl shadow-lg hover:from-red-300 hover:via-red-400 hover:to-red-400 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 border border-red-200/50">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                                 Clear All
+                            </button>
+                        </div>
+                        <div class="flex flex-col md:flex-row gap-3 mb-3">
+                            <input type="text" name="words[]" class="flex-1 bg-pink-50 border-2 border-pink-200 rounded-xl px-4 py-3 text-gray-800 font-medium shadow-md hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Word" required>
+                            <input type="text" name="definitions[]" class="flex-2 bg-pink-50 border-2 border-pink-200 rounded-xl px-4 py-3 text-gray-800 font-medium shadow-md hover:bg-pink-100 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 focus:bg-pink-50 transition-all" placeholder="Definition" required>
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" class="addPairBtn px-6 py-3 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 font-bold rounded-xl shadow-lg hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 border border-pink-200/50">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Add
                             </button>
                         </div>
                     </div>
@@ -1878,7 +1899,7 @@ console.log('removeWordSearchWordBox function defined:', typeof window.removeWor
                         pairDiv.className = 'flex flex-col md:flex-row gap-3 p-4 bg-gradient-to-r from-pink-50 to-teal-50 border-2 border-teal-200 rounded-xl hover:border-teal-300 transition-colors';
                         const escapedWord = wordVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                         const escapedDef = defVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                        pairDiv.innerHTML = '<input type="text" name="words[]" value="' + escapedWord + '" class="flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><input type="text" name="definitions[]" value="' + escapedDef + '" class="flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><button type="button" class="removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200 border border-pink-200/50">-</button>';
+                        pairDiv.innerHTML = '<input type="text" name="words[]" value="' + escapedWord + '" class="flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><input type="text" name="definitions[]" value="' + escapedDef + '" class="flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><button type="button" class="removePairBtn px-3 py-2 bg-gradient-to-r from-red-200 via-red-300 to-red-300 text-white rounded-lg font-bold shadow-md hover:from-red-300 hover:via-red-400 hover:to-red-400 transform hover:scale-105 transition-all duration-200 border border-red-200/50 flex items-center justify-center" title="Remove this pair"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>';
                         pairsList.appendChild(pairDiv);
                         wordInput.value = '';
                         defInput.value = '';
@@ -1939,9 +1960,13 @@ console.log('removeWordSearchWordBox function defined:', typeof window.removeWor
         
         if (target.classList.contains('removePairBtn') || target.closest('.removePairBtn')) {
             e.preventDefault();
-            const pairDiv = target.closest('div.flex.flex-col, div.flex-row');
-            if (pairDiv && pairDiv.classList.contains('bg-gradient-to-r')) {
-                pairDiv.remove();
+            e.stopPropagation();
+            const removeBtn = target.classList.contains('removePairBtn') ? target : target.closest('.removePairBtn');
+            if (removeBtn) {
+                const pairDiv = removeBtn.closest('div.flex');
+                if (pairDiv && (pairDiv.classList.contains('bg-gradient-to-r') || pairDiv.querySelector('input[name="words[]"]'))) {
+                    pairDiv.remove();
+                }
             }
             return false;
         }
@@ -3114,7 +3139,11 @@ document.addEventListener('DOMContentLoaded', function() {
             pairDiv.innerHTML = `
                 <input type='text' name='words[]' value='${escapeHtml(wordValue)}' class='flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
                 <input type='text' name='definitions[]' value='${escapeHtml(defValue)}' class='flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
-                <button type='button' class='removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200'>-</button>
+                <button type='button' class='removePairBtn px-3 py-2 bg-gradient-to-r from-red-200 via-red-300 to-red-300 text-white rounded-lg font-bold shadow-md hover:from-red-300 hover:via-red-400 hover:to-red-400 transform hover:scale-105 transition-all duration-200 border border-red-200/50 flex items-center justify-center' title='Remove this pair'>
+                    <svg class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='3'>
+                        <path stroke-linecap='round' stroke-linejoin='round' d='M6 18L18 6M6 6l12 12' />
+                    </svg>
+                </button>
             `;
             
             pairsList.appendChild(pairDiv);
@@ -3232,7 +3261,11 @@ document.addEventListener('DOMContentLoaded', function() {
             pairDiv.innerHTML = `
                 <input type='text' name='words[]' value='${escapeHtml(wordValue)}' class='flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
                 <input type='text' name='definitions[]' value='${escapeHtml(defValue)}' class='flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50' required readonly> 
-                <button type='button' class='removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200'>-</button>
+                <button type='button' class='removePairBtn px-3 py-2 bg-gradient-to-r from-red-200 via-red-300 to-red-300 text-white rounded-lg font-bold shadow-md hover:from-red-300 hover:via-red-400 hover:to-red-400 transform hover:scale-105 transition-all duration-200 border border-red-200/50 flex items-center justify-center' title='Remove this pair'>
+                    <svg class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='3'>
+                        <path stroke-linecap='round' stroke-linejoin='round' d='M6 18L18 6M6 6l12 12' />
+                    </svg>
+                </button>
             `;
             
             pairsList.appendChild(pairDiv);
@@ -3413,7 +3446,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             pairDiv.className = 'flex flex-col md:flex-row gap-3 p-4 bg-gradient-to-r from-pink-50 to-teal-50 border-2 border-teal-200 rounded-xl hover:border-teal-300 transition-colors';
                             const wordValEscaped = wordVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                             const defValEscaped = defVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                            pairDiv.innerHTML = '<input type="text" name="words[]" value="' + wordValEscaped + '" class="flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><input type="text" name="definitions[]" value="' + defValEscaped + '" class="flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><button type="button" class="removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200">-</button>';
+                            pairDiv.innerHTML = '<input type="text" name="words[]" value="' + wordValEscaped + '" class="flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><input type="text" name="definitions[]" value="' + defValEscaped + '" class="flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><button type="button" class="removePairBtn px-3 py-2 bg-gradient-to-r from-red-200 via-red-300 to-red-300 text-white rounded-lg font-bold shadow-md hover:from-red-300 hover:via-red-400 hover:to-red-400 transform hover:scale-105 transition-all duration-200 border border-red-200/50 flex items-center justify-center" title="Remove this pair"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>';
                             pairsList.appendChild(pairDiv);
                             wordInput.value = '';
                             defInput.value = '';
@@ -3669,7 +3702,7 @@ function initButtons() {
         pairDiv.className = 'flex flex-col md:flex-row gap-3 p-4 bg-gradient-to-r from-pink-50 to-teal-50 border-2 border-teal-200 rounded-xl hover:border-teal-300 transition-colors';
         const escapedWord = wordVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const escapedDef = defVal.replace(/'/g, "&#39;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        pairDiv.innerHTML = '<input type="text" name="words[]" value="' + escapedWord + '" class="flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><input type="text" name="definitions[]" value="' + escapedDef + '" class="flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><button type="button" class="removePairBtn px-4 py-2.5 bg-gradient-to-r from-pink-200 via-pink-300 to-pink-300 text-gray-800 rounded-lg font-bold shadow-md hover:from-pink-300 hover:via-pink-400 hover:to-pink-400 transform hover:scale-105 transition-all duration-200" onclick="this.closest(\'div\').remove()">-</button>';
+        pairDiv.innerHTML = '<input type="text" name="words[]" value="' + escapedWord + '" class="flex-1 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><input type="text" name="definitions[]" value="' + escapedDef + '" class="flex-2 border-2 border-teal-300 rounded-lg px-4 py-2.5 text-teal-900 font-semibold bg-pink-50" required readonly><button type="button" class="removePairBtn px-3 py-2 bg-gradient-to-r from-red-200 via-red-300 to-red-300 text-white rounded-lg font-bold shadow-md hover:from-red-300 hover:via-red-400 hover:to-red-400 transform hover:scale-105 transition-all duration-200 border border-red-200/50 flex items-center justify-center" title="Remove this pair" onclick="this.closest(\'div\').remove()"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>';
         pairsList.appendChild(pairDiv);
         wordInput.value = '';
         defInput.value = '';
@@ -3853,19 +3886,78 @@ function clearAllMatchingPairs() {
 
 function clearAllScrambledPairs() {
     if (confirm('Are you sure you want to clear all scrambled letter pairs? This action cannot be undone.')) {
-        // Clear the pairs list
-        const form = document.querySelector('form[action*="teacher.games.store"]');
+        // Find the form - try multiple selectors
+        let form = null;
+        
+        // First, try to find form by the button's closest form
+        const clearBtn = document.getElementById('clearAllScrambledPairsBtn');
+        if (clearBtn) {
+            form = clearBtn.closest('form');
+        }
+        
+        // If not found, try by action attribute
+        if (!form) {
+            form = document.querySelector('form[action*="teacher.games.store"]');
+        }
+        
+        // If still not found, try finding by the hidden game_type input
+        if (!form) {
+            const gameTypeInput = document.querySelector('input[name="game_type"][value="scramble"]');
+            if (gameTypeInput) {
+                form = gameTypeInput.closest('form');
+            }
+        }
+        
         if (form) {
+            // Clear the pairs list
             const pairsList = form.querySelector('.pairs-list');
             if (pairsList) {
                 pairsList.innerHTML = '';
             }
+            
             // Clear the input fields
             const wordInput = form.querySelector('input[name="words[]"]:not([readonly])');
             const defInput = form.querySelector('input[name="definitions[]"]:not([readonly])');
             if (wordInput) wordInput.value = '';
             if (defInput) defInput.value = '';
+        } else {
+            console.error('Could not find scramble form');
+            alert('Error: Could not find the form. Please refresh the page.');
         }
+    }
+}
+
+function deleteSavedScrambledPair(button) {
+    const pairId = button.getAttribute('data-id');
+    if (!pairId) {
+        alert('Error: Could not find pair ID.');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to delete this word/definition pair? This action cannot be undone.')) {
+        // Create a form to submit the delete request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/games/delete/${pairId}`;
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                         document.querySelector('input[name="_token"]')?.value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Add method spoofing for DELETE
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'POST';
+        form.appendChild(methodInput);
+        
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 
@@ -3894,6 +3986,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (clearScrambledPairsBtn) {
         clearScrambledPairsBtn.addEventListener('click', clearAllScrambledPairs);
     }
+    
+    // Delete saved scrambled pairs
+    document.querySelectorAll('.deleteSavedPairBtn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            deleteSavedScrambledPair(this);
+        });
+    });
 });
 
 // Also attach in setTimeout for dynamic elements
@@ -3917,6 +4016,15 @@ setTimeout(function() {
     if (clearScrambledPairsBtn && !clearScrambledPairsBtn.onclick) {
         clearScrambledPairsBtn.onclick = clearAllScrambledPairs;
     }
+    
+    // Delete saved scrambled pairs (for dynamically loaded content)
+    document.querySelectorAll('.deleteSavedPairBtn').forEach(function(btn) {
+        if (!btn.onclick || btn.onclick.toString().indexOf('deleteSavedScrambledPair') === -1) {
+            btn.onclick = function() {
+                deleteSavedScrambledPair(this);
+            };
+        }
+    });
 }, 100);
 
 // View Game Preview Functions

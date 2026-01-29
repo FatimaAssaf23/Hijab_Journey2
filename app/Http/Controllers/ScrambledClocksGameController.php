@@ -10,6 +10,7 @@ class ScrambledClocksGameController extends Controller
     {
         $request->validate([
             'scrambled_clocks_lesson_id' => 'required|integer',
+            'class_id' => 'required|exists:student_classes,class_id',
             'scrambled_clocks_words' => 'required|array',
             'scrambled_clocks_words.*.word' => 'required|string',
             'scrambled_clocks_words.*.hour' => 'required|integer|min:0|max:11',
@@ -18,6 +19,7 @@ class ScrambledClocksGameController extends Controller
         ]);
 
         $game = Game::where('lesson_id', $request->scrambled_clocks_lesson_id)
+            ->where('class_id', $request->class_id)
             ->where('game_type', 'scrambled_clocks')
             ->first();
         
@@ -32,6 +34,7 @@ class ScrambledClocksGameController extends Controller
         } else {
             Game::create([
                 'lesson_id' => $request->scrambled_clocks_lesson_id,
+                'class_id' => $request->class_id,
                 'game_type' => 'scrambled_clocks',
                 'game_data' => json_encode($gameData),
             ]);

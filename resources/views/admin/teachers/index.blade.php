@@ -59,7 +59,6 @@
                         @forelse($teachers as $teacher)
                         @php
                             $user = $teacher->user;
-                            $profile = $user ? ($user->teacherProfile ?? null) : null;
                             $classesCount = $teacher->classes_count ?? 0;
                         @endphp
                         @if($user)
@@ -67,13 +66,13 @@
                             data-name="{{ strtolower(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) }}"
                             data-email="{{ strtolower($user->email ?? '') }}"
                             data-language="{{ strtolower($user->language ?? '') }}"
-                            data-bio="{{ strtolower($profile->bio ?? '') }}">
+                            data-bio="{{ strtolower($user->bio ?? '') }}">
                             <!-- Teacher Info -->
                             <td class="px-6 py-5">
                                 <div class="flex items-center gap-4">
                                     <div class="relative">
-                                        @if($profile && $profile->profile_photo_path)
-                                        <img src="{{ asset('storage/' . $profile->profile_photo_path) }}" 
+                                        @if($user->profile_photo_path)
+                                        <img src="{{ asset('storage/' . $user->profile_photo_path) }}" 
                                              alt="{{ $user->first_name ?? 'Teacher' }}" 
                                              class="w-12 h-12 rounded-xl object-cover border-2 border-pink-300 shadow-lg group-hover:scale-110 transition-transform duration-200">
                                         @else

@@ -12,6 +12,7 @@ class WordSearchGame extends Model
     protected $fillable = [
         'game_id',
         'lesson_id',
+        'class_id',
         'title',
         'words',
         'grid_size',

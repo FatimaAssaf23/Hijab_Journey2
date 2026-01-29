@@ -125,6 +125,32 @@
                                         <p class="text-gray-700">{{ $request['courses_done'] }}</p>
                                     </div>
                                     @endif
+
+                                    <!-- Certification Picture -->
+                                    @if(!empty($request['certification_file']))
+                                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4">
+                                        <p class="text-gray-500 font-medium mb-3">📷 Certification Picture</p>
+                                        @php
+                                            $fileExtension = strtolower(pathinfo($request['certification_file'], PATHINFO_EXTENSION));
+                                            $isImage = in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif']);
+                                            $fileUrl = asset('storage/' . $request['certification_file']);
+                                        @endphp
+                                        <button 
+                                            type="button"
+                                            onclick="openCertificateModal('{{ $fileUrl }}', {{ $isImage ? 'true' : 'false' }})"
+                                            class="inline-flex items-center gap-2 text-white font-semibold py-2 px-5 rounded-lg transition-all shadow-md hover:shadow-lg"
+                                            style="background-color: #008B8B;"
+                                            onmouseover="this.style.backgroundColor='#006666'"
+                                            onmouseout="this.style.backgroundColor='#008B8B'"
+                                        >
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                            View Certificate
+                                        </button>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         @endforeach
@@ -182,6 +208,51 @@
                         </div>
                     </div>
                 @endforeach
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificate Modal -->
+    <div id="certificateModal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex items-center justify-center">
+        <div class="bg-white w-full h-full flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm">
+                <h3 class="text-xl font-bold text-gray-900">📷 Certification Certificate</h3>
+                <button 
+                    onclick="closeCertificateModal()" 
+                    class="text-gray-500 hover:text-gray-700 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <!-- Modal Content -->
+            <div class="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4" style="min-height: 0;">
+                <div id="certificateContent" class="w-full h-full flex items-center justify-center">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 shadow-sm">
+                <a 
+                    id="certificateDownloadLink" 
+                    href="#" 
+                    target="_blank" 
+                    download
+                    class="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-md hover:shadow-lg"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download
+                </a>
+                <button 
+                    onclick="closeCertificateModal()" 
+                    class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-md hover:shadow-lg"
+                >
+                    Close
+                </button>
             </div>
         </div>
     </div>
@@ -310,6 +381,91 @@
                 `;
             }
         }
+
+        // Certificate Modal Functions
+        function openCertificateModal(fileUrl, isImage) {
+            const modal = document.getElementById('certificateModal');
+            const content = document.getElementById('certificateContent');
+            const downloadLink = document.getElementById('certificateDownloadLink');
+            
+            // Set download link
+            downloadLink.href = fileUrl;
+            
+            // Clear previous content
+            content.innerHTML = '';
+            
+            if (isImage) {
+                // Display image at full size, properly scaled to fit screen
+                const img = document.createElement('img');
+                img.src = fileUrl;
+                img.alt = 'Certification Certificate';
+                img.className = 'max-w-full max-h-full w-auto h-auto rounded-lg shadow-2xl';
+                img.style.objectFit = 'contain';
+                img.style.display = 'block';
+                img.style.margin = '0 auto';
+                
+                // Ensure image loads and fits properly
+                img.onload = function() {
+                    // Calculate available space (viewport minus header and footer)
+                    const availableHeight = window.innerHeight - 120; // Account for header and footer
+                    const availableWidth = window.innerWidth - 40; // Account for padding
+                    
+                    // Set max dimensions to fit screen while maintaining aspect ratio
+                    if (this.naturalWidth > availableWidth || this.naturalHeight > availableHeight) {
+                        const widthRatio = availableWidth / this.naturalWidth;
+                        const heightRatio = availableHeight / this.naturalHeight;
+                        const ratio = Math.min(widthRatio, heightRatio);
+                        
+                        this.style.maxWidth = (this.naturalWidth * ratio) + 'px';
+                        this.style.maxHeight = (this.naturalHeight * ratio) + 'px';
+                    } else {
+                        // If image is smaller than screen, show at natural size
+                        this.style.maxWidth = this.naturalWidth + 'px';
+                        this.style.maxHeight = this.naturalHeight + 'px';
+                    }
+                };
+                
+                content.appendChild(img);
+            } else {
+                // Display PDF in iframe - full height
+                const iframe = document.createElement('iframe');
+                iframe.src = fileUrl;
+                iframe.className = 'w-full h-full rounded-lg shadow-lg border border-gray-300';
+                iframe.style.minHeight = 'calc(100vh - 120px)';
+                content.appendChild(iframe);
+            }
+            
+            // Show modal
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeCertificateModal() {
+            const modal = document.getElementById('certificateModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = ''; // Restore scrolling
+            
+            // Clear content
+            const content = document.getElementById('certificateContent');
+            content.innerHTML = '';
+        }
+
+        // Close modal when clicking outside the content
+        document.getElementById('certificateModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCertificateModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('certificateModal');
+                if (!modal.classList.contains('hidden')) {
+                    closeCertificateModal();
+                }
+            }
+        });
     </script>
 </div>
 @endsection

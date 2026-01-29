@@ -5,8 +5,8 @@
     $hasQuizGrades = isset($quizGrades) && is_array($quizGrades) && count($quizGrades) > 0;
     $hasGameScores = isset($lessonScores) && is_array($lessonScores) && count($lessonScores) > 0;
 @endphp
-<div class="container mx-auto py-8" style="background-color: #FFF4FA; min-height: 100vh;" x-data="{ activeTab: null }">
-    <div class="max-w-7xl mx-auto">
+<div class="w-full max-w-full mx-auto py-8 px-4 sm:px-6 lg:px-8" style="background-color: #FFF4FA; min-height: 100vh;" x-data="{ activeTab: null }">
+    <div class="w-full max-w-full mx-auto">
         <!-- Header with decorative elements -->
         <div class="text-center mb-12 relative">
             <!-- Decorative stars/hearts -->

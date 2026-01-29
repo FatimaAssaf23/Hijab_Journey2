@@ -41,7 +41,7 @@ class User extends Authenticatable
         if ($this->profile_photo_path) {
             return asset('storage/' . $this->profile_photo_path);
         }
-        return asset('images/default-profile.png');
+        return asset('images/default-avatar.svg');
     }
 
     /**
@@ -83,13 +83,6 @@ class User extends Authenticatable
         return $this->hasOne(Teacher::class, 'user_id', 'user_id');
     }
 
-    /**
-     * Get the teacher profile details associated with the user.
-     */
-    public function teacherProfile()
-    {
-        return $this->hasOne(TeacherProfile::class, 'user_id', 'user_id');
-    }
 
     /**
      * Get the teacher request associated with the user (as guest).

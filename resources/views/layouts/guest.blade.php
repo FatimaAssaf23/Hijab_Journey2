@@ -19,12 +19,30 @@
             body { font-family: 'Figtree', sans-serif; }
             .auth-container {
                 min-height: 100vh;
+                max-height: 100vh;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 padding: 24px 0;
-                background-color: #FFF6F9; /* very light pink */
+                overflow: hidden;
+                position: relative;
+                background: transparent;
+            }
+            .auth-background {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                min-width: 100%;
+                min-height: 100%;
+                background-image: url('{{ asset("storage/Teacher_Dashboard/Back4.png") }}');
+                background-size: cover;
+                background-position: center center;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+                z-index: 0;
             }
             .auth-card {
                 width: 100%;
@@ -84,11 +102,14 @@
             }
         </style>
     </head>
-    <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900 auth-container">
+    <body class="font-sans text-gray-900 antialiased" style="overflow-x: hidden;">
+        <!-- Background Image -->
+        <div class="auth-background"></div>
+        
+        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 auth-container" style="position: relative; overflow: hidden; z-index: 1; transform: translateY(-1.25cm);">
             <!-- Logo removed -->
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg auth-card">
+            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg auth-card" style="position: relative; z-index: 2;">
                 {{ $slot }}
             </div>
         </div>

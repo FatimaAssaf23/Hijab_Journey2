@@ -39,7 +39,7 @@
         <div class="absolute top-1/2 left-1/2 w-72 h-72 bg-pink-100/20 rounded-full blur-3xl float-animation" style="animation-delay: 3s;"></div>
     </div>
 
-    <div class="relative z-10 container mx-auto px-4 py-8">
+    <div class="relative z-10 w-full min-h-screen px-4 sm:px-6 lg:px-8 py-8">
         <!-- Go Back Button -->
         <div class="mb-6 fade-in">
             <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
@@ -66,7 +66,7 @@
 
         <!-- Class Filter Section -->
         @if(isset($allClasses) && $allClasses->count() > 0)
-            <div class="max-w-7xl mx-auto mb-8 fade-in">
+            <div class="w-full mb-8 fade-in">
                 <div class="bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl p-6 border-2 border-pink-200/50">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div class="flex items-center gap-3">
@@ -131,10 +131,10 @@
             </div>
         @else
             <!-- Overall Statistics -->
-            <div class="max-w-7xl mx-auto mb-8">
+            <div class="w-full mb-8">
                 <div class="bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl p-6 border-2 border-pink-200/50 fade-in">
                     <h2 class="text-2xl font-bold mb-6" style="color: #FC8EAC;">Class Overview</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         <!-- Total Students -->
                         <div class="text-center p-5 rounded-xl min-h-[120px] flex flex-col justify-center" style="background: linear-gradient(135deg, #FFF4FA, #F0F9FF);">
                             <div class="text-4xl font-extrabold mb-2" style="color: #FC8EAC;">{{ $overallStats['total_students'] }}</div>
@@ -189,7 +189,7 @@
             </div>
 
             <!-- Show/Hide Info Button -->
-            <div class="max-w-7xl mx-auto mb-6 flex justify-center fade-in">
+            <div class="w-full mb-6 flex justify-center fade-in">
                 <button @click="showStudentDetails = !showStudentDetails" 
                         class="px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-3"
                         style="background: linear-gradient(135deg, #FC8EAC, #6EC6C5); color: white;">
@@ -211,7 +211,7 @@
                  x-transition:leave="transition ease-in duration-200"
                  x-transition:leave-start="opacity-100 transform translate-y-0"
                  x-transition:leave-end="opacity-0 transform translate-y-4"
-                 class="max-w-7xl mx-auto space-y-6">
+                 class="w-full space-y-6">
                 @foreach($studentProgress as $studentId => $data)
                     <div class="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-6 border-2 border-pink-200/50 hover:border-pink-300 transition-all duration-300 fade-in hover:shadow-3xl">
                         <!-- Student Header -->
@@ -237,7 +237,7 @@
                         </div>
 
                         <!-- Progress Statistics -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <!-- Lessons Progress -->
                             <div class="p-5 rounded-xl border-2 border-pink-200/50" style="background: linear-gradient(135deg, #FFF4FA, #F0F9FF);">
                                 <div class="flex items-center gap-3 mb-4">

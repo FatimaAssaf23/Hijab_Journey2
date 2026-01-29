@@ -1,7 +1,6 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\AdminProfile;
 use App\Models\AdminSetting;
 use Illuminate\Http\Request;
 use App\Models\TeacherRequest;
@@ -17,7 +16,6 @@ use App\Models\Grade;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\Teacher;
-use App\Models\TeacherProfile;
 use App\Models\Meeting;
 use App\Models\Game;
 use App\Models\WordSearchGame;
@@ -86,8 +84,7 @@ class AdminController extends Controller
         if (!$admin || $admin->role !== 'admin') {
             abort(403, 'Unauthorized: Only admins can access this page.');
         }
-        $adminProfile = AdminProfile::firstOrCreate(['user_id' => $admin->user_id]);
-        return view('admin.profile', compact('admin', 'adminProfile'));
+        return view('admin.profile', compact('admin'));
     }
 
     /**
@@ -101,21 +98,19 @@ class AdminController extends Controller
             'bio' => 'nullable|string|max:1000',
         ]);
 
-        $adminProfile = AdminProfile::firstOrCreate(['user_id' => $admin->user_id]);
-
         if ($request->hasFile('profile_photo')) {
             $file = $request->file('profile_photo');
             $path = $file->store('admin-profile-photos', 'public');
             // Delete old photo if exists
-            if ($adminProfile->profile_photo_path) {
-                \Storage::disk('public')->delete($adminProfile->profile_photo_path);
+            if ($admin->profile_photo_path) {
+                \Storage::disk('public')->delete($admin->profile_photo_path);
             }
-            $adminProfile->profile_photo_path = $path;
+            $admin->profile_photo_path = $path;
         }
         if ($request->filled('bio')) {
-            $adminProfile->bio = $request->bio;
+            $admin->bio = $request->bio;
         }
-        $adminProfile->save();
+        $admin->save();
         return redirect()->route('admin.profile')->with('success', 'Profile updated successfully.');
     }
 
@@ -338,6 +333,7 @@ class AdminController extends Controller
                 'language' => $request->language,
                 'university_major' => $request->university_major,
                 'courses_done' => $request->courses_done,
+                'certification_file' => $request->certification_file,
                 'rejection_reason' => $request->rejection_reason,
                 'is_guest' => is_null($request->user_id),
                 'is_read' => $request->is_read,
@@ -1469,7 +1465,7 @@ class AdminController extends Controller
     // TEACHER MANAGEMENT
     public function teachers()
     {
-        $teachers = Teacher::with(['user.teacherProfile'])
+        $teachers = Teacher::with(['user'])
             ->whereHas('user')
             ->get()
             ->map(function($teacher) {
@@ -1490,14 +1486,13 @@ class AdminController extends Controller
 
     public function showTeacher($id)
     {
-        $teacher = Teacher::with(['user.teacherProfile'])->findOrFail($id);
+        $teacher = Teacher::with(['user'])->findOrFail($id);
         
         if (!$teacher->user) {
             abort(404, 'Teacher user not found');
         }
 
         $user = $teacher->user;
-        $profile = $user->teacherProfile;
         
         // Get teacher request if exists
         $teacherRequest = TeacherRequest::where('user_id', $user->user_id)->first();
@@ -1544,7 +1539,7 @@ class AdminController extends Controller
 
     public function exportTeachers()
     {
-        $teachers = Teacher::with(['user.teacherProfile'])
+        $teachers = Teacher::with(['user'])
             ->whereHas('user')
             ->get()
             ->map(function($teacher) {
@@ -1582,7 +1577,6 @@ class AdminController extends Controller
             // Add teacher data
             foreach ($teachers as $teacher) {
                 $user = $teacher->user;
-                $profile = $user->teacherProfile ?? null;
                 
                 fputcsv($file, [
                     $teacher->teacher_id,
@@ -1592,7 +1586,7 @@ class AdminController extends Controller
                     $user->phone_number ?? '',
                     $user->language ?? '',
                     $teacher->classes_count ?? 0,
-                    $profile->bio ?? '',
+                    $user->bio ?? '',
                     $user->date_joined ? $user->date_joined->format('Y-m-d') : ''
                 ]);
             }
@@ -1651,6 +1645,16 @@ class AdminController extends Controller
                 // Existing user - update their role
                 $user = User::find($teacherRequest->user_id);
                 if ($user) {
+                    // Prevent changing admin role to teacher
+                    if ($user->role === 'admin') {
+                        \Log::warning('Attempted to change admin role to teacher', [
+                            'user_id' => $user->user_id,
+                            'email' => $user->email,
+                            'request_id' => $id
+                        ]);
+                        DB::rollBack();
+                        return redirect()->route('admin.requests')->with('error', 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.');
+                    }
                     $user->role = 'teacher';
                     $user->save();
 
@@ -1671,6 +1675,16 @@ class AdminController extends Controller
                 // Guest application - check if user already exists by email
                 $user = User::where('email', $teacherEmail)->first();
                 if ($user) {
+                    // Prevent changing admin role to teacher
+                    if ($user->role === 'admin') {
+                        \Log::warning('Attempted to change admin role to teacher via guest application', [
+                            'user_id' => $user->user_id,
+                            'email' => $user->email,
+                            'request_id' => $id
+                        ]);
+                        DB::rollBack();
+                        return redirect()->route('admin.requests')->with('error', 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.');
+                    }
                     // User exists, update role and password
                     $user->role = 'teacher';
                     $user->first_name = $firstName;
@@ -2164,6 +2178,25 @@ class AdminController extends Controller
         $class->current_enrollment += $addedCount;
         $class->save();
 
+        // Initialize games for all newly added students
+        try {
+            $progressController = new \App\Http\Controllers\StudentProgressController();
+            foreach ($studentIds as $studentId) {
+                $progressController->initializeGamesForNewStudent($studentId);
+            }
+            \Log::info('Games initialized for students added to class', [
+                'student_ids' => $studentIds,
+                'class_id' => $classId
+            ]);
+        } catch (\Exception $e) {
+            // Log error but don't fail the operation if game initialization fails
+            \Log::error('Failed to initialize games for students added to class: ' . $e->getMessage(), [
+                'student_ids' => $studentIds,
+                'class_id' => $classId,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -2278,6 +2311,24 @@ class AdminController extends Controller
         // Increment new class enrollment
         $newClass->current_enrollment++;
         $newClass->save();
+
+        // Initialize games for the student in the new class
+        try {
+            $progressController = new \App\Http\Controllers\StudentProgressController();
+            $progressController->initializeGamesForNewStudent($studentId);
+            \Log::info('Games initialized for student moved to new class', [
+                'student_id' => $studentId,
+                'new_class_id' => $validated['new_class_id'],
+                'old_class_id' => $oldClassId
+            ]);
+        } catch (\Exception $e) {
+            // Log error but don't fail the operation if game initialization fails
+            \Log::error('Failed to initialize games for student moved to new class: ' . $e->getMessage(), [
+                'student_id' => $studentId,
+                'new_class_id' => $validated['new_class_id'],
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
 
         if ($request->expectsJson()) {
             $user = $student->user;
@@ -2447,6 +2498,22 @@ class AdminController extends Controller
                 // Existing user - update their role
                 $user = User::find($teacherRequest->user_id);
                 if ($user) {
+                    // Prevent changing admin role to teacher
+                    if ($user->role === 'admin') {
+                        \Log::warning('Attempted to change admin role to teacher', [
+                            'user_id' => $user->user_id,
+                            'email' => $user->email,
+                            'request_id' => $id
+                        ]);
+                        DB::rollBack();
+                        if ($request->expectsJson()) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.'
+                            ], 422);
+                        }
+                        return redirect()->route('admin.requests')->with('error', 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.');
+                    }
                     $user->role = 'teacher';
                     $user->save();
 
@@ -2467,6 +2534,22 @@ class AdminController extends Controller
                 // Guest application - check if user already exists by email
                 $user = User::where('email', $teacherEmail)->first();
                 if ($user) {
+                    // Prevent changing admin role to teacher
+                    if ($user->role === 'admin') {
+                        \Log::warning('Attempted to change admin role to teacher via guest application', [
+                            'user_id' => $user->user_id,
+                            'email' => $user->email,
+                            'request_id' => $id
+                        ]);
+                        DB::rollBack();
+                        if ($request->expectsJson()) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.'
+                            ], 422);
+                        }
+                        return redirect()->route('admin.requests')->with('error', 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.');
+                    }
                     // User exists, update role and password
                     $user->role = 'teacher';
                     $user->first_name = $firstName;

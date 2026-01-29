@@ -338,7 +338,7 @@
         <div class="absolute bottom-20 left-1/4 w-80 h-80 bg-purple-200/20 rounded-full blur-3xl floating-icon" style="animation-delay: 4s;"></div>
     </div>
     
-    <div class="max-w-4xl mx-auto relative z-10">
+    <div class="w-full max-w-full mx-auto relative z-10 px-4 sm:px-6 lg:px-8">
     <!-- Header Section with Go Back Button and Title -->
     <div class="header-animate bg-gradient-to-r from-pink-100 via-pink-50 to-pink-100 rounded-2xl shadow-xl p-6 mb-8 border-2 border-pink-200 gradient-bg relative overflow-hidden">
         <!-- Decorative elements -->
@@ -380,10 +380,27 @@
         </div>
     </div>
 
+    <!-- Error Message Display -->
+    @if(session('error'))
+        <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-md">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-red-700 font-semibold">{{ session('error') }}</p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Statistics Section -->
     @php
+        // Lessons are already filtered by ClassLessonVisibility in the route
         $totalLessons = $levels->sum(function($level) {
-            return $level->lessons->where('is_visible', true)->count();
+            return $level->lessons->count();
         });
     @endphp
     <div class="stats-card mb-8 level-card" style="animation-delay: 0.05s;">
@@ -406,8 +423,8 @@
     </div>
     @foreach($levels as $levelIndex => $level)
         @php
-            $visibleLessons = $level->lessons->where('is_visible', true);
-            $lessonCount = $visibleLessons->count();
+            // Lessons are already filtered by ClassLessonVisibility in the route
+            $lessonCount = $level->lessons->count();
         @endphp
         <div class="level-card mb-8 p-6 rounded-xl shadow-lg bg-gradient-to-br from-pink-50 via-white to-pink-50 border-2 border-pink-200 glow-effect">
             <!-- Level Header with Badge -->
@@ -431,8 +448,32 @@
             <!-- Lessons Grid -->
             <div class="flex flex-wrap gap-4">
                 @foreach($level->lessons as $lessonIndex => $lesson)
-                    @if($lesson->is_visible)
-                        <div class="lesson-card bg-white border border-gray-200 rounded-xl p-5 shadow-md w-64 relative overflow-hidden">
+                    {{-- Lessons are already filtered by ClassLessonVisibility in the route --}}
+                        @php
+                            // Check prerequisites for this lesson
+                            $prerequisitesMet = true;
+                            $prerequisiteMessage = null;
+                            if (isset($student) && $student) {
+                                \Log::info("DEBUG VIEW: Checking prerequisites for lesson display. Lesson ID: {$lesson->lesson_id}, Lesson Title: '{$lesson->title}', Lesson Order: {$lesson->lesson_order}, Level ID: {$lesson->level_id}, Student ID: {$student->student_id}");
+                                
+                                $prerequisiteStatus = $lesson->getPrerequisiteStatus($student->student_id, 60);
+                                $prerequisitesMet = $prerequisiteStatus['met'];
+                                $prerequisiteMessage = $prerequisiteStatus['message'];
+                                
+                                \Log::info("DEBUG VIEW: Prerequisite check result for lesson {$lesson->lesson_id} - Met: " . ($prerequisitesMet ? 'true' : 'false') . ", Message: " . ($prerequisiteMessage ?? 'null'));
+                            }
+                        @endphp
+                        <div class="lesson-card bg-white border border-gray-200 rounded-xl p-5 shadow-md w-64 relative overflow-hidden {{ !$prerequisitesMet ? 'opacity-75' : '' }}">
+                            @if(!$prerequisitesMet)
+                                <!-- Lock Overlay -->
+                                <div class="absolute inset-0 bg-gray-100/80 rounded-xl z-20 flex items-center justify-center">
+                                    <div class="text-center p-4">
+                                        <div class="text-4xl mb-2">🔒</div>
+                                        <p class="text-xs text-gray-600 font-semibold">Locked</p>
+                                    </div>
+                                </div>
+                            @endif
+                            
                             <!-- Decorative corner accent -->
                             <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-pink-200/30 to-transparent rounded-bl-full"></div>
                             
@@ -458,6 +499,17 @@
                                 {{ $lesson->description }}
                             </div>
                             
+                            @if(!$prerequisitesMet && $prerequisiteMessage)
+                                <!-- Prerequisite Warning -->
+                                <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg relative z-10">
+                                    <p class="text-xs text-yellow-800 font-semibold">{{ $prerequisiteMessage }}</p>
+                                    <p class="text-xs text-gray-600 mt-1">Check Laravel logs for detailed debugging information.</p>
+                                    @if(isset($student) && $student)
+                                        <a href="/debug/lesson-unlock/{{ $lesson->lesson_id }}" target="_blank" class="text-xs text-blue-600 underline mt-2 inline-block">🔍 Debug Info</a>
+                                    @endif
+                                </div>
+                            @endif
+                            
                             <!-- Lesson Meta Info -->
                             <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-100 relative z-10">
                                 <div class="flex items-center gap-2 text-xs text-gray-500">
@@ -473,16 +525,22 @@
                             
                             <!-- Action Button -->
                             <div class="relative z-10">
-                                <a href="/lessons/{{ $lesson->lesson_id }}/view" class="view-button w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#6EC6C5] to-[#197D8C] text-white font-bold hover:from-[#197D8C] hover:to-[#6EC6C5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-                                    <span class="text-lg">📖</span>
-                                    <span>Start Lesson</span>
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                    </svg>
-                                </a>
+                                @if($prerequisitesMet)
+                                    <a href="/lessons/{{ $lesson->lesson_id }}/view" class="view-button w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#6EC6C5] to-[#197D8C] text-white font-bold hover:from-[#197D8C] hover:to-[#6EC6C5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+                                        <span class="text-lg">📖</span>
+                                        <span>Start Lesson</span>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </a>
+                                @else
+                                    <button disabled class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-300 text-gray-500 font-bold cursor-not-allowed">
+                                        <span class="text-lg">🔒</span>
+                                        <span>Locked</span>
+                                    </button>
+                                @endif
                             </div>
                         </div>
-                    @endif
                 @endforeach
             </div>
         </div>

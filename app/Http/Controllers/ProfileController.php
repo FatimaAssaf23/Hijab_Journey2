@@ -11,20 +11,6 @@ class ProfileController extends Controller
     public function showPhotoForm()
     {
         $user = Auth::user();
-        if ($user->role === 'teacher') {
-            // Always fetch fresh from database
-            $teacherProfile = \App\Models\TeacherProfile::where('user_id', $user->user_id)->first();
-            if (!$teacherProfile) {
-                $teacherProfile = \App\Models\TeacherProfile::create(['user_id' => $user->user_id]);
-            }
-            // Build the URL - use asset() for better compatibility
-            $profilePhotoUrl = $teacherProfile->profile_photo_path 
-                ? asset('storage/' . $teacherProfile->profile_photo_path) 
-                : asset('images/default-profile.png');
-            return view('profile.photo', [
-                'profilePhotoUrl' => $profilePhotoUrl,
-            ]);
-        }
         // Refresh user to get latest data
         $user = $user->fresh();
         return view('profile.photo', [
@@ -42,25 +28,13 @@ class ProfileController extends Controller
         $file = $request->file('photo');
         $path = $file->store('profile-photos', 'public');
 
-        if ($user->role === 'teacher') {
-            $teacherProfile = \App\Models\TeacherProfile::firstOrCreate(['user_id' => $user->user_id]);
-            // Delete old photo if exists
-            if ($teacherProfile->profile_photo_path) {
-                Storage::disk('public')->delete($teacherProfile->profile_photo_path);
-            }
-            $teacherProfile->profile_photo_path = $path;
-            $teacherProfile->save();
-            // Refresh the model to ensure we have the latest data
-            $teacherProfile->refresh();
-        } else {
-            // Delete old photo if exists
-            if ($user->profile_photo_path) {
-                Storage::disk('public')->delete($user->profile_photo_path);
-            }
-            $user->profile_photo_path = $path;
-            $user->save();
-            $user->refresh();
+        // Delete old photo if exists
+        if ($user->profile_photo_path) {
+            Storage::disk('public')->delete($user->profile_photo_path);
         }
+        $user->profile_photo_path = $path;
+        $user->save();
+        $user->refresh();
 
         return redirect()->route('profile.photo.form')->with('success', 'Profile picture updated successfully.');
     }
@@ -70,11 +44,6 @@ class ProfileController extends Controller
     public function edit(Request $request)
     {
         $user = $request->user();
-        if ($user->role === 'teacher') {
-            $teacherProfile = \App\Models\TeacherProfile::firstOrCreate(['user_id' => $user->user_id]);
-            $user->bio = $teacherProfile->bio;
-            $user->profile_photo_path = $teacherProfile->profile_photo_path;
-        }
         return view('profile.edit', [
             'user' => $user,
         ]);
@@ -109,15 +78,9 @@ class ProfileController extends Controller
             }
         }
         $user->email = $data['email'];
-        // Handle teacher bio
-        if ($user->role === 'teacher') {
-            $teacherProfile = \App\Models\TeacherProfile::firstOrCreate(['user_id' => $user->user_id]);
-            $teacherProfile->bio = $data['bio'] ?? null;
-            \Log::info('Saving teacher profile bio', ['user_id' => $user->user_id, 'bio' => $teacherProfile->bio]);
-            $teacherProfile->save();
-        } else {
-            $user->bio = $data['bio'] ?? null;
-        }
+        // Handle bio for all users
+        $user->bio = $data['bio'] ?? null;
+        \Log::info('Saving user profile bio', ['user_id' => $user->user_id, 'bio' => $user->bio]);
         // Handle password change if requested
         if (!empty($data['password'])) {
             if (empty($data['current_password']) || !\Hash::check($data['current_password'], $user->password)) {

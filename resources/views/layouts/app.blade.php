@@ -14,9 +14,50 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @stack('styles')
+        
+        <!-- 404 Error Debugging Script -->
+        <script>
+            // Log all 404 errors to console
+            window.addEventListener('error', function(e) {
+                if (e.target && e.target.tagName) {
+                    const tag = e.target.tagName.toLowerCase();
+                    const src = e.target.src || e.target.href;
+                    if (src && (tag === 'img' || tag === 'script' || tag === 'link')) {
+                        console.error('404 Error - Failed to load resource:', {
+                            type: tag,
+                            url: src,
+                            element: e.target
+                        });
+                    }
+                }
+            }, true);
+            
+            // Monitor fetch requests for 404s
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                return originalFetch.apply(this, args)
+                    .then(response => {
+                        if (response.status === 404) {
+                            console.error('404 Error - API/Resource not found:', {
+                                url: args[0],
+                                status: response.status,
+                                statusText: response.statusText
+                            });
+                        }
+                        return response;
+                    })
+                    .catch(error => {
+                        console.error('Fetch Error:', error);
+                        throw error;
+                    });
+            };
+        </script>
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+        @php
+            $isTeacherDashboard = request()->routeIs('teacher.dashboard');
+        @endphp
+        <div class="{{ $isTeacherDashboard ? 'h-screen flex flex-col overflow-hidden' : 'min-h-screen bg-gray-100 dark:bg-gray-900' }}">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
@@ -29,7 +70,7 @@
             @endisset
 
             <!-- Page Content -->
-            <main class="py-4">
+            <main class="{{ $isTeacherDashboard ? 'flex-1 overflow-hidden' : 'py-4' }}">
                 @yield('content')
             </main>
         </div>

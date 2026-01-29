@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-4xl mx-auto py-10">
+<div class="w-full max-w-full mx-auto py-10 px-4 sm:px-6 lg:px-8">
     <div class="bg-gradient-to-br from-pink-50 via-white to-pink-100 shadow-2xl rounded-3xl p-10 border-2 border-pink-200">
         <h1 class="text-3xl font-extrabold text-pink-600 mb-6 drop-shadow">{{ $meeting->title }}</h1>
 

@@ -119,12 +119,34 @@ class RegisteredUserController extends Controller
                 // Store class info in session for dashboard display
                 session(['enrolled_class_id' => $studentClass->class_id]);
                 
+                // Refresh student to ensure we have the latest data
+                $student->refresh();
+                
                 \Log::info('Student enrolled in class', [
                     'user_id' => $user->user_id,
                     'student_id' => $student->student_id,
                     'class_id' => $studentClass->class_id,
                     'class_name' => $studentClass->class_name ?? 'N/A'
                 ]);
+                
+                // Initialize games for all visible lessons in the class
+                // This ensures new students can see all games that were added before their registration
+                try {
+                    $progressController = new \App\Http\Controllers\StudentProgressController();
+                    $progressController->initializeGamesForNewStudent($student->student_id);
+                    \Log::info('Games initialized for new student', [
+                        'student_id' => $student->student_id,
+                        'class_id' => $studentClass->class_id
+                    ]);
+                } catch (\Exception $e) {
+                    // Log error but don't fail registration if game initialization fails
+                    // Games will be auto-initialized when student views lessons (fallback mechanism)
+                    \Log::error('Failed to initialize games for new student: ' . $e->getMessage(), [
+                        'student_id' => $student->student_id,
+                        'class_id' => $studentClass->class_id,
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
             } else {
                 \Log::warning('Student registered but no class available for enrollment', [
                     'user_id' => $user->user_id,

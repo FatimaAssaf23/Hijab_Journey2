@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\TeacherRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class TeacherRequestController extends Controller
 {
@@ -43,6 +44,7 @@ class TeacherRequestController extends Controller
             'experience_years' => 'required|integer|min:0|max:50',
             'university_major' => 'required|string|max:255',
             'courses_done' => 'nullable|string|max:1000',
+            'certification_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:5120', // 5MB max
         ], [
             'full_name.required' => 'Please enter your full name.',
             'full_name.min' => 'Full name must be at least 3 characters.',
@@ -56,7 +58,16 @@ class TeacherRequestController extends Controller
             'experience_years.required' => 'Please enter your years of experience.',
             'experience_years.min' => 'Experience years cannot be negative.',
             'university_major.required' => 'Please enter your university major.',
+            'certification_file.file' => 'The certification file must be a valid file.',
+            'certification_file.mimes' => 'The certification file must be a JPEG, PNG, or PDF file.',
+            'certification_file.max' => 'The certification file must not be larger than 5MB.',
         ]);
+
+        // Handle file upload
+        $certificationPath = null;
+        if ($request->hasFile('certification_file')) {
+            $certificationPath = $request->file('certification_file')->store('teacher_certifications', 'public');
+        }
 
         // Check if email already has a pending request
         $existingRequest = TeacherRequest::where('email', $validated['email'])
@@ -80,6 +91,7 @@ class TeacherRequestController extends Controller
             'experience_years' => $validated['experience_years'],
             'university_major' => $validated['university_major'],
             'courses_done' => $validated['courses_done'] ?? null,
+            'certification_file' => $certificationPath,
             'status' => 'pending',
             'request_date' => now(),
             'is_read' => false,
@@ -128,7 +140,14 @@ class TeacherRequestController extends Controller
             'experience_years' => 'required|integer|min:0|max:50',
             'university_major' => 'required|string|max:255',
             'courses_done' => 'nullable|string|max:1000',
+            'certification_file' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:5120', // 5MB max
         ]);
+
+        // Handle file upload
+        $certificationPath = null;
+        if ($request->hasFile('certification_file')) {
+            $certificationPath = $request->file('certification_file')->store('teacher_certifications', 'public');
+        }
 
         // Update user's name if provided
         $user = Auth::user();
@@ -146,6 +165,7 @@ class TeacherRequestController extends Controller
             'experience_years' => $validated['experience_years'],
             'university_major' => $validated['university_major'],
             'courses_done' => $validated['courses_done'],
+            'certification_file' => $certificationPath,
             'status' => 'pending',
             'request_date' => now(),
         ]);

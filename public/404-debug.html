@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>404 Debug Helper</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .error { color: red; }
+        .success { color: green; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>404 Error Debug Helper</h1>
+    <p>Open your browser's Developer Console (F12) and check the Network tab to see which resource is returning 404.</p>
+    
+    <h2>Common 404 Issues:</h2>
+    <ul>
+        <li><strong>favicon.ico</strong> - Browser automatically requests this. Create an empty file or add a real favicon.</li>
+        <li><strong>Vite assets</strong> - Run <code>npm run dev</code> or <code>npm run build</code> to compile assets.</li>
+        <li><strong>Storage files</strong> - Check if storage link exists: <code>php artisan storage:link</code></li>
+        <li><strong>API routes</strong> - Check if routes are properly defined in routes/web.php or routes/api.php</li>
+    </ul>
+    
+    <h2>How to Find the Exact 404:</h2>
+    <ol>
+        <li>Open Developer Tools (F12)</li>
+        <li>Go to the "Network" tab</li>
+        <li>Refresh the page</li>
+        <li>Look for red entries (404 status)</li>
+        <li>Click on the 404 entry to see the full URL that failed</li>
+    </ol>
+    
+    <h2>Quick Checks:</h2>
+    <div id="checks"></div>
+    
+    <script>
+        // Check common resources
+        const checks = [
+            { name: 'Favicon', url: '/favicon.ico' },
+            { name: 'Vite Dev Server', url: 'http://localhost:5173/@vite/client' },
+            { name: 'Storage Link', url: '/storage' }
+        ];
+        
+        const checkDiv = document.getElementById('checks');
+        checks.forEach(check => {
+            fetch(check.url, { method: 'HEAD' })
+                .then(response => {
+                    const div = document.createElement('div');
+                    div.innerHTML = `<span class="${response.ok ? 'success' : 'error'}">${check.name}: ${response.ok ? 'OK' : '404'}</span>`;
+                    checkDiv.appendChild(div);
+                })
+                .catch(() => {
+                    const div = document.createElement('div');
+                    div.innerHTML = `<span class="error">${check.name}: Error checking</span>`;
+                    checkDiv.appendChild(div);
+                });
+        });
+    </script>
+</body>
+</html>

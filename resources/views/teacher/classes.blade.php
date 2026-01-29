@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+    <div class="w-full min-h-screen px-4 sm:px-6 lg:px-8 py-8" style="background-image: url('/storage/Teacher_Dashboard/background3.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;">
         <!-- Go Back Button -->
-        <div class="mt-8 mb-4">
+        <div class="mb-6">
             <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
                     class="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" 
                     style="background: linear-gradient(135deg, #FC8EAC, #6EC6C5);">
@@ -13,10 +13,10 @@
                 Go Back
             </button>
         </div>
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-8 mt-8">
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-8">
             <h2 class="font-semibold text-2xl text-gray-800 dark:text-gray-200 mb-6">My Classes</h2>
             @if($classes->count())
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     @foreach($classes as $class)
                         <div class="bg-pink-50 border border-pink-200 rounded-lg p-6 shadow" x-data="{ show: false }">
                             <h3 class="text-xl font-bold text-pink-700 mb-2">{{ $class->class_name }}</h3>

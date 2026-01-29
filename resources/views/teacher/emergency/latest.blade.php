@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8">
+<div class="w-full min-h-screen px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
     <!-- Go Back Button -->
     <div class="mb-6">
         <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
@@ -28,7 +29,7 @@
     @if(isset($allRequests) && $allRequests->count() > 0)
         <div class="mb-6">
             <h3 class="text-lg font-semibold text-gray-700 mb-3">All Your Requests ({{ $allRequests->count() }})</h3>
-            <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($allRequests as $req)
                     <div class="rounded-xl shadow-md border border-gray-200 bg-gradient-to-br from-[#F8FAFC] to-[#E0F2FE] p-4 flex flex-col gap-3">
                         <div class="flex items-center justify-between">
@@ -134,5 +135,6 @@
 @endif
 </script>
 @endpush
+    </div>
 </div>
 @endsection

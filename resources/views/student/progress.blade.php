@@ -343,7 +343,7 @@
     <div class="absolute top-60 right-40 text-3xl opacity-15 floating-heart animate-zoomIn" style="animation-delay: 1.5s; color: #FC8EAC;">💫</div>
     <div class="absolute bottom-60 left-40 text-4xl opacity-15 floating-heart animate-floatRotate" style="animation-delay: 0.8s; color: #6EC6C5;">⭐</div>
     
-    <div class="relative z-10 container mx-auto px-4 py-12">
+    <div class="relative z-10 w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <!-- Header Section -->
         <div class="text-center mb-12 animate-fadeIn">
             <div class="inline-block mb-6 animate-zoomIn">
@@ -356,7 +356,7 @@
         </div>
         
         <!-- Overall Progress Tracking Line -->
-        <div class="max-w-7xl mx-auto mb-16 px-4">
+        <div class="w-full max-w-full mx-auto mb-16 px-4">
             <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-6 border-2 border-pink-200/50 animate-fadeIn"
                  style="background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,244,250,0.95) 100%); animation-delay: 0.6s;">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -425,7 +425,7 @@
         </div>
         
         <!-- Statistics Cards -->
-        <div class="max-w-7xl mx-auto mb-16">
+        <div class="w-full max-w-full mx-auto mb-16">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <!-- Games Stat Card -->
                 <div class="stat-card bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl p-6 border-2 border-pink-200/50 relative overflow-hidden"

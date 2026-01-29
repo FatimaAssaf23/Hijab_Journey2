@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<div class="max-w-3xl mx-auto py-10">
+<div class="w-full max-w-full mx-auto py-10 px-4 sm:px-6 lg:px-8">
     <div class="bg-white shadow-2xl rounded-3xl p-10 border border-pink-200">
         <div class="flex items-start justify-between mb-6">
             <a href="{{ route('student.dashboard') }}" class="flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">

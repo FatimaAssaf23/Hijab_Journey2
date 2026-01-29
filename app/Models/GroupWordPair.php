@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class GroupWordPair extends Model
 {
     use HasFactory;
-    protected $fillable = ['lesson_group_id', 'lesson_id', 'game_type', 'word', 'definition'];
+    protected $fillable = ['lesson_group_id', 'lesson_id', 'class_id', 'game_type', 'word', 'definition'];
 
     public function group()
     {

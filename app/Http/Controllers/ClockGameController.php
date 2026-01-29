@@ -12,18 +12,21 @@ class ClockGameController extends Controller
         try {
             $request->validate([
                 'clock_lesson_id' => 'required|integer',
+                'class_id' => 'required|exists:student_classes,class_id',
                 'clock_words' => 'required|array',
                 'clock_words.*' => 'required|string',
             ]);
 
             // First, create or get the Game record
             $game = Game::where('lesson_id', $request->clock_lesson_id)
+                ->where('class_id', $request->class_id)
                 ->where('game_type', 'clock')
                 ->first();
             
             if (!$game) {
                 $game = Game::create([
                     'lesson_id' => $request->clock_lesson_id,
+                    'class_id' => $request->class_id,
                     'game_type' => 'clock',
                 ]);
                 \Log::info('Game record created', ['game_id' => $game->game_id, 'lesson_id' => $request->clock_lesson_id]);
@@ -37,7 +40,9 @@ class ClockGameController extends Controller
             }
 
             // Then, create or update the ClockGame record
-            $clockGame = ClockGame::where('lesson_id', $request->clock_lesson_id)->first();
+            $clockGame = ClockGame::where('lesson_id', $request->clock_lesson_id)
+                ->where('class_id', $request->class_id)
+                ->first();
             
             if ($clockGame) {
                 \Log::info('Updating existing ClockGame', ['clock_game_id' => $clockGame->clock_game_id]);
@@ -49,6 +54,7 @@ class ClockGameController extends Controller
                 $clockGame = new ClockGame();
                 $clockGame->game_id = $game->game_id;
                 $clockGame->lesson_id = $request->clock_lesson_id;
+                $clockGame->class_id = $request->class_id;
                 $clockGame->words = $request->clock_words;
                 $clockGame->save();
                 

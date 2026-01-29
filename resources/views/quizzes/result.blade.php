@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<div class="max-w-5xl mx-auto py-10">
+<div class="w-full max-w-full mx-auto py-10 px-4 sm:px-6 lg:px-8">
     <div class="bg-gradient-to-br from-pink-50 via-white to-pink-100 shadow-2xl rounded-3xl p-10 mb-10 border-2 border-pink-200">
         <div class="flex items-start justify-between mb-6">
             <a href="{{ route('student.quizzes') }}" class="flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
@@ -19,6 +19,37 @@
             </h2>
             <h3 class="text-2xl font-bold text-gray-700 mb-4">{{ $attempt->quiz->title }}</h3>
             
+            @php
+                $score = round($attempt->score ?? 0, 2);
+                $totalQuestions = $attempt->quiz->questions->count();
+                $correctAnswers = $attempt->answers->where('is_correct', true)->count();
+                // Always use 60% as the passing score for all quizzes (standardized)
+                $passingScore = 60;
+                $passed = $score >= $passingScore;
+            @endphp
+            
+            @if(session('success'))
+                <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-4 text-center">
+                    <p class="text-green-700 font-bold">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {{ session('success') }}
+                    </p>
+                </div>
+            @endif
+            
+            @if(session('next_level_unlocked') && $passed)
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4 text-center">
+                    <p class="text-blue-700 font-bold">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Congratulations! The first lesson of the next level has been unlocked for you.
+                    </p>
+                </div>
+            @endif
+            
             @if(session('info'))
                 <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4 text-center">
                     <p class="text-blue-700 font-bold">
@@ -30,15 +61,6 @@
                     <p class="text-sm text-blue-600 mt-2">This is a read-only view of your previous submission. You cannot retake this quiz.</p>
                 </div>
             @endif
-            
-            @php
-                $score = round($attempt->score ?? 0, 2);
-                $totalQuestions = $attempt->quiz->questions->count();
-                $correctAnswers = $attempt->answers->where('is_correct', true)->count();
-                // Always use 60% as the passing score for all quizzes (standardized)
-                $passingScore = 60;
-                $passed = $score >= $passingScore;
-            @endphp
             
             <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 {{ $passed ? 'border-green-300' : 'border-red-300' }}">
                 <div class="flex items-center justify-center gap-4 mb-4">

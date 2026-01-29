@@ -83,6 +83,57 @@ class Level extends Model
         return $this->hasMany(Quiz::class, 'level_id', 'level_id');
     }
 
+    /**
+     * Check if all lessons in this level are completed by a student.
+     * 
+     * @param int $studentId
+     * @return bool
+     */
+    public function allLessonsCompleted($studentId)
+    {
+        $lessons = $this->lessons;
+        
+        if ($lessons->isEmpty()) {
+            // If there are no lessons, consider it "completed" (edge case)
+            return true;
+        }
+        
+        // Get all lesson IDs for this level
+        $lessonIds = $lessons->pluck('lesson_id');
+        
+        // Count completed lessons for this student
+        $completedCount = \App\Models\StudentLessonProgress::where('student_id', $studentId)
+            ->whereIn('lesson_id', $lessonIds)
+            ->where('status', 'completed')
+            ->count();
+        
+        // All lessons must be completed
+        return $completedCount === $lessons->count();
+    }
 
+    /**
+     * Get the next level (by level_number).
+     * 
+     * @return Level|null
+     */
+    public function nextLevel()
+    {
+        return static::where('class_id', $this->class_id)
+            ->where('level_number', '>', $this->level_number)
+            ->orderBy('level_number', 'asc')
+            ->first();
+    }
+
+    /**
+     * Get the first lesson in this level (by lesson_order).
+     * 
+     * @return Lesson|null
+     */
+    public function firstLesson()
+    {
+        return $this->lessons()
+            ->orderBy('lesson_order', 'asc')
+            ->first();
+    }
 
 }

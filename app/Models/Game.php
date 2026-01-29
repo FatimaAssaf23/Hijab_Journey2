@@ -12,6 +12,7 @@ class Game extends Model
 
     protected $fillable = [
         'lesson_id',
+        'class_id',
         'game_type',
         'game_data',
         'created_at',

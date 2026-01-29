@@ -561,6 +561,31 @@ Route::middleware(['auth', 'verified', 'can:isTeacher'])->prefix('teacher')->gro
     Route::post('/lessons/{lesson}/unlock', [TeacherLessonController::class, 'unlock'])->name('teacher.lessons.unlock');
     Route::post('/lessons/{lesson}/lock', [TeacherLessonController::class, 'lock'])->name('teacher.lessons.lock');
     Route::get('/lessons/{lesson}/view', [TeacherLessonController::class, 'view'])->name('teacher.lessons.view');
+    
+    // Teacher Schedule
+    Route::get('/schedule', function () {
+        $teacher_id = Auth::id();
+        $schedule = \App\Models\Schedule::where('teacher_id', $teacher_id)
+            ->where('status', '!=', 'completed')
+            ->with([
+                'scheduledEvents' => function($query) {
+                    $query->orderBy('release_date', 'asc');
+                },
+                'scheduledEvents.lesson',
+                'scheduledEvents.level',
+                'scheduledEvents.assignment',
+                'scheduledEvents.quiz',
+                'studentClass'
+            ])
+            ->first();
+        
+        if (!$schedule) {
+            return redirect()->route('teacher.lessons.manage')
+                ->with('info', 'No active schedule found.');
+        }
+        
+        return view('teacher.schedule.show', compact('schedule'));
+    })->name('teacher.schedule.show');
 });
 
 // Teacher Classes Management
@@ -582,15 +607,38 @@ Route::get('/levels', function () {
     $student = Student::where('user_id', $user->user_id)->first();
     $studentClassId = $student ? $student->class_id : null;
     $levels = Level::with(['lessons'])->get();
+    
     foreach ($levels as $level) {
-        $level->lessons = $level->lessons->filter(function($lesson) use ($studentClassId) {
+        \Log::info("DEBUG ROUTE: Processing level {$level->level_id} ({$level->level_name}), Level Number: {$level->level_number}");
+        \Log::info("DEBUG ROUTE: Total lessons in level before filtering: " . $level->lessons->count());
+        
+        // Log all lessons before filtering
+        foreach ($level->lessons as $lesson) {
+            \Log::info("DEBUG ROUTE: Lesson ID: {$lesson->lesson_id}, Title: '{$lesson->title}', Order: {$lesson->lesson_order}, Level ID: {$lesson->level_id}");
+        }
+        
+        $level->lessons = $level->lessons->filter(function($lesson) use ($studentClassId, $level) {
             $visibility = ClassLessonVisibility::where('lesson_id', $lesson->lesson_id)
                 ->where('class_id', $studentClassId)
+                ->where('is_visible', true)
                 ->first();
-            return $visibility && $visibility->is_visible;
+            
+            $isVisible = $visibility && $visibility->is_visible;
+            
+            \Log::info("DEBUG ROUTE: Lesson {$lesson->lesson_id} ('{$lesson->title}', Order: {$lesson->lesson_order}) in Level {$level->level_id} - Visibility: " . ($isVisible ? 'VISIBLE' : 'HIDDEN') . " (Class ID: {$studentClassId})");
+            
+            // Special logging for first lesson of level 2+
+            if ($lesson->lesson_order == 1 && $level->level_number > 1) {
+                \Log::info("DEBUG ROUTE: ⚠️ FIRST LESSON OF LEVEL {$level->level_number} - Lesson ID: {$lesson->lesson_id}, Visible: " . ($isVisible ? 'YES' : 'NO'));
+            }
+            
+            return $isVisible;
         })->values();
+        
+        \Log::info("DEBUG ROUTE: Lessons in level {$level->level_id} after filtering: " . $level->lessons->count());
     }
-    return view('levels', compact('levels'));
+    
+    return view('levels', compact('levels', 'student'));
 })->middleware(['auth', 'verified'])->name('levels');
 
 // Student Lesson View Route
@@ -604,16 +652,60 @@ Route::get('/lessons/{lesson}/view', function ($lessonId) {
     $hasGame = false;
     $isVideoCompleted = false;
     $isGameCompleted = false;
+    $accuratePercentage = 0; // Initialize to ensure it's always defined
     
     if ($student) {
-        $progress = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)
+        // CRITICAL: Always get fresh data from database (bypass any query/model cache)
+        // Query directly without any caching to ensure we get the absolute latest progress data
+        $progress = \App\Models\StudentLessonProgress::withoutGlobalScopes()
+            ->where('student_id', $student->student_id)
             ->where('lesson_id', $lessonId)
             ->first();
+        
+        // If progress exists, refresh it to get latest database values (bypasses model cache)
+        if ($progress) {
+            // Refresh from database to get absolute latest values - this forces a fresh DB query
+            $progress->refresh();
+        }
         
         // Track student activity - update last_activity_at when they access a lesson
         if ($progress) {
             $progress->last_activity_at = now();
+            
+            // Recalculate accurate percentage from max_watched_time (most reliable)
+            // This ensures progress is always up-to-date when returning to the lesson page
+            $videoDuration = $lesson->video_duration_seconds ?? 0;
+            $maxWatchedTime = $progress->max_watched_time ?? 0;
+            $accuratePercentage = 0;
+            
+            if ($videoDuration > 0 && $maxWatchedTime > 0) {
+                $accuratePercentage = round(($maxWatchedTime / $videoDuration) * 100, 2);
+            } else {
+                $accuratePercentage = $progress->watched_percentage ?? 0;
+            }
+            
+            // Update watched_percentage if it differs from accurate calculation
+            if (abs(($progress->watched_percentage ?? 0) - $accuratePercentage) > 0.01) {
+                $progress->watched_percentage = $accuratePercentage;
+            }
+            
+            // Ensure video_completed is set correctly based on accurate percentage
+            // This fixes the issue where video_completed might not be set even if progress >= 80%
+            $shouldBeCompleted = $accuratePercentage >= 80;
+            $isCurrentlyCompleted = $progress->video_completed ?? false;
+            
+            if ($shouldBeCompleted && !$isCurrentlyCompleted) {
+                $progress->video_completed = true;
+                
+                // Use the controller's unlock method to properly unlock all game types
+                $progressController = new \App\Http\Controllers\StudentProgressController();
+                $progressController->unlockLessonGame($student->student_id, $lessonId);
+            }
+            
             $progress->save();
+            
+            // CRITICAL: Refresh the model to get the updated values from database
+            $progress->refresh();
         } else {
             // Create progress record if it doesn't exist to track activity
             $progress = \App\Models\StudentLessonProgress::create([
@@ -624,21 +716,293 @@ Route::get('/lessons/{lesson}/view', function ($lessonId) {
             ]);
         }
         
-        $hasGame = \App\Models\Game::where('lesson_id', $lessonId)->exists();
-        $isVideoCompleted = $progress && ($progress->video_completed ?? false);
+        // Check if lesson has games (considering class_id if student has one)
+        if ($student && $student->class_id) {
+            // Auto-initialize games for this student/lesson if they haven't been initialized yet
+            // This ensures games are always accessible even if initialization didn't run during registration
+            try {
+                $progressController = new \App\Http\Controllers\StudentProgressController();
+                $progressController->unlockLessonGame($student->student_id, $lessonId);
+            } catch (\Exception $e) {
+                \Log::warning('Failed to auto-initialize games in lesson view route: ' . $e->getMessage(), [
+                    'student_id' => $student->student_id,
+                    'lesson_id' => $lessonId
+                ]);
+            }
+            
+            // Check all game types with detailed logging
+            $gameChecks = [
+                'Game' => \App\Models\Game::where('lesson_id', $lessonId)
+                    ->where('class_id', $student->class_id)
+                    ->exists(),
+                'ClockGame' => \App\Models\ClockGame::where('lesson_id', $lessonId)
+                    ->where('class_id', $student->class_id)
+                    ->exists(),
+                'WordSearchGame' => \App\Models\WordSearchGame::where('lesson_id', $lessonId)
+                    ->where('class_id', $student->class_id)
+                    ->exists(),
+                'MatchingPairsGame' => \App\Models\MatchingPairsGame::where('lesson_id', $lessonId)
+                    ->where('class_id', $student->class_id)
+                    ->exists(),
+                'GroupWordPair' => \App\Models\GroupWordPair::where('lesson_id', $lessonId)
+                    ->where('class_id', $student->class_id)
+                    ->whereNotNull('lesson_id')
+                    ->exists(),
+            ];
+            
+            $hasGame = in_array(true, $gameChecks, true);
+            
+            // Also check if any games exist without class_id filter (for backward compatibility)
+            if (!$hasGame) {
+                $gameChecks['Game_no_class'] = \App\Models\Game::where('lesson_id', $lessonId)->exists();
+                $gameChecks['ClockGame_no_class'] = \App\Models\ClockGame::where('lesson_id', $lessonId)->exists();
+                $gameChecks['WordSearchGame_no_class'] = \App\Models\WordSearchGame::where('lesson_id', $lessonId)->exists();
+                $gameChecks['MatchingPairsGame_no_class'] = \App\Models\MatchingPairsGame::where('lesson_id', $lessonId)->exists();
+                $gameChecks['GroupWordPair_no_class'] = \App\Models\GroupWordPair::where('lesson_id', $lessonId)
+                    ->whereNotNull('lesson_id')
+                    ->exists();
+                
+                $hasGame = in_array(true, array_slice($gameChecks, 5), true);
+            }
+            
+            // FALLBACK: If lesson is visible to student, always show game button
+            // Let the games page handle showing "no games" if needed
+            // This ensures students can always try to access games
+            if (!$hasGame) {
+                $lessonVisible = \App\Models\ClassLessonVisibility::where('lesson_id', $lessonId)
+                    ->where('class_id', $student->class_id)
+                    ->where('is_visible', true)
+                    ->exists();
+                
+                if ($lessonVisible) {
+                    $hasGame = true; // Show button, games page will handle availability
+                    \Log::info('Lesson view - Showing game button as fallback for visible lesson', [
+                        'student_id' => $student->student_id,
+                        'lesson_id' => $lessonId,
+                        'class_id' => $student->class_id
+                    ]);
+                }
+            }
+            
+            // Log detailed game detection for debugging
+            \Log::info('Lesson view - Game detection detailed', [
+                'student_id' => $student->student_id,
+                'lesson_id' => $lessonId,
+                'class_id' => $student->class_id,
+                'hasGame' => $hasGame,
+                'game_checks' => $gameChecks,
+                'game_counts' => [
+                    'Game_with_class' => \App\Models\Game::where('lesson_id', $lessonId)->where('class_id', $student->class_id)->count(),
+                    'ClockGame_with_class' => \App\Models\ClockGame::where('lesson_id', $lessonId)->where('class_id', $student->class_id)->count(),
+                    'WordSearchGame_with_class' => \App\Models\WordSearchGame::where('lesson_id', $lessonId)->where('class_id', $student->class_id)->count(),
+                    'MatchingPairsGame_with_class' => \App\Models\MatchingPairsGame::where('lesson_id', $lessonId)->where('class_id', $student->class_id)->count(),
+                    'GroupWordPair_with_class' => \App\Models\GroupWordPair::where('lesson_id', $lessonId)->where('class_id', $student->class_id)->whereNotNull('lesson_id')->count(),
+                ]
+            ]);
+        } else {
+            $hasGame = \App\Models\Game::where('lesson_id', $lessonId)->exists();
+        }
         
-        if ($hasGame && $student) {
-            $game = \App\Models\Game::where('lesson_id', $lessonId)->first();
-            $gameProgress = \App\Models\StudentGameProgress::where('student_id', $student->student_id)
-                ->where('game_id', $game->game_id)
-                ->where('status', 'completed')
-                ->first();
-            $isGameCompleted = $gameProgress !== null;
+        // Recalculate percentage one more time for isVideoCompleted check (using refreshed progress)
+        $videoDuration = $lesson->video_duration_seconds ?? 0;
+        $maxWatchedTime = $progress->max_watched_time ?? 0;
+        $accuratePercentage = 0;
+        
+        if ($videoDuration > 0 && $maxWatchedTime > 0) {
+            $accuratePercentage = round(($maxWatchedTime / $videoDuration) * 100, 2);
+        } else {
+            $accuratePercentage = $progress->watched_percentage ?? 0;
+        }
+        
+        // Update the progress object's watched_percentage to ensure blade template uses correct value
+        $progress->watched_percentage = $accuratePercentage;
+        
+        // Check video completion based on accurate percentage OR video_completed flag
+        $isVideoCompleted = $progress && (($progress->video_completed ?? false) || $accuratePercentage >= 80);
+        
+        // Check if ANY game for this lesson is completed (considering class_id)
+        // CRITICAL: Use fresh queries to ensure we get latest game completion status
+        $isGameCompleted = false;
+        if ($hasGame && $student && $student->class_id) {
+            // Get all Game models for this lesson and class (fresh query, no cache)
+            $gameIds = \App\Models\Game::withoutGlobalScopes()
+                ->where('lesson_id', $lessonId)
+                ->where('class_id', $student->class_id)
+                ->pluck('game_id');
+            
+            // Also check for games that might not have Game model entries yet
+            // but have progress records (edge case handling)
+            $allGameIds = $gameIds->toArray();
+            
+            // Check if student has completed any of these games (fresh query)
+            if (!empty($allGameIds)) {
+                $isGameCompleted = \App\Models\StudentGameProgress::withoutGlobalScopes()
+                    ->where('student_id', $student->student_id)
+                    ->whereIn('game_id', $allGameIds)
+                    ->where('status', 'completed')
+                    ->exists();
+            }
+            
+            // If no completion found via Game models, check directly by lesson_id
+            // This handles cases where game progress exists but Game model doesn't
+            if (!$isGameCompleted) {
+                // Get all possible game IDs for this lesson by checking all game types (fresh queries)
+                $allPossibleGameIds = collect();
+                
+                // Check ClockGame -> Game mapping
+                $clockGame = \App\Models\ClockGame::withoutGlobalScopes()
+                    ->where('lesson_id', $lessonId)
+                    ->where('class_id', $student->class_id)
+                    ->first();
+                if ($clockGame && $clockGame->game_id) {
+                    $allPossibleGameIds->push($clockGame->game_id);
+                }
+                
+                // Check WordSearchGame -> Game mapping
+                $wordSearchGame = \App\Models\WordSearchGame::withoutGlobalScopes()
+                    ->where('lesson_id', $lessonId)
+                    ->where('class_id', $student->class_id)
+                    ->first();
+                if ($wordSearchGame && $wordSearchGame->game_id) {
+                    $allPossibleGameIds->push($wordSearchGame->game_id);
+                }
+                
+                // Check MatchingPairsGame -> Game mapping
+                $matchingPairsGame = \App\Models\MatchingPairsGame::withoutGlobalScopes()
+                    ->where('lesson_id', $lessonId)
+                    ->where('class_id', $student->class_id)
+                    ->first();
+                if ($matchingPairsGame && $matchingPairsGame->game_id) {
+                    $allPossibleGameIds->push($matchingPairsGame->game_id);
+                }
+                
+                // Merge with existing game IDs
+                $allGameIds = array_unique(array_merge($allGameIds, $allPossibleGameIds->toArray()));
+                
+                // Final check with all possible game IDs (fresh query)
+                if (!empty($allGameIds)) {
+                    $isGameCompleted = \App\Models\StudentGameProgress::withoutGlobalScopes()
+                        ->where('student_id', $student->student_id)
+                        ->whereIn('game_id', $allGameIds)
+                        ->where('status', 'completed')
+                        ->exists();
+                }
+            }
         }
     }
     
-    return view('lesson-view', compact('lesson', 'progress', 'hasGame', 'isVideoCompleted', 'isGameCompleted'));
+    // Pass accurate percentage to view to ensure correct display
+    $accuratePercentageForView = $accuratePercentage ?? 0;
+    
+    // Add cache-busting headers to prevent browser from caching this page
+    // This ensures fresh data is always loaded when returning from game page
+    $response = response()->view('lesson-view', compact('lesson', 'progress', 'hasGame', 'isVideoCompleted', 'isGameCompleted', 'accuratePercentageForView'));
+    
+    $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    $response->headers->set('Pragma', 'no-cache');
+    $response->headers->set('Expires', '0');
+    
+    return $response;
 })->middleware(['auth', 'verified'])->name('student.lesson.view');
+
+// Diagnostic route for debugging lesson unlocking (remove after debugging)
+Route::get('/debug/lesson-unlock/{lessonId}', function ($lessonId) {
+    if (!Auth::check()) {
+        return response()->json(['error' => 'Not authenticated'], 401);
+    }
+    
+    $user = Auth::user();
+    $student = $user->student;
+    
+    if (!$student) {
+        return response()->json(['error' => 'Not a student'], 403);
+    }
+    
+    $lesson = \App\Models\Lesson::with('level')->findOrFail($lessonId);
+    
+    // Check visibility
+    $isVisible = \App\Models\ClassLessonVisibility::where('class_id', $student->class_id)
+        ->where('lesson_id', $lessonId)
+        ->where('is_visible', true)
+        ->exists();
+    
+    // Check prerequisites
+    $prerequisiteStatus = $lesson->getPrerequisiteStatus($student->student_id, 60);
+    
+    // Get level info
+    $level = $lesson->level;
+    $previousLevel = null;
+    if ($level) {
+        $previousLevel = $level->prerequisiteLevel;
+        if (!$previousLevel) {
+            $previousLevel = \App\Models\Level::where('class_id', $level->class_id)
+                ->where('level_number', '<', $level->level_number)
+                ->orderBy('level_number', 'desc')
+                ->first();
+        }
+    }
+    
+    // Get quiz info
+    $previousLevelQuiz = null;
+    $quizAttempts = collect();
+    if ($previousLevel) {
+        $previousLevelQuiz = \App\Models\Quiz::where('level_id', $previousLevel->level_id)
+            ->where('is_active', true)
+            ->first();
+        
+        if ($previousLevelQuiz) {
+            $quizAttempts = \App\Models\QuizAttempt::where('quiz_id', $previousLevelQuiz->quiz_id)
+                ->where('student_id', $student->student_id)
+                ->get();
+        }
+    }
+    
+    return response()->json([
+        'lesson' => [
+            'id' => $lesson->lesson_id,
+            'title' => $lesson->title,
+            'lesson_order' => $lesson->lesson_order,
+            'level_id' => $lesson->level_id,
+        ],
+        'level' => $level ? [
+            'id' => $level->level_id,
+            'name' => $level->level_name,
+            'number' => $level->level_number,
+            'class_id' => $level->class_id,
+        ] : null,
+        'previous_level' => $previousLevel ? [
+            'id' => $previousLevel->level_id,
+            'name' => $previousLevel->level_name,
+            'number' => $previousLevel->level_number,
+        ] : null,
+        'previous_level_quiz' => $previousLevelQuiz ? [
+            'id' => $previousLevelQuiz->quiz_id,
+            'title' => $previousLevelQuiz->title,
+            'is_active' => $previousLevelQuiz->is_active,
+            'level_id' => $previousLevelQuiz->level_id,
+        ] : null,
+        'quiz_attempts' => $quizAttempts->map(function($attempt) {
+            return [
+                'id' => $attempt->attempt_id,
+                'score' => $attempt->score,
+                'submitted_at' => $attempt->submitted_at ? $attempt->submitted_at->toDateTimeString() : null,
+                'status' => $attempt->status,
+            ];
+        }),
+        'visibility' => [
+            'is_visible' => $isVisible,
+            'class_id' => $student->class_id,
+        ],
+        'prerequisites' => [
+            'met' => $prerequisiteStatus['met'],
+            'message' => $prerequisiteStatus['message'],
+        ],
+        'student' => [
+            'id' => $student->student_id,
+            'class_id' => $student->class_id,
+        ],
+    ], 200, [], JSON_PRETTY_PRINT);
+})->middleware(['auth', 'verified']);
 
 require __DIR__.'/auth.php';
 

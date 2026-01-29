@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="absolute top-40 right-40 w-48 h-48 bg-cyan-100/25 rounded-full blur-2xl float-animation" style="animation-delay: 2s;"></div>
     </div>
 
-    <div class="relative z-10 container mx-auto px-4 py-8">
+    <div class="relative z-10 w-full min-h-screen px-4 sm:px-6 lg:px-8 py-8">
         <!-- Go Back Button -->
         <div class="mb-6 fade-in">
             <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         @else
             <!-- Overall Statistics -->
-            <div class="max-w-7xl mx-auto mb-12">
+            <div class="w-full mb-12">
                 <div class="bg-gradient-to-br from-white via-pink-50/50 to-cyan-50/50 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border-2 border-pink-200/30 fade-in hover:shadow-3xl transition-all duration-300">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div class="text-center p-6 rounded-2xl bg-gradient-to-br from-pink-50 to-pink-100/50 border-2 border-pink-200/50 hover:border-pink-300 transition-all duration-300 scale-in">
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
 
             <!-- Student Grades Cards -->
-            <div class="max-w-7xl mx-auto space-y-10">
+            <div class="w-full space-y-10">
                 @foreach($studentGrades as $studentId => $data)
                     <div class="bg-gradient-to-br from-white via-pink-50/30 to-cyan-50/30 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border-2 border-pink-200/40 hover:border-pink-300/60 transition-all duration-300 fade-in hover:shadow-3xl overflow-hidden relative">
                         <!-- Decorative gradient overlay -->
@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </div>
                                         </div>
                                         <div id="assignments-{{ $studentId }}" class="section-content">
-                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 @foreach($assignments as $index => $grade)
                                                     @php
                                                         $percentage = $grade->percentage ?? 0;
@@ -444,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </div>
                                         </div>
                                         <div id="quizzes-{{ $studentId }}" class="section-content">
-                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 @foreach($quizzes as $index => $grade)
                                                     @php
                                                         $percentage = $grade->percentage ?? 0;
@@ -579,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </div>
                                         </div>
                                         <div id="games-{{ $studentId }}" class="section-content">
-                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 @foreach($games as $index => $grade)
                                                     @php
                                                         $percentage = $grade->percentage ?? 0;

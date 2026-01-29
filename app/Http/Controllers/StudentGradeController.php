@@ -12,6 +12,7 @@ use App\Models\MatchingPairsGame;
 use App\Models\Lesson;
 use App\Models\QuizAttempt;
 use App\Models\Quiz;
+use App\Models\ClassLessonVisibility;
 
 class StudentGradeController extends Controller
 {
@@ -25,106 +26,56 @@ class StudentGradeController extends Controller
                 ->with('error', 'Student profile not found.');
         }
         
-        // Get all lessons that have games
-        // Get lesson IDs from all game sources
-        $clockGameLessonIds = ClockGame::pluck('lesson_id')->unique();
-        $wordSearchGameLessonIds = WordSearchGame::pluck('lesson_id')->unique();
-        $matchingPairsGameLessonIds = MatchingPairsGame::pluck('lesson_id')->unique();
-        $otherGameLessonIds = Game::whereIn('game_type', ['scrambled_clocks', 'word_clock_arrangement'])
-            ->pluck('lesson_id')
-            ->unique();
-        // Get lesson IDs from games table that have mcq or scramble (they're created when scores are saved)
-        $quizGameLessonIds = Game::whereIn('game_type', ['mcq', 'scramble'])
-            ->pluck('lesson_id')
-            ->unique();
-        
-        $allGameLessonIds = $clockGameLessonIds->merge($wordSearchGameLessonIds)
-            ->merge($matchingPairsGameLessonIds)
-            ->merge($otherGameLessonIds)
-            ->merge($quizGameLessonIds)
-            ->unique();
-        
-        $lessons = Lesson::whereIn('lesson_id', $allGameLessonIds)->get();
-        
-        // Calculate scores for each lesson
+        // Build scores only from what the student actually played (StudentGameProgress)
+        $progresses = StudentGameProgress::where('student_id', $student->student_id)
+            ->where('status', 'completed')
+            ->with('game')
+            ->get();
+
+        // Group progresses by lesson_id via related Game
+        $progressesByLesson = $progresses->filter(function ($p) {
+                return $p->game !== null && $p->game->lesson_id !== null;
+            })
+            ->groupBy(function ($p) {
+                return $p->game->lesson_id;
+            });
+
         $lessonScores = [];
-        
-        foreach ($lessons as $lesson) {
+
+        foreach ($progressesByLesson as $lessonId => $lessonProgresses) {
+            $lesson = Lesson::find($lessonId);
+            if (!$lesson) {
+                continue;
+            }
+
             $scores = [];
             $totalScore = 0;
             $scoredGamesCount = 0;
-            
-            // Get scores from games table (clock, scrambled_clocks, word_clock_arrangement, mcq, scramble)
-            $games = Game::where('lesson_id', $lesson->lesson_id)
-                ->whereIn('game_type', ['clock', 'scrambled_clocks', 'word_clock_arrangement', 'mcq', 'scramble'])
-                ->get();
-            
-            foreach ($games as $game) {
-                $progress = StudentGameProgress::where('game_id', $game->game_id)
-                    ->where('student_id', $student->student_id)
-                    ->first();
-                
-                if ($progress && $progress->score !== null) {
-                    $scores[] = [
-                        'game_type' => $game->game_type,
-                        'score' => $progress->score,
-                        'game_name' => $this->getGameName($game->game_type)
-                    ];
-                    $totalScore += $progress->score;
-                    $scoredGamesCount++;
+
+            foreach ($lessonProgresses as $progress) {
+                $game = $progress->game;
+                if (!$game || $progress->score === null) {
+                    continue;
                 }
+
+                $scores[] = [
+                    'game_type' => $game->game_type,
+                    'score' => $progress->score,
+                    'game_name' => $this->getGameName($game->game_type),
+                ];
+
+                $totalScore += $progress->score;
+                $scoredGamesCount++;
             }
-            
-            // Get score from word search games
-            $wordSearchGame = WordSearchGame::where('lesson_id', $lesson->lesson_id)->first();
-            if ($wordSearchGame && $wordSearchGame->game_id) {
-                $progress = StudentGameProgress::where('game_id', $wordSearchGame->game_id)
-                    ->where('student_id', $student->student_id)
-                    ->first();
-                
-                if ($progress && $progress->score !== null) {
-                    $scores[] = [
-                        'game_type' => 'word_search',
-                        'score' => $progress->score,
-                        'game_name' => 'Word Search Puzzle'
-                    ];
-                    $totalScore += $progress->score;
-                    $scoredGamesCount++;
-                }
-            }
-            
-            // Get score from matching pairs games
-            $matchingPairsGame = MatchingPairsGame::where('lesson_id', $lesson->lesson_id)->first();
-            if ($matchingPairsGame && $matchingPairsGame->game_id) {
-                $progress = StudentGameProgress::where('game_id', $matchingPairsGame->game_id)
-                    ->where('student_id', $student->student_id)
-                    ->first();
-                
-                if ($progress && $progress->score !== null) {
-                    $scores[] = [
-                        'game_type' => 'matching_pairs',
-                        'score' => $progress->score,
-                        'game_name' => 'Matching Pairs Game'
-                    ];
-                    $totalScore += $progress->score;
-                    $scoredGamesCount++;
-                }
-            }
-            
-            // Note: MCQ and Scrambled Letters scores are calculated on-the-fly from quiz results
-            // They don't have game_id in StudentGameProgress, so we'll need to calculate them differently
-            // For now, we'll show scores from games that have StudentGameProgress entries
-            
-            // Calculate average score
-            $averageScore = $scoredGamesCount > 0 ? round($totalScore / $scoredGamesCount) : null;
-            
+
             if ($scoredGamesCount > 0) {
+                $averageScore = round($totalScore / $scoredGamesCount);
                 $lessonScores[] = [
                     'lesson' => $lesson,
                     'scores' => $scores,
                     'total_score' => $totalScore,
                     'average_score' => $averageScore,
-                    'games_count' => $scoredGamesCount
+                    'games_count' => $scoredGamesCount,
                 ];
             }
         }
@@ -168,7 +119,95 @@ class StudentGradeController extends Controller
             ];
         }
         
+        // Check quiz grades and unlock next level's first lesson if student passed (score >= 60)
+        $this->checkAndUnlockNextLevels($student, $quizGrades);
+        
         return view('student.grades', compact('lessonScores', 'quizGrades'));
+    }
+    
+    /**
+     * Check quiz grades and unlock next level's first lesson for passed quizzes
+     * 
+     * @param \App\Models\Student $student
+     * @param array $quizGrades
+     * @return void
+     */
+    private function checkAndUnlockNextLevels($student, $quizGrades)
+    {
+        $passingScore = 60;
+        
+        foreach ($quizGrades as $quizData) {
+            $quiz = $quizData['quiz'];
+            $latestScore = $quizData['latest_score'];
+            
+            // Only process if student passed the quiz
+            if ($latestScore >= $passingScore && $quiz->level) {
+                $this->unlockNextLevelFirstLesson($student, $quiz->level);
+            }
+        }
+    }
+    
+    /**
+     * Check if student can access next level's first lesson after passing quiz.
+     * Only unlocks if the lesson exists AND teacher has already made it visible.
+     * If lesson doesn't exist or isn't visible, waits for teacher action.
+     * 
+     * @param \App\Models\Student $student
+     * @param \App\Models\Level $currentLevel
+     * @return bool Returns true if lesson is accessible, false otherwise
+     */
+    private function unlockNextLevelFirstLesson($student, $currentLevel)
+    {
+        if (!$student || !$student->class_id) {
+            \Log::warning("Cannot check next level: Student {$student->student_id} not found or has no class_id");
+            return false;
+        }
+
+        // Get the next level
+        $nextLevel = $currentLevel->nextLevel();
+        if (!$nextLevel) {
+            \Log::info("No next level found for level {$currentLevel->level_id} (Level {$currentLevel->level_name})");
+            return false;
+        }
+
+        // Get the first lesson of the next level
+        $firstLesson = $nextLevel->firstLesson();
+        if (!$firstLesson) {
+            \Log::info("No first lesson found in next level {$nextLevel->level_id} (Level {$nextLevel->level_name}). Waiting for teacher to upload lesson.");
+            return false;
+        }
+
+        // Get student's class
+        $class = $student->studentClass;
+        if (!$class) {
+            \Log::warning("Cannot check lesson: Student {$student->student_id} has no studentClass");
+            return false;
+        }
+        
+        if (!$class->teacher_id) {
+            \Log::warning("Cannot check lesson: Class {$class->class_id} has no teacher_id");
+            return false;
+        }
+
+        // CRITICAL: Check if teacher has already made this lesson visible
+        // Only proceed if teacher has explicitly unlocked it
+        $teacherVisibility = ClassLessonVisibility::where('class_id', $student->class_id)
+            ->where('lesson_id', $firstLesson->lesson_id)
+            ->where('teacher_id', $class->teacher_id)
+            ->where('is_visible', true)
+            ->first();
+        
+        if (!$teacherVisibility) {
+            // Lesson exists but teacher hasn't made it visible yet - wait for teacher action
+            \Log::info("Lesson {$firstLesson->lesson_id} '{$firstLesson->title}' exists but teacher hasn't made it visible yet. Student {$student->student_id} has met prerequisites (passed quiz), but waiting for teacher to unlock the lesson.");
+            return false;
+        }
+
+        // Lesson exists AND teacher has made it visible
+        // Student has met prerequisites (passed quiz), so they can now access it
+        \Log::info("Student {$student->student_id} can now access next level first lesson: Lesson {$firstLesson->lesson_id} '{$firstLesson->title}' (Level {$nextLevel->level_name}). Teacher has made it visible and student has passed the quiz.");
+        
+        return true;
     }
     
     private function getGameName($gameType)

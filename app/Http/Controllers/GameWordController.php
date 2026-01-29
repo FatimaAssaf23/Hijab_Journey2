@@ -34,8 +34,9 @@ class GameWordController extends Controller
         // Get all classes for this teacher
         $classes = \App\Models\StudentClass::where('teacher_id', $user->user_id)->get();
 
-        // Get selected lesson and game type from request
+        // Get selected lesson, class, and game type from request
         $selectedLessonId = $request->input('lesson_id');
+        $selectedClassId = $request->input('class_id');
         $selectedGameType = $request->input('game_type', null); // Explicitly set to null if not provided
 
         $scramblePairs = collect();
@@ -66,7 +67,7 @@ class GameWordController extends Controller
             $matchingPairsGame = \App\Models\MatchingPairsGame::where('lesson_id', $selectedLessonId)->with('pairs')->first();
         }
 
-        return view('games', compact('lessons', 'scramblePairs', 'selectedLessonId', 'selectedGameType', 'clockGame', 'scrambledClocksGame', 'wordClockArrangementGame', 'wordSearchGame', 'matchingPairsGame', 'classes'));
+        return view('games', compact('lessons', 'scramblePairs', 'selectedLessonId', 'selectedClassId', 'selectedGameType', 'clockGame', 'scrambledClocksGame', 'wordClockArrangementGame', 'wordSearchGame', 'matchingPairsGame', 'classes'));
     }
 
     public function store(Request $request)
@@ -75,7 +76,7 @@ class GameWordController extends Controller
         if ($request->has('lesson_id') && $request->has('words') && $request->has('definitions') && $request->has('game_type')) {
             $request->validate([
                 'lesson_id' => 'required|integer',
-                'class_id' => 'nullable|exists:student_classes,class_id',
+                'class_id' => 'required|exists:student_classes,class_id',
                 'game_type' => 'required|string',
             ]);
 
@@ -87,27 +88,26 @@ class GameWordController extends Controller
             $pairs = array_filter(array_map(function($w, $d) {
                 return (trim($w) !== '' && trim($d) !== '') ? ['word' => $w, 'definition' => $d] : null;
             }, $words, $definitions));
-            // Save each pair directly to the lesson with game_type
+            // Save each pair directly to the lesson with game_type and class_id
             foreach ($pairs as $pair) {
                 \App\Models\GroupWordPair::create([
                     'lesson_id' => $lessonId,
+                    'class_id' => $request->class_id,
                     'game_type' => $gameType,
                     'word' => $pair['word'],
                     'definition' => $pair['definition'],
                 ]);
             }
             
-            // If class_id is provided, make the lesson visible for that class
-            if ($request->class_id) {
-                ClassLessonVisibility::firstOrCreate(
-                    [
-                        'lesson_id' => $lessonId,
-                        'class_id' => $request->class_id,
-                        'teacher_id' => Auth::id(),
-                    ],
-                    ['is_visible' => true]
-                )->update(['is_visible' => true]);
-            }
+            // Make the lesson visible for the selected class (required)
+            ClassLessonVisibility::firstOrCreate(
+                [
+                    'lesson_id' => $lessonId,
+                    'class_id' => $request->class_id,
+                    'teacher_id' => Auth::id(),
+                ],
+                ['is_visible' => true]
+            )->update(['is_visible' => true]);
             
             // Redirect to show the lesson and its pairs
             return redirect()->route('teacher.games', ['lesson_id' => $lessonId])
@@ -115,5 +115,13 @@ class GameWordController extends Controller
         }
 
         return redirect()->route('teacher.games');
+    }
+
+    public function destroy($id)
+    {
+        $pair = \App\Models\GroupWordPair::findOrFail($id);
+        $pair->delete();
+        
+        return redirect()->back()->with('success', 'Word pair deleted successfully!');
     }
 }

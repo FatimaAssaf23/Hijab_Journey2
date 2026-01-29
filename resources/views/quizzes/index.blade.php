@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<div class="max-w-7xl mx-auto py-10">
+<div class="w-full min-h-screen py-10 px-4 sm:px-6 lg:px-8">
     <!-- Go Back Button -->
     <div class="mb-6">
         <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
@@ -65,7 +65,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         @forelse($quizzes as $quiz)
             <div class="bg-white rounded-3xl shadow-xl border border-pink-100 p-6 flex flex-col gap-4 hover:shadow-pink-200 transition-all duration-150">
                 <div class="flex items-center gap-4 mb-2">

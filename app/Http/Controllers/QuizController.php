@@ -10,6 +10,7 @@ use App\Models\Level;
 use App\Models\StudentClass;
 use App\Models\QuizAttempt;
 use App\Models\StudentAnswer;
+use App\Models\ClassLessonVisibility;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -194,7 +195,7 @@ class QuizController extends Controller
 
         $quizzes = Quiz::where('class_id', $student->class_id)
             ->where('is_active', true)
-            ->with('level', 'questions')
+            ->with(['level.lessons', 'questions'])
             ->latest()
             ->get();
 
@@ -205,7 +206,17 @@ class QuizController extends Controller
             ->get()
             ->keyBy('quiz_id');
 
-        return view('student.quizzes', compact('quizzes', 'attempts'));
+        // Check which quizzes are unlocked (all lessons in level must be completed)
+        $unlockedQuizzes = [];
+        foreach ($quizzes as $quiz) {
+            if ($quiz->level) {
+                $unlockedQuizzes[$quiz->quiz_id] = $quiz->level->allLessonsCompleted($student->student_id);
+            } else {
+                $unlockedQuizzes[$quiz->quiz_id] = false;
+            }
+        }
+
+        return view('student.quizzes', compact('quizzes', 'attempts', 'unlockedQuizzes'));
     }
 
     // Student: Show quiz for taking
@@ -219,12 +230,20 @@ class QuizController extends Controller
         // Get fresh quiz data from database (no caching)
         $quiz = Quiz::where('class_id', $student->class_id)
             ->where('is_active', true)
-            ->with(['questions' => function($query) {
+            ->with(['level.lessons', 'questions' => function($query) {
                 $query->orderBy('question_order');
             }, 'questions.options' => function($query) {
                 $query->orderBy('option_order');
             }])
             ->findOrFail($id);
+
+        // Check if all lessons in the level are completed (quiz unlock requirement)
+        if ($quiz->level) {
+            $allLessonsCompleted = $quiz->level->allLessonsCompleted($student->student_id);
+            if (!$allLessonsCompleted) {
+                return back()->with('error', 'You must complete all lessons in this level before taking the quiz.');
+            }
+        }
 
         // Check if student has already submitted this quiz (prevent retaking)
         $hasCompletedAttempt = QuizAttempt::where('quiz_id', $quiz->quiz_id)
@@ -278,11 +297,19 @@ class QuizController extends Controller
     // Student: Submit quiz answers
     public function submit(Request $request, $id)
     {
-        $quiz = Quiz::with(['questions.options'])->findOrFail($id);
+        $quiz = Quiz::with(['level.lessons', 'questions.options'])->findOrFail($id);
         $student = Auth::user()->student;
 
         if (!$student) {
             return back()->with('error', 'Student profile not found');
+        }
+
+        // Check if all lessons in the level are completed (quiz unlock requirement)
+        if ($quiz->level) {
+            $allLessonsCompleted = $quiz->level->allLessonsCompleted($student->student_id);
+            if (!$allLessonsCompleted) {
+                return back()->with('error', 'You must complete all lessons in this level before taking the quiz.');
+            }
         }
 
         // Check if student has already submitted this quiz (prevent retaking)
@@ -359,6 +386,27 @@ class QuizController extends Controller
             $attempt->score = $score;
             $attempt->save();
 
+            \Log::info("DEBUG QUIZ SUBMISSION: Quiz ID: {$quiz->quiz_id}, Student ID: {$student->student_id}, Score: {$score}, Correct: {$correctCount}/{$totalQuestions}, Status: {$attempt->status}, Submitted At: " . ($attempt->submitted_at ? $attempt->submitted_at->toDateTimeString() : 'NULL'));
+
+            // If student passed the quiz (score >= 60), unlock the next level's first lesson
+            $passingScore = 60;
+            $nextLevelUnlocked = false;
+            if ($score >= $passingScore) {
+                \Log::info("DEBUG QUIZ SUBMISSION: Student passed quiz (score {$score} >= {$passingScore}). Attempting to unlock next level...");
+                
+                // Reload quiz with level relationship to ensure we have the level data
+                $quiz->load('level');
+                if ($quiz->level) {
+                    \Log::info("DEBUG QUIZ SUBMISSION: Quiz belongs to Level ID: {$quiz->level->level_id}, Level Number: {$quiz->level->level_number}, Level Name: '{$quiz->level->level_name}'");
+                    $nextLevelUnlocked = $this->unlockNextLevelFirstLesson($student->student_id, $quiz->level);
+                    \Log::info("DEBUG QUIZ SUBMISSION: unlockNextLevelFirstLesson returned: " . ($nextLevelUnlocked ? 'true' : 'false'));
+                } else {
+                    \Log::warning("DEBUG QUIZ SUBMISSION: Quiz {$quiz->quiz_id} has no level assigned, cannot unlock next level");
+                }
+            } else {
+                \Log::info("DEBUG QUIZ SUBMISSION: Student did not pass quiz (score {$score} < {$passingScore}). Next level will not be unlocked.");
+            }
+
             DB::commit();
             
             // If time expired, redirect to grades page instead of result page
@@ -366,7 +414,13 @@ class QuizController extends Controller
                 return redirect()->route('student.grades')->with('info', 'Quiz submitted automatically due to time expiration.');
             }
             
-            return redirect()->route('student.quizzes.result', $attempt->attempt_id);
+            // Add success message if next level was unlocked
+            $redirect = redirect()->route('student.quizzes.result', $attempt->attempt_id);
+            if ($nextLevelUnlocked && $score >= $passingScore) {
+                $redirect->with('success', 'Congratulations! You passed the quiz. The first lesson of the next level has been unlocked for you.');
+            }
+            
+            return $redirect;
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Error submitting quiz: ' . $e->getMessage());
@@ -377,6 +431,7 @@ class QuizController extends Controller
     public function result($attemptId)
     {
         $attempt = QuizAttempt::with([
+            'quiz.level',
             'quiz.questions' => function($query) {
                 $query->orderBy('question_order');
             },
@@ -388,6 +443,21 @@ class QuizController extends Controller
 
         if ($attempt->student_id != Auth::user()->student->student_id) {
             abort(403);
+        }
+
+        // If student passed the quiz (score >= 60) and next level isn't unlocked yet, unlock it now
+        // This handles cases where the quiz was taken before the unlock feature was added
+        $passingScore = 60;
+        $score = $attempt->score ?? 0;
+        if ($score >= $passingScore && $attempt->quiz && $attempt->quiz->level) {
+            $student = Auth::user()->student;
+            if ($student) {
+                $unlocked = $this->unlockNextLevelFirstLesson($student->student_id, $attempt->quiz->level);
+                if ($unlocked) {
+                    // Add success message if this is the first time unlocking
+                    session()->flash('next_level_unlocked', true);
+                }
+            }
         }
 
         return view('quizzes.result', compact('attempt'));
@@ -555,5 +625,97 @@ class QuizController extends Controller
             DB::rollBack();
             return back()->with('error', 'Error deleting question: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Check if student can access next level's first lesson after passing quiz.
+     * Only unlocks if the lesson exists AND teacher has already made it visible.
+     * If lesson doesn't exist or isn't visible, waits for teacher action.
+     * 
+     * @param int $studentId
+     * @param Level $currentLevel
+     * @return bool Returns true if lesson is accessible, false otherwise
+     */
+    private function unlockNextLevelFirstLesson($studentId, $currentLevel)
+    {
+        \Log::info("DEBUG unlockNextLevelFirstLesson: Called for Student ID: {$studentId}, Current Level ID: {$currentLevel->level_id}, Level Number: {$currentLevel->level_number}, Level Name: '{$currentLevel->level_name}'");
+        
+        $student = \App\Models\Student::find($studentId);
+        if (!$student || !$student->class_id) {
+            \Log::warning("DEBUG unlockNextLevelFirstLesson: Student {$studentId} not found or has no class_id");
+            return false;
+        }
+        \Log::info("DEBUG unlockNextLevelFirstLesson: Student found. Student ID: {$student->student_id}, Class ID: {$student->class_id}");
+
+        // Get the next level
+        $nextLevel = $currentLevel->nextLevel();
+        if (!$nextLevel) {
+            \Log::info("DEBUG unlockNextLevelFirstLesson: No next level found for level {$currentLevel->level_id} (Level {$currentLevel->level_name}, Level Number: {$currentLevel->level_number})");
+            // Debug: Check all levels in the same class
+            $allLevels = \App\Models\Level::where('class_id', $currentLevel->class_id)->orderBy('level_number')->get();
+            \Log::info("DEBUG unlockNextLevelFirstLesson: All levels in class {$currentLevel->class_id}:");
+            foreach ($allLevels as $level) {
+                \Log::info("DEBUG unlockNextLevelFirstLesson:   - Level ID: {$level->level_id}, Level Number: {$level->level_number}, Level Name: '{$level->level_name}'");
+            }
+            return false;
+        }
+        \Log::info("DEBUG unlockNextLevelFirstLesson: Next level found. Level ID: {$nextLevel->level_id}, Level Number: {$nextLevel->level_number}, Level Name: '{$nextLevel->level_name}'");
+
+        // Get the first lesson of the next level
+        $firstLesson = $nextLevel->firstLesson();
+        if (!$firstLesson) {
+            \Log::info("DEBUG unlockNextLevelFirstLesson: No first lesson found in next level {$nextLevel->level_id} (Level {$nextLevel->level_name}). Waiting for teacher to upload lesson.");
+            // Debug: Check all lessons in the next level
+            $allLessons = \App\Models\Lesson::where('level_id', $nextLevel->level_id)->orderBy('lesson_order')->get();
+            \Log::info("DEBUG unlockNextLevelFirstLesson: All lessons in level {$nextLevel->level_id}:");
+            foreach ($allLessons as $lesson) {
+                \Log::info("DEBUG unlockNextLevelFirstLesson:   - Lesson ID: {$lesson->lesson_id}, Lesson Order: {$lesson->lesson_order}, Title: '{$lesson->title}'");
+            }
+            return false;
+        }
+        \Log::info("DEBUG unlockNextLevelFirstLesson: First lesson found. Lesson ID: {$firstLesson->lesson_id}, Lesson Order: {$firstLesson->lesson_order}, Title: '{$firstLesson->title}'");
+
+        // Get student's class
+        $class = $student->studentClass;
+        if (!$class) {
+            \Log::warning("DEBUG unlockNextLevelFirstLesson: Student {$studentId} has no studentClass");
+            return false;
+        }
+        
+        if (!$class->teacher_id) {
+            \Log::warning("DEBUG unlockNextLevelFirstLesson: Class {$class->class_id} has no teacher_id");
+            return false;
+        }
+        \Log::info("DEBUG unlockNextLevelFirstLesson: Class found. Class ID: {$class->class_id}, Teacher ID: {$class->teacher_id}");
+
+        // CRITICAL: Check if teacher has already made this lesson visible
+        // Only proceed if teacher has explicitly unlocked it
+        $teacherVisibility = ClassLessonVisibility::where('class_id', $student->class_id)
+            ->where('lesson_id', $firstLesson->lesson_id)
+            ->where('teacher_id', $class->teacher_id)
+            ->where('is_visible', true)
+            ->first();
+        
+        \Log::info("DEBUG unlockNextLevelFirstLesson: Checking visibility. Class ID: {$student->class_id}, Lesson ID: {$firstLesson->lesson_id}, Teacher ID: {$class->teacher_id}");
+        
+        if (!$teacherVisibility) {
+            // Lesson exists but teacher hasn't made it visible yet - wait for teacher action
+            \Log::warning("DEBUG unlockNextLevelFirstLesson: Lesson {$firstLesson->lesson_id} '{$firstLesson->title}' exists but teacher hasn't made it visible yet. Student {$studentId} has met prerequisites (passed quiz), but waiting for teacher to unlock the lesson.");
+            
+            // Check all visibility records for this lesson
+            $allVisibilities = ClassLessonVisibility::where('lesson_id', $firstLesson->lesson_id)->get();
+            \Log::info("DEBUG unlockNextLevelFirstLesson: All visibility records for lesson {$firstLesson->lesson_id}:");
+            foreach ($allVisibilities as $vis) {
+                \Log::info("DEBUG unlockNextLevelFirstLesson:   - Visibility ID: {$vis->visibility_id}, Class ID: {$vis->class_id}, Teacher ID: {$vis->teacher_id}, Is Visible: " . ($vis->is_visible ? 'true' : 'false'));
+            }
+            
+            return false;
+        }
+
+        // Lesson exists AND teacher has made it visible
+        // Student has met prerequisites (passed quiz), so they can now access it
+        \Log::info("DEBUG unlockNextLevelFirstLesson: SUCCESS! Student {$studentId} can now access next level first lesson: Lesson {$firstLesson->lesson_id} '{$firstLesson->title}' (Level {$nextLevel->level_name}). Teacher has made it visible and student has passed the quiz.");
+        
+        return true;
     }
 }

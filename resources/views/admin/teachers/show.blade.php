@@ -30,8 +30,8 @@
                 <!-- Profile Card -->
                 <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
                     <div class="bg-gradient-to-r from-pink-500 to-teal-500 p-6 text-center">
-                        @if($profile && $profile->profile_photo_path)
-                        <img src="{{ asset('storage/' . $profile->profile_photo_path) }}" 
+                        @if($user->profile_photo_path)
+                        <img src="{{ asset('storage/' . $user->profile_photo_path) }}" 
                              alt="{{ $user->first_name }}" 
                              class="w-24 h-24 mx-auto rounded-full object-cover mb-4 border-4 border-white/30 shadow-lg">
                         @else
@@ -90,10 +90,10 @@
                             </div>
                         </div>
 
-                        @if($profile && $profile->bio)
+                        @if($user->bio)
                         <div class="border-t pt-4">
                             <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Bio</h3>
-                            <p class="text-sm text-gray-700 leading-relaxed">{{ $profile->bio }}</p>
+                            <p class="text-sm text-gray-700 leading-relaxed">{{ $user->bio }}</p>
                         </div>
                         @endif
 

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<div class="max-w-7xl mx-auto py-10">
+<div class="w-full max-w-full mx-auto py-10 px-4 sm:px-6 lg:px-8">
     <div class="bg-gradient-to-br from-pink-50 via-white to-pink-100 shadow-2xl rounded-3xl p-10 mb-10 border-2 border-pink-200">
         <h2 class="text-3xl font-extrabold text-pink-600 flex items-center gap-3 drop-shadow">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -16,8 +16,9 @@
                 $attempt = $attempts[$quiz->quiz_id] ?? null;
                 $isCompleted = $attempt !== null;
                 $score = $attempt ? round($attempt->score ?? 0, 2) : null;
+                $isUnlocked = $unlockedQuizzes[$quiz->quiz_id] ?? false;
             @endphp
-            <div class="bg-white rounded-3xl shadow-xl border-2 {{ $isCompleted ? 'border-green-300' : 'border-pink-100' }} p-6 flex flex-col gap-4 hover:shadow-pink-200 transition-all duration-150 relative">
+            <div class="bg-white rounded-3xl shadow-xl border-2 {{ $isCompleted ? 'border-green-300' : ($isUnlocked ? 'border-pink-100' : 'border-gray-300') }} p-6 flex flex-col gap-4 hover:shadow-pink-200 transition-all duration-150 relative {{ !$isUnlocked && !$isCompleted ? 'opacity-75' : '' }}">
                 @if($isCompleted)
                     <div class="absolute top-4 right-4">
                         <span class="px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs border-2 border-green-300 flex items-center gap-1">
@@ -25,6 +26,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             Completed
+                        </span>
+                    </div>
+                @elseif(!$isUnlocked)
+                    <div class="absolute top-4 right-4">
+                        <span class="px-3 py-1 rounded-full bg-gray-100 text-gray-700 font-bold text-xs border-2 border-gray-300 flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Locked
                         </span>
                     </div>
                 @endif
@@ -60,10 +70,15 @@
                             View Results
                         </a>
                         <p class="text-xs text-center text-gray-500 mt-2 font-semibold">You have already taken this quiz. You cannot retake it.</p>
-                    @else
+                    @elseif($isUnlocked)
                         <a href="{{ route('student.quizzes.show', $quiz->quiz_id) }}" class="block text-center bg-gradient-to-r from-pink-400 to-pink-600 text-white px-4 py-2 rounded-xl font-bold hover:from-pink-500 hover:to-pink-700 transition">
                             Take Quiz
                         </a>
+                    @else
+                        <button disabled class="block w-full text-center bg-gray-300 text-gray-600 px-4 py-2 rounded-xl font-bold cursor-not-allowed">
+                            Locked
+                        </button>
+                        <p class="text-xs text-center text-gray-500 mt-2 font-semibold">Complete all lessons in this level to unlock this quiz.</p>
                     @endif
                 </div>
             </div>

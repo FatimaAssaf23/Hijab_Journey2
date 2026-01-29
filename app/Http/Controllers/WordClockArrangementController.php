@@ -126,7 +126,7 @@ class WordClockArrangementController extends Controller
         try {
             $validated = $request->validate([
                 'word_clock_lesson_id' => 'required|integer',
-                'class_id' => 'nullable|exists:student_classes,class_id',
+                'class_id' => 'required|exists:student_classes,class_id',
                 'word_clock_word' => 'required|string',
                 'word_clock_sentence' => 'required|string',
                 'word_clock_words' => 'required|array|min:1',
@@ -221,6 +221,7 @@ class WordClockArrangementController extends Controller
             ]);
             
             $game = Game::where('lesson_id', $request->word_clock_lesson_id)
+                ->where('class_id', $request->class_id)
                 ->where('game_type', 'word_clock_arrangement')
                 ->first();
 
@@ -244,6 +245,7 @@ class WordClockArrangementController extends Controller
             } else {
                 $game = Game::create([
                     'lesson_id' => $request->word_clock_lesson_id,
+                    'class_id' => $request->class_id,
                     'game_type' => 'word_clock_arrangement',
                     'game_data' => json_encode($gameData),
                 ]);
@@ -254,17 +256,15 @@ class WordClockArrangementController extends Controller
                 ]);
             }
 
-            // If class_id is provided, make the lesson visible for that class
-            if ($request->class_id) {
-                ClassLessonVisibility::firstOrCreate(
-                    [
-                        'lesson_id' => $request->word_clock_lesson_id,
-                        'class_id' => $request->class_id,
-                        'teacher_id' => Auth::id(),
-                    ],
-                    ['is_visible' => true]
-                )->update(['is_visible' => true]);
-            }
+            // Make the lesson visible for the selected class (required)
+            ClassLessonVisibility::firstOrCreate(
+                [
+                    'lesson_id' => $request->word_clock_lesson_id,
+                    'class_id' => $request->class_id,
+                    'teacher_id' => Auth::id(),
+                ],
+                ['is_visible' => true]
+            )->update(['is_visible' => true]);
 
             // Build redirect URL with query parameter
             $redirectUrl = route('teacher.games');

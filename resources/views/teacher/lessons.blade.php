@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl mb-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex items-center justify-between">
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-8 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <!-- Go Back Button -->
             <button onclick="goBackOrRedirect('{{ route('teacher.dashboard') }}')" 
@@ -18,11 +18,57 @@
                 <h1 class="text-4xl font-extrabold text-white mb-2">Lessons Management</h1>
             </div>
         </div>
+        <div>
+            @if(!$hasSchedule)
+                <button onclick="generateSchedule()" 
+                        class="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-white/20 backdrop-blur-md border-2 border-white/30">
+                    <span>📅</span> Generate Auto-Schedule
+                </button>
+            @else
+                <a href="{{ route('teacher.schedule.show') }}" 
+                   class="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 bg-white/20 backdrop-blur-md border-2 border-white/30">
+                    <span>📅</span> View Schedule
+                </a>
+            @endif
+        </div>
     </div>
 </div>
-<div class="container py-5 flex flex-col items-center">
+
+@if(!$hasSchedule)
+<script>
+function generateSchedule() {
+    if (!confirm('This will generate an automatic schedule for all your lessons. Continue?')) {
+        return;
+    }
+    
+    // Get the first class ID (or let user select)
+    fetch('{{ route("teacher.schedule.generate") }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Schedule generated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error generating schedule. Please try again.');
+    });
+}
+</script>
+@endif
+<div class="w-full min-h-screen px-4 sm:px-6 lg:px-8 py-5 flex flex-col items-center">
     @foreach($levels as $level)
-        <div class="mb-8 w-full max-w-4xl mx-auto" x-data="{ showLessons: true }">
+        <div class="mb-8 w-full" x-data="{ showLessons: true }">
             <div class="rounded-2xl px-6 py-4 mb-4 flex items-start justify-between" style="background: linear-gradient(90deg, #F8C5C8 0%, #FC8EAC 50%, #EC769A 100%); color: #222;">
                 <div>
                     <h2 class="text-2xl font-extrabold mb-1">Level {{ $level->level_number ?? $level->level_id }}</h2>
@@ -31,9 +77,9 @@
                 </div>
                 <button @click="showLessons = !showLessons" type="button" class="ml-4 px-4 py-2 rounded-xl font-semibold text-white bg-[#EC769A] hover:bg-[#FC8EAC] transition shadow" x-text="showLessons ? 'Hide Lessons' : 'Show Lessons'"></button>
             </div>
-            <div class="flex flex-wrap gap-6 justify-start" x-show="showLessons" x-transition>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" x-show="showLessons" x-transition>
                 @forelse($level->lessons as $lesson)
-                    <div class="rounded-2xl shadow-lg p-6 flex flex-col gap-3 min-w-[260px] max-w-xs w-full"
+                    <div class="rounded-2xl shadow-lg p-6 flex flex-col gap-3 w-full"
                         style="background: linear-gradient(135deg, #b2f7ef 0%, #f6d6d6 100%); border: 1.5px solid #EAD8C0;">
                         <div class="flex items-center gap-3 mb-2">
                             <span class="text-4xl">{{ $lesson->icon ?? '📘' }}</span>

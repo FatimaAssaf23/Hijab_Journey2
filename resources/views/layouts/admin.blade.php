@@ -16,6 +16,44 @@
         
         <!-- ApexCharts -->
         <script src="https://unpkg.com/apexcharts@3.44.0/dist/apexcharts.min.js" crossorigin="anonymous"></script>
+        
+        <!-- 404 Error Debugging Script -->
+        <script>
+            // Log all 404 errors to console
+            window.addEventListener('error', function(e) {
+                if (e.target && e.target.tagName) {
+                    const tag = e.target.tagName.toLowerCase();
+                    const src = e.target.src || e.target.href;
+                    if (src && (tag === 'img' || tag === 'script' || tag === 'link')) {
+                        console.error('404 Error - Failed to load resource:', {
+                            type: tag,
+                            url: src,
+                            element: e.target
+                        });
+                    }
+                }
+            }, true);
+            
+            // Monitor fetch requests for 404s
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                return originalFetch.apply(this, args)
+                    .then(response => {
+                        if (response.status === 404) {
+                            console.error('404 Error - API/Resource not found:', {
+                                url: args[0],
+                                status: response.status,
+                                statusText: response.statusText
+                            });
+                        }
+                        return response;
+                    })
+                    .catch(error => {
+                        console.error('Fetch Error:', error);
+                        throw error;
+                    });
+            };
+        </script>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen flex flex-col bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
@@ -132,8 +170,7 @@
                             <div class="group relative">
                                 @php
                                     $admin = auth()->user();
-                                    $adminProfile = \App\Models\AdminProfile::where('user_id', $admin->user_id)->first();
-                                    $profilePhoto = $adminProfile && $adminProfile->profile_photo_path ? asset('storage/' . $adminProfile->profile_photo_path) : asset('images/default-profile.png');
+                                    $profilePhoto = $admin->profile_photo_path ? asset('storage/' . $admin->profile_photo_path) : asset('images/default-avatar.svg');
                                 @endphp
                                 <button class="flex items-center gap-2 text-white hover:bg-white/20 px-3 py-2 rounded-lg transition">
                                     <img src="{{ $profilePhoto }}" alt="Profile Photo" class="w-8 h-8 rounded-full object-cover border-2 border-white shadow">
@@ -147,8 +184,8 @@
                                         <img src="{{ $profilePhoto }}" alt="Profile Photo" class="w-16 h-16 rounded-full object-cover border-2 border-pink-300 mb-2">
                                         <div class="font-bold text-gray-800 text-lg">{{ $admin->first_name }} {{ $admin->last_name }}</div>
                                         <div class="text-xs text-gray-500 mb-1">{{ $admin->email }}</div>
-                                        @if($adminProfile && $adminProfile->bio)
-                                            <div class="text-sm text-gray-700 text-center mt-2">{{ $adminProfile->bio }}</div>
+                                        @if($admin->bio)
+                                            <div class="text-sm text-gray-700 text-center mt-2">{{ $admin->bio }}</div>
                                         @endif
                                     </div>
                                     <a href="{{ route('admin.profile') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 {{ request()->routeIs('admin.profile') ? 'bg-pink-100' : '' }}">

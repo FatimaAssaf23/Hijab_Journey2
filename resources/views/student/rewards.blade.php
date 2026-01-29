@@ -26,7 +26,7 @@
     <div class="absolute bottom-20 left-20 w-40 h-40 bg-cyan-200/30 rounded-full blur-3xl animate-float" style="animation-duration: 8s; animation-delay: 1s;"></div>
     <div class="absolute top-1/2 left-1/4 w-28 h-28 bg-teal-200/30 rounded-full blur-2xl animate-float" style="animation-duration: 7s; animation-delay: 2s;"></div>
 
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="relative z-10 w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Enhanced Header Section with Animation -->
         <div class="text-center mb-12 hero-entrance">
             <div class="inline-flex items-center gap-3 bg-white/70 backdrop-blur-md px-8 py-4 rounded-full mb-6 border-2 border-pink-300/60 shadow-2xl transform hover:scale-105 transition-all duration-300 relative overflow-hidden group">

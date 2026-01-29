@@ -14,7 +14,7 @@ class WordSearchGameController extends Controller
     {
         $request->validate([
             'word_search_lesson_id' => 'required|integer',
-            'class_id' => 'nullable|exists:student_classes,class_id',
+            'class_id' => 'required|exists:student_classes,class_id',
             'word_search_words' => 'required|array|min:1',
             'word_search_words.*' => 'required|string',
             'word_search_title' => 'nullable|string|max:255',
@@ -50,18 +50,22 @@ class WordSearchGameController extends Controller
 
             // First, create or get the Game record
             $game = Game::where('lesson_id', $request->word_search_lesson_id)
+                ->where('class_id', $request->class_id)
                 ->where('game_type', 'word_search')
                 ->first();
             
             if (!$game) {
                 $game = Game::create([
                     'lesson_id' => $request->word_search_lesson_id,
+                    'class_id' => $request->class_id,
                     'game_type' => 'word_search',
                 ]);
             }
 
             // Then, create or update the WordSearchGame record
-            $wordSearchGame = WordSearchGame::where('lesson_id', $request->word_search_lesson_id)->first();
+            $wordSearchGame = WordSearchGame::where('lesson_id', $request->word_search_lesson_id)
+                ->where('class_id', $request->class_id)
+                ->first();
             
             if ($wordSearchGame) {
                 $wordSearchGame->update([
@@ -75,6 +79,7 @@ class WordSearchGameController extends Controller
                 WordSearchGame::create([
                     'game_id' => $game->game_id,
                     'lesson_id' => $request->word_search_lesson_id,
+                    'class_id' => $request->class_id,
                     'title' => $title ?: null,
                     'words' => $words,
                     'grid_size' => $gridSize,
@@ -82,17 +87,15 @@ class WordSearchGameController extends Controller
                 ]);
             }
 
-            // If class_id is provided, make the lesson visible for that class
-            if ($request->class_id) {
-                ClassLessonVisibility::firstOrCreate(
-                    [
-                        'lesson_id' => $request->word_search_lesson_id,
-                        'class_id' => $request->class_id,
-                        'teacher_id' => Auth::id(),
-                    ],
-                    ['is_visible' => true]
-                )->update(['is_visible' => true]);
-            }
+            // Make the lesson visible for the selected class (required)
+            ClassLessonVisibility::firstOrCreate(
+                [
+                    'lesson_id' => $request->word_search_lesson_id,
+                    'class_id' => $request->class_id,
+                    'teacher_id' => Auth::id(),
+                ],
+                ['is_visible' => true]
+            )->update(['is_visible' => true]);
 
             \Log::info('Word Search Game saved', [
                 'game_id' => $game->game_id,

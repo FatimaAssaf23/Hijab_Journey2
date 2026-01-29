@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="{ open: true }" x-show="open" class="max-w-xl mx-auto mt-10 bg-white p-8 rounded shadow relative">
+<div x-data="{ open: true }" x-show="open" class="w-full max-w-full mx-auto mt-10 bg-white p-8 rounded shadow relative px-4 sm:px-6 lg:px-8">
     <button @click="open = false" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none">&times;</button>
     <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Upload Profile Picture</h2>
 

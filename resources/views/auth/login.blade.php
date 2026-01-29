@@ -41,17 +41,10 @@
     </form>
 </x-guest-layout>
 
-
-<div style="display: flex; align-items: flex-start; justify-content: flex-start; min-height: 100vh;">
+<div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; overflow: hidden; z-index: 3;">
     <!-- Greeting Girl Image -->
-    <div style="margin-right: 16px; margin-top: -480px; margin-left: calc(50px + 6cm); display: flex; align-items: flex-start; justify-content: flex-start; position: relative; z-index: 2; background: #fff6f9; border-radius: 16px; padding: 8px;">
-        <img src="{{ asset('images/dashboard/hijab5.png') }}" alt="Greeting Girl" style="max-width: 200px; height: auto; margin-top: 0; border: none; background: transparent; box-shadow: none;">
-    </div>
-    <!-- Login Box -->
-    <div style="display: flex; align-items: flex-start;">
-        <div>
-            <!-- ...existing login box code... -->
-            ...existing code...
-        </div>
+    <div style="position: absolute; left: calc(50px + 6cm); top: calc(50% - 1.25cm); transform: translateY(-50%); display: flex; align-items: center; justify-content: center; z-index: 3; background: #fff6f9; border-radius: 16px; padding: 8px; pointer-events: auto;">
+        <img src="{{ asset('images/dashboard/hijab5.png') }}" alt="Greeting Girl" style="max-width: 200px; height: auto; border: none; background: transparent; box-shadow: none;">
     </div>
 </div>
+

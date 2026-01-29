@@ -16,7 +16,7 @@ class MatchingPairsGameController extends Controller
     {
         $request->validate([
             'matching_pairs_lesson_id' => 'required|integer',
-            'class_id' => 'nullable|exists:student_classes,class_id',
+            'class_id' => 'required|exists:student_classes,class_id',
             'pairs' => 'required|array|min:1',
             'pairs.*.left_item_text' => 'nullable|string|max:500',
             'pairs.*.left_item_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -45,18 +45,22 @@ class MatchingPairsGameController extends Controller
 
             // First, create or get the Game record
             $game = Game::where('lesson_id', $lessonId)
+                ->where('class_id', $request->class_id)
                 ->where('game_type', 'matching_pairs')
                 ->first();
             
             if (!$game) {
                 $game = Game::create([
                     'lesson_id' => $lessonId,
+                    'class_id' => $request->class_id,
                     'game_type' => 'matching_pairs',
                 ]);
             }
 
             // Create or update the MatchingPairsGame record
-            $matchingPairsGame = MatchingPairsGame::where('lesson_id', $lessonId)->first();
+            $matchingPairsGame = MatchingPairsGame::where('lesson_id', $lessonId)
+                ->where('class_id', $request->class_id)
+                ->first();
             
             if ($matchingPairsGame) {
                 // Get old pairs before deleting to delete images
@@ -83,6 +87,7 @@ class MatchingPairsGameController extends Controller
                 $matchingPairsGame = MatchingPairsGame::create([
                     'game_id' => $game->game_id,
                     'lesson_id' => $lessonId,
+                    'class_id' => $request->class_id,
                     'title' => $request->title ?: null,
                 ]);
             }
@@ -116,17 +121,15 @@ class MatchingPairsGameController extends Controller
                 ]);
             }
 
-            // If class_id is provided, make the lesson visible for that class
-            if ($request->class_id) {
-                ClassLessonVisibility::firstOrCreate(
-                    [
-                        'lesson_id' => $lessonId,
-                        'class_id' => $request->class_id,
-                        'teacher_id' => Auth::id(),
-                    ],
-                    ['is_visible' => true]
-                )->update(['is_visible' => true]);
-            }
+            // Make the lesson visible for the selected class (required)
+            ClassLessonVisibility::firstOrCreate(
+                [
+                    'lesson_id' => $lessonId,
+                    'class_id' => $request->class_id,
+                    'teacher_id' => Auth::id(),
+                ],
+                ['is_visible' => true]
+            )->update(['is_visible' => true]);
 
             \Log::info('Matching Pairs Game saved', [
                 'game_id' => $game->game_id,

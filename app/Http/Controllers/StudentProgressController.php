@@ -176,20 +176,34 @@ class StudentProgressController extends Controller
             ? min($request->watched_seconds, $videoDuration) 
             : $request->watched_seconds;
         
-        // Recalculate percentage based on capped seconds and cap at 100%
+        // Recalculate percentage based on max_watched_time (most accurate) or capped seconds
+        // max_watched_time represents the furthest point reached in the video
+        // CRITICAL: Always use the MAXIMUM value between request and existing database value
+        // This ensures progress never decreases, even if user watches video again from start
+        $requestMaxWatchedTime = $request->max_watched_time ?? 0;
+        $existingMaxWatchedTime = $progress->max_watched_time ?? 0;
+        
+        // Always use the maximum (furthest point ever reached)
+        $maxWatchedTime = max($requestMaxWatchedTime, $existingMaxWatchedTime);
+        
+        $cappedMaxWatchedTime = $videoDuration > 0 
+            ? min($maxWatchedTime, $videoDuration)
+            : $maxWatchedTime;
+        
+        // Use max_watched_time for percentage calculation (more accurate than watched_seconds)
+        // This ensures percentage reflects the actual furthest point reached
         $cappedPercentage = $videoDuration > 0 
-            ? min(100, round(($cappedWatchedSeconds / $videoDuration) * 100, 2))
+            ? min(100, round(($cappedMaxWatchedTime / $videoDuration) * 100, 2))
             : min(100, round($request->watched_percentage, 2));
 
         // Update video tracking fields
+        // Use max_watched_time as the source of truth for percentage calculation
         $progress->watched_seconds = $cappedWatchedSeconds;
         $progress->watched_percentage = $cappedPercentage;
         $progress->last_position = $request->current_position ?? $progress->last_position;
         
-        // Cap max_watched_time at video duration
-        $cappedMaxWatchedTime = $videoDuration > 0
-            ? min(max($progress->max_watched_time ?? 0, $request->max_watched_time ?? 0), $videoDuration)
-            : max($progress->max_watched_time ?? 0, $request->max_watched_time ?? 0);
+        // Update max_watched_time - ALWAYS use the maximum value (furthest point ever reached)
+        // This ensures progress never decreases when watching video again
         $progress->max_watched_time = $cappedMaxWatchedTime;
         $progress->last_watched_at = now();
         
@@ -230,8 +244,38 @@ class StudentProgressController extends Controller
                 $progress->started_at = now();
             }
         }
+        
+        // SAFEGUARD: If lesson status is 'completed' (from any source), ensure games are unlocked
+        // This handles edge cases where lesson was completed but games weren't unlocked
+        if ($progress->status === 'completed' && !$wasLessonCompleted) {
+            // Only unlock if we just marked it as completed (to avoid unnecessary calls)
+            $this->unlockLessonGame($student->student_id, $lessonId);
+        }
 
+        // CRITICAL: Save and refresh to ensure data is committed to database
         $progress->save();
+        
+        // Refresh the model to ensure we have the latest database values
+        $progress->refresh();
+        
+        // Double-check that max_watched_time and watched_percentage are saved correctly
+        // Recalculate to ensure consistency
+        $finalVideoDuration = $lesson->video_duration_seconds ?? 0;
+        $finalMaxWatchedTime = $progress->max_watched_time ?? 0;
+        $finalPercentage = 0;
+        
+        if ($finalVideoDuration > 0 && $finalMaxWatchedTime > 0) {
+            $finalPercentage = round(($finalMaxWatchedTime / $finalVideoDuration) * 100, 2);
+        } else {
+            $finalPercentage = $progress->watched_percentage ?? 0;
+        }
+        
+        // Ensure watched_percentage matches the calculated value
+        if (abs(($progress->watched_percentage ?? 0) - $finalPercentage) > 0.01) {
+            $progress->watched_percentage = $finalPercentage;
+            $progress->save();
+            $progress->refresh();
+        }
 
         return response()->json([
             'success' => true,
@@ -249,33 +293,211 @@ class StudentProgressController extends Controller
     }
 
     /**
-     * Unlock the lesson game when video is completed
+     * Unlock all lesson games when lesson is completed (via video or game)
+     * This method handles all game types: clock, scramble, mcq, word_search, matching_pairs, etc.
      * 
      * @param int $studentId
      * @param int $lessonId
      * @return void
      */
-    private function unlockLessonGame($studentId, $lessonId)
+    public function unlockLessonGame($studentId, $lessonId)
     {
-        // RULE 2: When video is completed, unlock the lesson game
-        // Check if lesson has a game
-        $game = Game::where('lesson_id', $lessonId)->first();
+        // RULE 2: When lesson is completed (video or game), unlock all lesson games
+        $student = \App\Models\Student::find($studentId);
+        if (!$student || !$student->class_id) {
+            return;
+        }
         
-        if ($game) {
-            // Create or update game progress record to allow access
-            StudentGameProgress::firstOrCreate(
+        $studentClassId = $student->class_id;
+        $unlockedGames = [];
+        
+        // Helper to ensure a games table entry exists and unlock it
+        $ensureAndUnlockGame = function (int $lessonId, int $classId, string $gameType) use ($studentId, &$unlockedGames) {
+            $game = \App\Models\Game::firstOrCreate(
                 [
-                    'student_id' => $studentId,
-                    'game_id' => $game->game_id,
+                    'lesson_id' => $lessonId,
+                    'class_id' => $classId,
+                    'game_type' => $gameType,
                 ],
                 [
-                    'status' => 'not_started',
-                    'score' => 0,
-                    'attempts' => 0,
+                    'description' => ucfirst(str_replace('_', ' ', $gameType)) . ' Game for Lesson ' . $lessonId,
+                    'max_score' => 100,
                 ]
             );
             
-            \Log::info("Game unlocked for student {$studentId}, lesson {$lessonId}");
+            // Create or update game progress record to allow access (only if not already completed)
+            $existingProgress = \App\Models\StudentGameProgress::where('student_id', $studentId)
+                ->where('game_id', $game->game_id)
+                ->first();
+            
+            if (!$existingProgress) {
+                \App\Models\StudentGameProgress::create([
+                    'student_id' => $studentId,
+                    'game_id' => $game->game_id,
+                    'status' => 'not_started',
+                    'score' => 0,
+                    'attempts' => 0,
+                ]);
+                $unlockedGames[] = $gameType;
+            }
+            
+            return $game;
+        };
+        
+        // 1. Clock Game
+        $clockGame = \App\Models\ClockGame::where('lesson_id', $lessonId)
+            ->where('class_id', $studentClassId)
+            ->first();
+        if ($clockGame) {
+            $ensureAndUnlockGame($lessonId, $studentClassId, 'clock');
+        }
+        
+        // 2. Scrambled Clocks Game
+        $scrambledClocksGame = \App\Models\Game::where('lesson_id', $lessonId)
+            ->where('class_id', $studentClassId)
+            ->where('game_type', 'scrambled_clocks')
+            ->first();
+        if ($scrambledClocksGame) {
+            $ensureAndUnlockGame($lessonId, $studentClassId, 'scrambled_clocks');
+        }
+        
+        // 3. Word Clock Arrangement Game
+        $wordClockArrangementGame = \App\Models\Game::where('lesson_id', $lessonId)
+            ->where('class_id', $studentClassId)
+            ->where('game_type', 'word_clock_arrangement')
+            ->first();
+        if ($wordClockArrangementGame) {
+            $ensureAndUnlockGame($lessonId, $studentClassId, 'word_clock_arrangement');
+        }
+        
+        // 4. Word Search Game
+        $wordSearchGame = \App\Models\WordSearchGame::where('lesson_id', $lessonId)
+            ->where('class_id', $studentClassId)
+            ->first();
+        if ($wordSearchGame) {
+            $ensureAndUnlockGame($lessonId, $studentClassId, 'word_search');
+        }
+        
+        // 5. Matching Pairs Game
+        $matchingPairsGame = \App\Models\MatchingPairsGame::where('lesson_id', $lessonId)
+            ->where('class_id', $studentClassId)
+            ->first();
+        if ($matchingPairsGame) {
+            $ensureAndUnlockGame($lessonId, $studentClassId, 'matching_pairs');
+        }
+        
+        // 6. Scramble Game
+        $scramblePairs = \App\Models\GroupWordPair::where('lesson_id', $lessonId)
+            ->where('class_id', $studentClassId)
+            ->where('game_type', 'scramble')
+            ->get();
+        if ($scramblePairs->isNotEmpty()) {
+            $ensureAndUnlockGame($lessonId, $studentClassId, 'scramble');
+        }
+        
+        // 7. MCQ Game
+        $mcqPairs = \App\Models\GroupWordPair::where('lesson_id', $lessonId)
+            ->where('class_id', $studentClassId)
+            ->where('game_type', 'mcq')
+            ->get();
+        if ($mcqPairs->isNotEmpty()) {
+            $ensureAndUnlockGame($lessonId, $studentClassId, 'mcq');
+        }
+        
+        if (!empty($unlockedGames)) {
+            \Log::info("Games unlocked for student {$studentId}, lesson {$lessonId}: " . implode(', ', $unlockedGames));
+        }
+    }
+
+    /**
+     * Initialize games for a new student when they join a class
+     * This ensures all games assigned to visible lessons are accessible to the student
+     * 
+     * @param int $studentId
+     * @return void
+     */
+    public function initializeGamesForNewStudent($studentId)
+    {
+        try {
+            $student = \App\Models\Student::find($studentId);
+            if (!$student) {
+                \Log::warning("Cannot initialize games: Student {$studentId} not found");
+                return;
+            }
+            
+            if (!$student->class_id) {
+                \Log::warning("Cannot initialize games: Student {$studentId} has no class_id");
+                return;
+            }
+            
+            $studentClassId = $student->class_id;
+            
+            // Get all visible lessons for this class
+            $visibleLessonIds = ClassLessonVisibility::where('class_id', $studentClassId)
+                ->where('is_visible', true)
+                ->pluck('lesson_id')
+                ->unique();
+            
+            if ($visibleLessonIds->isEmpty()) {
+                \Log::info("No visible lessons found for class {$studentClassId}, skipping game initialization", [
+                    'student_id' => $studentId,
+                    'class_id' => $studentClassId
+                ]);
+                return;
+            }
+            
+            \Log::info("Initializing games for new student", [
+                'student_id' => $studentId,
+                'class_id' => $studentClassId,
+                'visible_lessons_count' => $visibleLessonIds->count(),
+                'visible_lesson_ids' => $visibleLessonIds->toArray()
+            ]);
+            
+            $gamesInitialized = 0;
+            $totalGamesCreated = 0;
+            
+            // Process each visible lesson
+            foreach ($visibleLessonIds as $lessonId) {
+                try {
+                    // Count games before initialization
+                    $gamesBefore = \App\Models\StudentGameProgress::where('student_id', $studentId)->count();
+                    
+                    // Use the existing unlockLessonGame logic to initialize games for this lesson
+                    // This ensures consistency with how games are unlocked
+                    $this->unlockLessonGame($studentId, $lessonId);
+                    
+                    // Count games after initialization
+                    $gamesAfter = \App\Models\StudentGameProgress::where('student_id', $studentId)->count();
+                    $gamesCreatedForLesson = $gamesAfter - $gamesBefore;
+                    $totalGamesCreated += $gamesCreatedForLesson;
+                    
+                    \Log::info("Initialized games for lesson", [
+                        'student_id' => $studentId,
+                        'lesson_id' => $lessonId,
+                        'games_created' => $gamesCreatedForLesson
+                    ]);
+                    
+                    $gamesInitialized++;
+                } catch (\Exception $e) {
+                    \Log::error("Error initializing games for lesson {$lessonId}: " . $e->getMessage(), [
+                        'student_id' => $studentId,
+                        'lesson_id' => $lessonId,
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    // Continue with next lesson even if this one fails
+                }
+            }
+            
+            \Log::info("Games initialization completed for student {$studentId}", [
+                'lessons_processed' => $gamesInitialized,
+                'total_visible_lessons' => $visibleLessonIds->count(),
+                'total_games_created' => $totalGamesCreated
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Critical error in initializeGamesForNewStudent: " . $e->getMessage(), [
+                'student_id' => $studentId,
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 
@@ -386,13 +608,35 @@ class StudentProgressController extends Controller
             ]);
         }
 
+        // Calculate accurate percentage from max_watched_time (most reliable)
+        $lesson = Lesson::find($lessonId);
+        $videoDuration = $lesson->video_duration_seconds ?? 0;
+        $maxWatchedTime = $progress->max_watched_time ?? 0;
+        $accuratePercentage = 0;
+        
+        if ($videoDuration > 0 && $maxWatchedTime > 0) {
+            $accuratePercentage = round(($maxWatchedTime / $videoDuration) * 100, 2);
+        } else {
+            $accuratePercentage = $progress->watched_percentage ?? 0;
+        }
+        
+        // Ensure video_completed is set correctly based on accurate percentage
+        if ($accuratePercentage >= 80 && !($progress->video_completed ?? false)) {
+            $progress->video_completed = true;
+            $progress->save();
+            
+            // Also unlock games if not already unlocked
+            $this->unlockLessonGame($student->student_id, $lessonId);
+        }
+        
         return response()->json([
             'success' => true,
             'data' => [
                 'watched_seconds' => $progress->watched_seconds ?? 0,
-                'watched_percentage' => $progress->watched_percentage ?? 0,
+                'watched_percentage' => $accuratePercentage,
                 'last_position' => $progress->last_position ?? 0,
-                'max_watched_time' => $progress->max_watched_time ?? 0,
+                'max_watched_time' => $maxWatchedTime,
+                'video_completed' => $progress->video_completed ?? false,
                 'status' => $progress->status,
             ]
         ]);

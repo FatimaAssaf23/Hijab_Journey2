@@ -218,7 +218,21 @@
                 {{-- Video Progress Bar - Always show for video lessons --}}
                 @php
                     $isVideo = $lesson->content_url && Str::endsWith($lesson->content_url, ['.mp4', '.mov', '.avi', '.mkv', '.wmv', '.flv', '.webm']);
-                    $initialProgress = isset($progress) && $progress ? round($progress->watched_percentage ?? 0, 1) : 0;
+                    // Use accurate percentage passed from route handler (most reliable)
+                    // This ensures we always show the correct percentage when returning from game page
+                    $initialProgress = 0;
+                    if (isset($accuratePercentageForView) && $accuratePercentageForView > 0) {
+                        $initialProgress = round($accuratePercentageForView, 1);
+                    } elseif (isset($progress) && $progress) {
+                        // Fallback: Calculate from max_watched_time if accuratePercentageForView not available
+                        $videoDuration = $lesson->video_duration_seconds ?? 0;
+                        $maxWatchedTime = $progress->max_watched_time ?? 0;
+                        if ($videoDuration > 0 && $maxWatchedTime > 0) {
+                            $initialProgress = round(($maxWatchedTime / $videoDuration) * 100, 1);
+                        } else {
+                            $initialProgress = round($progress->watched_percentage ?? 0, 1);
+                        }
+                    }
                 @endphp
                 @if($isVideo)
                     <div class="mb-4" id="video-progress-container">
@@ -1311,6 +1325,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if game is already unlocked
         const existingUnlockedButton = gameButtonContainer.querySelector('a[href*="games"]');
         if (existingUnlockedButton) {
+            // Update completion badge if game is completed (check from server-side variable)
+            @if(isset($isGameCompleted) && $isGameCompleted)
+                const badge = existingUnlockedButton.querySelector('.bg-green-600');
+                if (badge && badge.textContent.trim() !== '✓ Completed') {
+                    badge.textContent = '✓ Completed';
+                }
+            @endif
             return; // Already unlocked
         }
         
@@ -1323,10 +1344,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const unlockedButton = document.createElement('a');
             unlockedButton.href = gameUrl;
             unlockedButton.className = 'inline-flex items-center gap-2 bg-gradient-to-r from-green-400 via-green-300 to-green-200 hover:from-green-500 hover:to-green-300 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all text-base transform hover:scale-105';
+            // Check if game is completed from server-side variable
+            const isGameCompleted = @json(isset($isGameCompleted) && $isGameCompleted);
             unlockedButton.innerHTML = `
                 <span class="text-xl">🎮</span>
                 <span>Play Game</span>
-                <span class="ml-2 bg-green-600 px-2 py-1 rounded-full text-xs">Unlocked</span>
+                <span class="ml-2 bg-green-600 px-2 py-1 rounded-full text-xs">${isGameCompleted ? '✓ Completed' : 'Unlocked'}</span>
             `;
             
             // Add animation
@@ -1424,9 +1447,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Calculate watched time based on max watched time for real-time display
                 // This gives immediate feedback without waiting for segment finalization
+                // maxWatchedTime represents the furthest point reached (most accurate)
                 const duration = player.duration() || 0;
                 if (duration > 0) {
-                    // Use maxWatchedTime for real-time progress calculation
+                    // Use maxWatchedTime for real-time progress calculation (not watchedSeconds)
                     const realTimeWatched = Math.min(maxWatchedTime, duration);
                     const realTimePercentage = (realTimeWatched / duration) * 100;
                     
@@ -1746,9 +1770,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Recalculate after finalizing session
-            const finalWatchedSeconds = Math.min(Math.floor(watchedSeconds), Math.floor(duration));
-            const watchedPercentage = duration > 0 ? Math.min(100, (finalWatchedSeconds / duration) * 100) : 0;
+            // Use maxWatchedTime for percentage calculation (most accurate - represents furthest point reached)
+            const finalMaxWatchedTime = Math.min(maxWatchedTime, duration);
+            const watchedPercentage = duration > 0 ? Math.min(100, (finalMaxWatchedTime / duration) * 100) : 0;
             const isEightyPercentWatched = watchedPercentage >= 80;
+            
+            // Also calculate watched_seconds from segments for reference
+            const finalWatchedSeconds = Math.min(Math.floor(watchedSeconds), Math.floor(duration));
             
             // Update UI immediately with current progress (before API call)
             updateProgressBarUI(watchedPercentage, isEightyPercentWatched);
@@ -1758,7 +1786,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 watched_seconds: finalWatchedSeconds,
                 watched_percentage: parseFloat(watchedPercentage.toFixed(2)),
                 current_position: parseFloat(lastPosition.toFixed(2)),
-                max_watched_time: parseFloat(Math.min(maxWatchedTime, duration).toFixed(2)),
+                max_watched_time: parseFloat(finalMaxWatchedTime.toFixed(2)),
                 is_completed: isCompleted || isEightyPercentWatched
             };
 
@@ -1868,9 +1896,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 const progressData = data.data;
                 
                 // Update UI immediately with saved progress (before video duration is available)
+                // Use the accurate percentage from the API response
                 if (progressData.watched_percentage !== undefined) {
                     const savedPercentage = parseFloat(progressData.watched_percentage) || 0;
-                    updateProgressBarUI(savedPercentage, progressData.video_completed || false);
+                    const videoCompleted = progressData.video_completed || false;
+                    updateProgressBarUI(savedPercentage, videoCompleted);
+                    
+                    // Unlock game button immediately if video is completed
+                    if (videoCompleted || savedPercentage >= 80) {
+                        unlockGameButton();
+                    }
+                    
+                    console.log('Progress loaded from API:', {
+                        percentage: savedPercentage,
+                        videoCompleted: videoCompleted,
+                        maxWatchedTime: progressData.max_watched_time
+                    });
                 }
                 
                 // Wait for video duration to be available for accurate tracking
@@ -1918,8 +1959,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         
                         // Update UI with accurate loaded progress
-                        const loadedPercentage = duration > 0 ? Math.min(100, (watchedSeconds / duration) * 100) : 0;
+                        // Use max_watched_time for percentage (most accurate), not watchedSeconds
+                        const loadedMaxWatchedTime = progressData.max_watched_time !== undefined 
+                            ? Math.min(parseFloat(progressData.max_watched_time) || 0, duration) 
+                            : maxWatchedTime;
+                        const loadedPercentage = duration > 0 
+                            ? Math.min(100, (loadedMaxWatchedTime / duration) * 100) 
+                            : (progressData.watched_percentage || 0);
                         updateProgressBarUI(loadedPercentage, progressData.video_completed || false);
+                        
+                        // Also unlock game button if video is completed
+                        if (progressData.video_completed || loadedPercentage >= 80) {
+                            unlockGameButton();
+                        }
                         
                         console.log('Progress loaded and tracking initialized:', {
                             maxWatchedTime: maxWatchedTime,

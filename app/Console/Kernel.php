@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\FixAdminLessonsVisibility::class,
         \App\Console\Commands\ListLessonsInfo::class,
         \App\Console\Commands\ListClassesInfo::class,
+        \App\Console\Commands\ProcessDailySchedule::class,
     ];
 
     /**
@@ -23,7 +24,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        //
+        // Process daily schedule events at midnight
+        $schedule->command('schedule:process-daily')
+                 ->daily()
+                 ->at('00:00');
     }
 
     /**

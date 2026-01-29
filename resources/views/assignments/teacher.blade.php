@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('content')
-<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8" x-data="{ showForm: false }">
+<div class="w-full min-h-screen py-6 px-4 sm:px-6 lg:px-8" x-data="{ showForm: false }">
     <!-- Page Header Section -->
     <div class="mb-8">
         <div class="bg-white rounded-3xl shadow-xl p-8 mb-6 border-2 border-pink-100">
@@ -241,7 +241,7 @@
         </div>
 
         <!-- Assignments Grid -->
-        <ul class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             @forelse($assignments as $assignment)
                 <li class="bg-white rounded-2xl shadow-lg border-2 border-pink-100 overflow-hidden hover:shadow-2xl hover:border-pink-300 transition-all duration-300 transform hover:-translate-y-1">
                     <!-- Assignment Header -->

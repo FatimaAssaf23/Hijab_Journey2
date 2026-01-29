@@ -8,7 +8,7 @@ return new class extends Migration {
     {
         Schema::create('emergency_requests', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('teacher_id');
+            $table->unsignedInteger('teacher_id');
             $table->date('start_date');
             $table->date('end_date');
             $table->text('reason');
@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->string('rejection_reason')->nullable();
             $table->timestamps();
 
-            $table->foreign('teacher_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('teacher_id')->references('user_id')->on('users')->onDelete('cascade');
         });
     }
 

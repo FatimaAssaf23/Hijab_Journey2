@@ -445,7 +445,7 @@
             @endif
 
             <!-- Form -->
-            <form action="{{ route('teacher-request.guest.store') }}" method="POST" id="teacherRequestForm">
+            <form action="{{ route('teacher-request.guest.store') }}" method="POST" id="teacherRequestForm" enctype="multipart/form-data">
                 @csrf
 
                 <!-- Personal Information -->
@@ -656,6 +656,28 @@
                     >{{ old('courses_done') }}</textarea>
                     <div class="form-hint">Optional: Include ijazas, certifications, or specialized training</div>
                     @error('courses_done')
+                        <div class="form-error">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ $message }}
+                        </div>
+                    @enderror
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label">
+                        Certification Picture
+                    </label>
+                    <input 
+                        type="file" 
+                        name="certification_file" 
+                        id="certification_file"
+                        accept="image/*,.pdf"
+                        class="form-input @error('certification_file') error @enderror"
+                    >
+                    <div class="form-hint">Optional: Upload a picture of your certification (JPG, PNG, or PDF, max 5MB)</div>
+                    @error('certification_file')
                         <div class="form-error">
                             <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>

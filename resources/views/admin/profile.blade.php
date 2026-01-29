@@ -16,7 +16,7 @@
             @method('POST')
             <div class="flex items-center gap-6 mb-6">
                 <div>
-                    <img src="{{ $adminProfile->profile_photo_path ? asset('storage/' . $adminProfile->profile_photo_path) : asset('images/default-profile.png') }}" alt="Profile Photo" class="w-20 h-20 rounded-full object-cover border border-gray-300">
+                    <img src="{{ $admin->profile_photo_path ? asset('storage/' . $admin->profile_photo_path) : asset('images/default-avatar.svg') }}" alt="Profile Photo" class="w-20 h-20 rounded-full object-cover border border-gray-300">
                     <input type="file" name="profile_photo" class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100" accept="image/*">
                 </div>
                 <div>
@@ -27,7 +27,7 @@
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Bio</label>
-                <textarea name="bio" rows="3" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" placeholder="Write something about yourself...">{{ old('bio', $adminProfile->bio) }}</textarea>
+                <textarea name="bio" rows="3" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" placeholder="Write something about yourself...">{{ old('bio', $admin->bio) }}</textarea>
             </div>
             <div class="mt-6">
                 <button type="submit" class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] text-white px-6 py-2 rounded-lg font-semibold shadow hover:shadow-lg transition">Save Changes</button>

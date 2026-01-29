@@ -107,8 +107,13 @@
         transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .game-container.show {
-        opacity: 1;
-        transform: translateY(0);
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+        display: block !important;
+    }
+    /* Ensure game containers can be displayed */
+    .game-container[style*="display: none"] {
+        /* This will be overridden by JavaScript */
     }
     
     .particle {
@@ -144,6 +149,12 @@
     </div>
     
 <div class="container mx-auto pt-6 pb-12 relative z-10">
+    @if (!empty($error))
+        <div class="max-w-5xl mx-auto mb-6 bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-xl shadow">
+            {{ $error }}
+        </div>
+    @endif
+
     <!-- Enhanced Lesson Header Card -->
     @if(isset($selectedLessonId) && $selectedLessonId && isset($lessonsWithGames) && $lessonsWithGames->count() > 0)
         <div class="max-w-7xl mx-auto mb-10 slide-in-up">
@@ -151,7 +162,7 @@
                 <!-- Go Back Button with Animation -->
                 <div class="mb-6">
                     @if(isset($lesson) && $lesson)
-                    <a href="{{ route('student.lesson.view', $lesson->lesson_id) }}" class="group inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <a href="{{ route('student.lesson.view', $lesson->lesson_id) }}?t={{ time() }}" class="group inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" onclick="this.href='{{ route('student.lesson.view', $lesson->lesson_id) }}?t=' + Date.now(); return true;">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
@@ -205,12 +216,34 @@
         </div>
     @endif
 
+    @php
+        // Initialize availableGames array (will be populated if games exist)
+        $availableGames = [];
+        
+        // Debug: Log what we received from controller
+        \Log::info('Student Games View - Initial state', [
+            'selectedLessonId' => $selectedLessonId ?? 'NOT SET',
+            'gamesInOrder_count' => isset($gamesInOrder) ? count($gamesInOrder) : 'NOT SET',
+            'has_lesson' => isset($lesson),
+            'has_student' => isset($student)
+        ]);
+    @endphp
+
     @if(isset($selectedLessonId) && $selectedLessonId)
     <!-- All games appear here one after another when a lesson is selected -->
     
     @php
-        // Determine which games are available and their order
-        $availableGames = [];
+        // Initialize variables
+        $clockGame = null;
+        $wordSearchGame = null;
+        $scrambledClocksGame = null;
+        $wordClockArrangementGame = null;
+        $matchingPairsGame = null;
+        $scramblePairs = collect();
+        $mcqPairs = collect();
+        $hasMcqPairs = false;
+        $hasScramblePairs = false;
+        
         $gameIndex = 0;
         $clockGameIndex = null;
         $wordSearchGameIndex = null;
@@ -220,67 +253,109 @@
         $scrambleGameIndex = null;
         $matchingPairsGameIndex = null;
         
+        // Initialize game tracking variables if not set
+        $gameTypeToGameIdMap = $gameTypeToGameIdMap ?? [];
+        $completedGameIds = $completedGameIds ?? [];
+        
         // Helper function to check if a game is completed
         $checkGameCompleted = function($gameType) use ($gameTypeToGameIdMap, $completedGameIds) {
-            if (!isset($gameTypeToGameIdMap[$gameType])) {
+            $mapKey = $gameType;
+            if ($gameType === 'scrambled_clocks') $mapKey = 'scrambledclocks';
+            elseif ($gameType === 'word_clock_arrangement') $mapKey = 'wordclock';
+            elseif ($gameType === 'word_search') $mapKey = 'wordsearch';
+            elseif ($gameType === 'matching_pairs') $mapKey = 'matchingpairs';
+            
+            if (!isset($gameTypeToGameIdMap[$mapKey])) {
                 return false;
             }
-            return in_array($gameTypeToGameIdMap[$gameType], $completedGameIds);
+            return in_array($gameTypeToGameIdMap[$mapKey], $completedGameIds);
         };
         
-        if (isset($clockGame) && $clockGame && !empty($clockGame->words)) {
-            $isCompleted = $checkGameCompleted('clock');
-            $clockGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'clock', 'index' => $gameIndex, 'completed' => $isCompleted];
-            $gameIndex++;
+        // Populate game variables from gamesInOrder if it exists and is not empty
+        if (isset($gamesInOrder) && !empty($gamesInOrder)) {
+            foreach ($gamesInOrder as $gameData) {
+            $gameType = $gameData['type'];
+            
+            if ($gameType === 'clock' && isset($gameData['game'])) {
+                $clockGame = $gameData['game'];
+                $clockGameIndex = $gameIndex;
+                $gameIndex++;
+            } elseif ($gameType === 'word_search' && isset($gameData['game'])) {
+                $wordSearchGame = $gameData['game'];
+                $wordSearchGameIndex = $gameIndex;
+                \Log::info('Student Games View - Word Search game found', [
+                    'wordSearchGameIndex' => $wordSearchGameIndex,
+                    'gameIndex' => $gameIndex
+                ]);
+                $gameIndex++;
+            } elseif ($gameType === 'scrambled_clocks' && isset($gameData['game'])) {
+                $scrambledClocksGame = $gameData['game'];
+                $scrambledClocksGameIndex = $gameIndex;
+                $gameIndex++;
+            } elseif ($gameType === 'word_clock_arrangement' && isset($gameData['game'])) {
+                $wordClockArrangementGame = $gameData['game'];
+                $wordClockGameIndex = $gameIndex;
+                $gameIndex++;
+            } elseif ($gameType === 'matching_pairs' && isset($gameData['game'])) {
+                $matchingPairsGame = $gameData['game'];
+                $matchingPairsGameIndex = $gameIndex;
+                $gameIndex++;
+            } elseif ($gameType === 'scramble' && isset($gameData['pairs'])) {
+                $scramblePairs = $gameData['pairs'];
+                $scrambleGameIndex = $gameIndex;
+                $gameIndex++;
+            } elseif ($gameType === 'mcq' && isset($gameData['pairs'])) {
+                $mcqPairs = $gameData['pairs'];
+                $mcqGameIndex = $gameIndex;
+                $gameIndex++;
+            }
+            }
         }
-        if (isset($wordSearchGame) && $wordSearchGame && !empty($wordSearchGame->grid_data)) {
-            $isCompleted = $checkGameCompleted('wordsearch');
-            $wordSearchGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'wordsearch', 'index' => $gameIndex, 'completed' => $isCompleted];
-            $gameIndex++;
+        
+        // Set boolean flags for easier checking in the view
+        $hasMcqPairs = $mcqPairs->isNotEmpty();
+        $hasScramblePairs = $scramblePairs->isNotEmpty();
+        
+        // Build availableGames array for JavaScript (in the order they appear)
+        if (isset($gamesInOrder) && !empty($gamesInOrder)) {
+            \Log::info('Student Games View - Building availableGames from gamesInOrder', [
+                'gamesInOrder_count' => count($gamesInOrder)
+            ]);
+            foreach ($gamesInOrder as $index => $gameData) {
+                $gameType = $gameData['type'] ?? 'unknown';
+                $isCompleted = $checkGameCompleted($gameType);
+                
+                // Map game type names for JavaScript
+                $jsGameType = $gameType;
+                if ($gameType === 'scrambled_clocks') $jsGameType = 'scrambledclocks';
+                elseif ($gameType === 'word_clock_arrangement') $jsGameType = 'wordclock';
+                elseif ($gameType === 'word_search') $jsGameType = 'wordsearch';
+                elseif ($gameType === 'matching_pairs') $jsGameType = 'matchingpairs';
+                
+                $availableGames[] = [
+                    'type' => $jsGameType,
+                    'index' => $index,
+                    'completed' => $isCompleted
+                ];
+                
+                \Log::info('Student Games View - Added game to availableGames', [
+                    'index' => $index,
+                    'type' => $gameType,
+                    'jsType' => $jsGameType,
+                    'completed' => $isCompleted
+                ]);
+            }
+        } else {
+            \Log::warning('Student Games View - gamesInOrder is empty or not set', [
+                'isset' => isset($gamesInOrder),
+                'empty' => isset($gamesInOrder) ? empty($gamesInOrder) : 'N/A'
+            ]);
         }
-        if (isset($scrambledClocksGame) && $scrambledClocksGame && $scrambledClocksGame->game_data) {
-            $isCompleted = $checkGameCompleted('scrambledclocks');
-            $scrambledClocksGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'scrambledclocks', 'index' => $gameIndex, 'completed' => $isCompleted];
-            $gameIndex++;
-        }
-        if (isset($wordClockArrangementGame) && $wordClockArrangementGame && !empty($wordClockArrangementGame->game_data)) {
-            $isCompleted = $checkGameCompleted('wordclock');
-            $wordClockGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'wordclock', 'index' => $gameIndex, 'completed' => $isCompleted];
-            $gameIndex++;
-        }
-        // Check for MCQ pairs
-        $hasMcqPairs = false;
-        if (isset($selectedLessonId) && $selectedLessonId && isset($mcqPairs)) {
-            $hasMcqPairs = $mcqPairs->count() > 0;
-        }
-        if ($hasMcqPairs) {
-            $isCompleted = $checkGameCompleted('mcq');
-            $mcqGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'mcq', 'index' => $gameIndex, 'completed' => $isCompleted];
-            $gameIndex++;
-        }
-        // Check for Scrambled Letters pairs
-        $hasScramblePairs = false;
-        if (isset($selectedLessonId) && $selectedLessonId && isset($scramblePairs)) {
-            $hasScramblePairs = $scramblePairs->count() > 0;
-        }
-        if ($hasScramblePairs) {
-            $isCompleted = $checkGameCompleted('scramble');
-            $scrambleGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'scramble', 'index' => $gameIndex, 'completed' => $isCompleted];
-            $gameIndex++;
-        }
-        // Check for Matching Pairs game
-        if (isset($matchingPairsGame) && $matchingPairsGame && $matchingPairsGame->pairs->count() > 0) {
-            $isCompleted = $checkGameCompleted('matchingpairs');
-            $matchingPairsGameIndex = $gameIndex;
-            $availableGames[] = ['type' => 'matchingpairs', 'index' => $gameIndex, 'completed' => $isCompleted];
-            $gameIndex++;
-        }
+        
+        \Log::info('Student Games View - Final availableGames', [
+            'count' => count($availableGames),
+            'games' => $availableGames
+        ]);
     @endphp
     
     <!-- 1. Clock Game -->
@@ -429,7 +504,7 @@
             unset($wp); // Unset reference
         @endphp
         @if(!empty($grid) && !empty($words))
-            <div class="game-container max-w-7xl mx-auto mb-10" data-game-type="wordsearch" data-game-index="{{ $wordSearchGameIndex }}" style="display: none;" dir="rtl">
+            <div class="game-container max-w-7xl mx-auto mb-10" data-game-type="wordsearch" data-game-index="{{ $wordSearchGameIndex ?? 0 }}" style="display: none;" dir="rtl">
                 <div class="relative">
                     <!-- Animated Background Glow -->
                     <div class="absolute inset-0 bg-gradient-to-br from-purple-400/20 via-pink-400/20 to-rose-400/20 rounded-3xl blur-2xl transform scale-110"></div>
@@ -506,6 +581,9 @@
                     </div>
                 </div>
             </div>
+                </div> <!-- /Main Game Card -->
+            </div> <!-- /relative wrapper -->
+        </div> <!-- /wordsearch game-container -->
         @endif
     @endif
 
@@ -1012,14 +1090,51 @@
             window.updateMatchingPairsCanvas = updateCanvasSize;
             
             // Update canvas when game becomes visible
+            // Use a simpler, more reliable approach that doesn't interfere with game display
             const gameContainer = matchingPairsGameArea.closest('.game-container');
             if (gameContainer) {
-                const observer = new MutationObserver(() => {
-                    if (gameContainer.style.display !== 'none') {
-                        setTimeout(() => updateCanvasSize(), 100);
+                let canvasUpdateScheduled = false;
+                
+                // Function to safely update canvas
+                const safeUpdateCanvas = () => {
+                    if (canvasUpdateScheduled) return;
+                    canvasUpdateScheduled = true;
+                    
+                    const display = window.getComputedStyle(gameContainer).display;
+                    const hasHeight = gameContainer.offsetHeight > 0;
+                    const hasShowClass = gameContainer.classList.contains('show');
+                    
+                    if (display !== 'none' && hasHeight && hasShowClass) {
+                        setTimeout(() => {
+                            if (gameContainer.offsetHeight > 0 && 
+                                window.getComputedStyle(gameContainer).display !== 'none' &&
+                                gameContainer.classList.contains('show')) {
+                                updateCanvasSize();
+                            }
+                            canvasUpdateScheduled = false;
+                        }, 200);
+                    } else {
+                        canvasUpdateScheduled = false;
+                    }
+                };
+                
+                // Only observe when game is actually shown, not on every change
+                const observer = new MutationObserver((mutations) => {
+                    // Only update if game is currently being shown (not hidden)
+                    if (window.currentlyShowingGameType === 'matchingpairs' || 
+                        (gameContainer.classList.contains('show') && 
+                         window.getComputedStyle(gameContainer).display !== 'none')) {
+                        safeUpdateCanvas();
                     }
                 });
-                observer.observe(gameContainer, { attributes: true, attributeFilter: ['style'] });
+                
+                // Only observe style and class changes
+                observer.observe(gameContainer, { 
+                    attributes: true, 
+                    attributeFilter: ['style', 'class'],
+                    childList: false,
+                    subtree: false
+                });
             }
             
             // Left items click handler
@@ -1314,7 +1429,11 @@
                             const gameIndex = availableGames.findIndex(g => g.type === 'matchingpairs');
                             if (gameIndex !== -1) {
                                 availableGames[gameIndex].completed = true;
-                                showGame(currentGameIndex);
+                                if (typeof moveToNextGame === 'function') {
+                                    moveToNextGame();
+                                } else {
+                                    showGame(currentGameIndex);
+                                }
                             }
                         }
                     });
@@ -1340,12 +1459,53 @@
     </script>
     @endif
 
+    <!-- Debug Panel (remove in production) -->
+    @if(config('app.debug'))
+    <div id="debugPanel" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 15px; border-radius: 8px; z-index: 9999; max-width: 400px; font-size: 12px; max-height: 300px; overflow-y: auto;">
+        <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid white; padding-bottom: 5px;">🔍 DEBUG INFO</div>
+        <div><strong>selectedLessonId:</strong> {{ $selectedLessonId ?? 'NOT SET' }}</div>
+        <div><strong>gamesInOrder count:</strong> {{ isset($gamesInOrder) ? count($gamesInOrder) : 'NOT SET' }}</div>
+        <div><strong>availableGames count:</strong> {{ count($availableGames ?? []) }}</div>
+        <div><strong>has lesson:</strong> {{ isset($lesson) ? 'YES' : 'NO' }}</div>
+        <div><strong>has student:</strong> {{ isset($student) ? 'YES' : 'NO' }}</div>
+        @if(isset($student))
+        <div><strong>student class_id:</strong> {{ $student->class_id ?? 'NOT SET' }}</div>
+        @endif
+        <div style="margin-top: 10px; border-top: 1px solid white; padding-top: 5px;">
+            <strong>availableGames:</strong>
+            <pre style="font-size: 10px; margin-top: 5px;">{{ json_encode($availableGames ?? [], JSON_PRETTY_PRINT) }}</pre>
+        </div>
+        <button onclick="document.getElementById('debugPanel').style.display='none'" style="margin-top: 10px; padding: 5px 10px; background: red; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+    </div>
+    @endif
+
     <!-- Game Navigation Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Make availableGames globally accessible
         window.availableGames = @json($availableGames ?? []);
         const availableGames = window.availableGames;
+        
+        // DEBUG: Log availableGames
+        console.log('=== GAMES DEBUG START ===');
+        console.log('availableGames from PHP:', window.availableGames);
+        console.log('availableGames count:', availableGames.length);
+        console.log('availableGames content:', JSON.stringify(availableGames, null, 2));
+        console.log('selectedLessonId:', @json($selectedLessonId ?? null));
+        console.log('gamesInOrder count:', @json(isset($gamesInOrder) ? count($gamesInOrder) : 0));
+        
+        // DEBUG: Check for game containers in DOM
+        const allGameContainers = document.querySelectorAll('.game-container');
+        console.log('Game containers found in DOM:', allGameContainers.length);
+        allGameContainers.forEach((container, idx) => {
+            console.log(`Game container ${idx}:`, {
+                'gameType': container.getAttribute('data-game-type'),
+                'gameIndex': container.getAttribute('data-game-index'),
+                'display': container.style.display,
+                'visible': container.offsetParent !== null
+            });
+        });
+        
         let currentGameIndex = 0;
         
         // Routes for navigation
@@ -1368,101 +1528,242 @@
             matchingpairs: null    // Matching Pairs score (0-100)
         };
         
-        // Show the first game with enhanced animations
-        function showGame(index) {
-            // Hide all games and completed messages with fade out
-            document.querySelectorAll('.game-container').forEach(container => {
-                container.classList.remove('show');
-                container.style.opacity = '0';
-                container.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    container.style.display = 'none';
-                }, 300);
-            });
+        // Keep game switching SIMPLE + reliable: only one `.game-container` visible at a time.
+        function hideAllCompletedMessages() {
             document.querySelectorAll('.game-completed-message').forEach(msg => {
-                msg.style.opacity = '0';
-                msg.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    msg.style.display = 'none';
-                }, 300);
+                msg.style.display = 'none';
             });
-            
-            // Show the game at the specified index with animation
-            if (availableGames[index]) {
-                const game = availableGames[index];
-                const gameType = game.type;
+        }
+
+        // Track which game is currently being shown to prevent race conditions
+        // Make it globally accessible so MutationObserver can access it
+        window.currentlyShowingGameType = null;
+        let isShowingGame = false; // Flag to prevent concurrent showGame calls
+        
+        function hideAllGameContainers(skipType = null) {
+            document.querySelectorAll('.game-container').forEach(container => {
+                const gameType = container.getAttribute('data-game-type');
                 
-                // Check if game is already completed
-                if (game.completed) {
-                    // Show completed message instead of game
-                    const gameContainer = document.querySelector(`[data-game-type="${gameType}"]`);
-                    if (gameContainer) {
-                        // Create or show completed message
-                        let completedMsg = gameContainer.querySelector('.game-completed-message');
-                        if (!completedMsg) {
-                            completedMsg = document.createElement('div');
-                            completedMsg.className = 'game-completed-message max-w-6xl mx-auto bg-gradient-to-br from-yellow-50 to-orange-50 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border-2 border-yellow-300 mb-8';
-                            completedMsg.style.opacity = '0';
-                            completedMsg.style.transform = 'scale(0.9)';
-                            completedMsg.innerHTML = `
-                                <div class="text-center">
-                                    <div class="mb-4 transform animate-bounce">
-                                        <svg class="mx-auto h-16 w-16 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <h3 class="text-2xl font-bold text-yellow-800 mb-3">You Have Already Played This Game</h3>
-                                    <p class="text-lg text-yellow-700 mb-6">You cannot play the same game more than once. Please try another game.</p>
-                                    <button onclick="moveToNextGame()" class="px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-xl shadow-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200">
-                                        Continue to Next Game
-                                    </button>
-                                </div>
-                            `;
-                            gameContainer.parentNode.insertBefore(completedMsg, gameContainer.nextSibling);
-                        }
-                        completedMsg.style.display = 'block';
-                        
-                        // Animate in
-                        setTimeout(() => {
-                            completedMsg.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                            completedMsg.style.opacity = '1';
-                            completedMsg.style.transform = 'scale(1)';
-                        }, 50);
-                        
-                        // Scroll to the message
-                        setTimeout(() => {
-                            completedMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 100);
-                    }
-                } else {
-                    // Show the game normally with enhanced animation
-                    const gameContainer = document.querySelector(`[data-game-type="${gameType}"]`);
-                    if (gameContainer) {
-                        gameContainer.style.display = 'block';
-                        gameContainer.style.opacity = '0';
-                        gameContainer.style.transform = 'translateY(30px) scale(0.95)';
-                        
-                        // Animate in
-                        setTimeout(() => {
-                            gameContainer.classList.add('show');
-                            gameContainer.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-                            gameContainer.style.opacity = '1';
-                            gameContainer.style.transform = 'translateY(0) scale(1)';
-                        }, 100);
-                        
-                        // Update canvas size for matching pairs game when it becomes visible
-                        if (gameType === 'matchingpairs' && typeof window.updateMatchingPairsCanvas === 'function') {
-                            setTimeout(() => {
-                                window.updateMatchingPairsCanvas();
-                            }, 200);
-                        }
-                        
-                        // Scroll to the game
-                        setTimeout(() => {
-                            gameContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 200);
-                    }
+                // Don't hide the game that's currently being shown (prevent race condition)
+                if (skipType && gameType === skipType) {
+                    console.log('Skipping hide for game type:', gameType);
+                    return;
                 }
+                
+                // Don't hide if we're currently showing a game
+                if (isShowingGame && gameType === window.currentlyShowingGameType) {
+                    console.log('Skipping hide - game is being shown:', gameType);
+                    return;
+                }
+                
+                container.classList.remove('show');
+                container.style.display = 'none';
+                container.style.opacity = '0';
+                container.style.visibility = 'hidden';
+            });
+        }
+
+        function findGameContainer(game) {
+            const gameType = game?.type;
+            const gameIndex = game?.index !== undefined ? String(game.index) : null;
+            if (!gameType) return null;
+
+            const candidates = Array.from(document.querySelectorAll(`[data-game-type="${gameType}"]`));
+            if (candidates.length === 0) return null;
+            if (candidates.length === 1) return candidates[0];
+
+            // Prefer exact index match when multiple containers exist (e.g. wordclock fallback + real one)
+            if (gameIndex !== null) {
+                const byIndex = candidates.find(c => c.getAttribute('data-game-index') === gameIndex);
+                if (byIndex) return byIndex;
+            }
+
+            // Prefer non-fallback container if present
+            const nonFallback = candidates.find(c => !c.className.includes('bg-yellow-50'));
+            return nonFallback || candidates[0];
+        }
+
+        function showGame(index) {
+            // Prevent concurrent calls
+            if (isShowingGame) {
+                console.warn('showGame() already in progress, ignoring call for index:', index);
+                return;
+            }
+            
+            try {
+                isShowingGame = true;
+                console.log('=== showGame() called ===', index);
+
+                const game = availableGames[index];
+                if (!game) {
+                    console.error('availableGames[index] is undefined for index:', index);
+                    isShowingGame = false;
+                    return;
+                }
+
+                // Set the currently showing game type BEFORE hiding others
+                window.currentlyShowingGameType = game.type;
+                console.log('Setting currentlyShowingGameType to:', game.type);
+
+                hideAllCompletedMessages();
+                // Pass the game type to skip hiding it
+                hideAllGameContainers(game.type);
+                
+                // Small delay to ensure hideAllGameContainers completes
+                setTimeout(() => {
+                    // Clear the flag after a longer delay to allow the game to fully render
+                    setTimeout(() => {
+                        if (window.currentlyShowingGameType === game.type) {
+                            // Only clear if it's still the same game (wasn't changed)
+                            console.log('Clearing currentlyShowingGameType flag for:', game.type);
+                            window.currentlyShowingGameType = null;
+                        }
+                        isShowingGame = false;
+                    }, 2000); // Increased delay to 2 seconds to prevent auto-advance
+                }, 50);
+
+                const targetContainer = findGameContainer(game);
+                if (!targetContainer) {
+                    console.error('Game container NOT FOUND for type:', game.type);
+                    isShowingGame = false;
+                    window.currentlyShowingGameType = null;
+                    return;
+                }
+
+                console.log('Showing game:', { type: game.type, index: game.index, completed: game.completed });
+                console.log('Target container:', {
+                    type: targetContainer.getAttribute('data-game-type'),
+                    index: targetContainer.getAttribute('data-game-index'),
+                    className: targetContainer.className
+                });
+
+                // If completed, show message + allow moving forward
+                if (game.completed) {
+                    let completedMsg = targetContainer.parentElement?.querySelector('.game-completed-message');
+                    if (!completedMsg) {
+                        completedMsg = document.createElement('div');
+                        completedMsg.className = 'game-completed-message max-w-6xl mx-auto bg-gradient-to-br from-yellow-50 to-orange-50 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border-2 border-yellow-300 mb-8';
+                        completedMsg.innerHTML = `
+                            <div class="text-center">
+                                <div class="mb-4">
+                                    <svg class="mx-auto h-16 w-16 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <h3 class="text-2xl font-bold text-yellow-800 mb-3">You Have Already Played This Game</h3>
+                                <p class="text-lg text-yellow-700 mb-6">You cannot play the same game more than once. Please try another game.</p>
+                                <button onclick="moveToNextGame()" class="px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-xl shadow-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200">
+                                    Continue to Next Game
+                                </button>
+                            </div>
+                        `;
+                        targetContainer.parentNode.insertBefore(completedMsg, targetContainer.nextSibling);
+                    }
+                    completedMsg.style.display = 'block';
+                    completedMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                }
+
+                // Show only this game (FORCE inline visibility so it works even if .show CSS isn't applied)
+                // For matching pairs, ensure it stays visible
+                if (game.type === 'matchingpairs') {
+                    // Force all styles to ensure visibility
+                    targetContainer.style.setProperty('display', 'block', 'important');
+                    targetContainer.style.setProperty('visibility', 'visible', 'important');
+                    targetContainer.style.setProperty('opacity', '1', 'important');
+                    targetContainer.style.setProperty('transform', 'none', 'important');
+                    targetContainer.style.setProperty('position', 'relative', 'important');
+                } else {
+                    targetContainer.style.display = 'block';
+                    targetContainer.style.visibility = 'visible';
+                    targetContainer.style.opacity = '1';
+                    targetContainer.style.transform = 'none';
+                }
+                targetContainer.classList.add('show');
+
+                // Sanity log
+                const computed = window.getComputedStyle(targetContainer);
+                console.log('After show styles:', {
+                    display: computed.display,
+                    visibility: computed.visibility,
+                    opacity: computed.opacity,
+                    height: targetContainer.offsetHeight,
+                    width: targetContainer.offsetWidth,
+                    scrollHeight: targetContainer.scrollHeight,
+                    scrollWidth: targetContainer.scrollWidth,
+                    paddingTop: computed.paddingTop,
+                    paddingBottom: computed.paddingBottom,
+                    borderTop: computed.borderTopWidth,
+                    borderBottom: computed.borderBottomWidth,
+                    fontSize: computed.fontSize,
+                    lineHeight: computed.lineHeight,
+                    position: computed.position,
+                    transform: computed.transform,
+                    offsetParent: targetContainer.offsetParent ? targetContainer.offsetParent.tagName : null,
+                    innerTextLen: (targetContainer.innerText || '').length,
+                    children: targetContainer.children.length
+                });
+                
+                // If we're still 0x0, it's almost always because a parent is display:none (or font-size/line-height 0).
+                if (targetContainer.offsetHeight === 0 && targetContainer.offsetWidth === 0) {
+                    const chain = [];
+                    let p = targetContainer;
+                    let i = 0;
+                    while (p && p !== document.documentElement && i < 12) {
+                        const cs = window.getComputedStyle(p);
+                        chain.push({
+                            node: p.tagName + (p.id ? `#${p.id}` : '') + (p.className ? `.${String(p.className).split(' ')[0]}` : ''),
+                            display: cs.display,
+                            visibility: cs.visibility,
+                            opacity: cs.opacity,
+                            position: cs.position,
+                            transform: cs.transform,
+                            fontSize: cs.fontSize,
+                            lineHeight: cs.lineHeight,
+                            offsetH: p.offsetHeight,
+                            offsetW: p.offsetWidth
+                        });
+                        p = p.parentElement;
+                        i++;
+                    }
+                    console.warn('0x0 parent chain (closest first):', chain);
+                }
+
+                // If still zero-size, force a visible box so we can confirm it's rendering at all
+                if (targetContainer.offsetHeight === 0 && targetContainer.offsetWidth === 0) {
+                    console.warn('⚠️ Target container is still 0x0 after showing. Forcing fallback box styles...');
+                    targetContainer.style.setProperty('min-height', '200px', 'important');
+                    targetContainer.style.setProperty('padding', '20px', 'important');
+                    targetContainer.style.setProperty('border', '2px solid rgba(255,0,0,0.4)', 'important');
+                    targetContainer.style.setProperty('background', 'rgba(255,255,0,0.08)', 'important');
+                    const rect = targetContainer.getBoundingClientRect();
+                    console.log('Fallback rect:', { width: rect.width, height: rect.height, top: rect.top, left: rect.left });
+                    console.log('Fallback innerText preview:', (targetContainer.innerText || '').slice(0, 120));
+                }
+
+                targetContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                // Matching pairs needs a canvas resize when revealed
+                // Use a longer delay and check visibility to ensure container is fully rendered
+                if (game.type === 'matchingpairs' && typeof window.updateMatchingPairsCanvas === 'function') {
+                    // Wait for container to be fully visible before resizing canvas
+                    setTimeout(() => {
+                        if (targetContainer.offsetHeight > 0 && window.getComputedStyle(targetContainer).display !== 'none') {
+                            window.updateMatchingPairsCanvas();
+                        } else {
+                            // Retry if not visible yet
+                            setTimeout(() => {
+                                if (targetContainer.offsetHeight > 0 && window.getComputedStyle(targetContainer).display !== 'none') {
+                                    window.updateMatchingPairsCanvas();
+                                }
+                            }, 100);
+                        }
+                    }, 200);
+                }
+            } catch (e) {
+                console.error('❌ showGame() crashed:', e);
+                isShowingGame = false;
+                window.currentlyShowingGameType = null;
             }
         }
         
@@ -1487,36 +1788,80 @@
             return 0;
         }
         
-        // Initialize: show first non-completed game
-        if (availableGames.length > 0) {
-            let firstNonCompletedIndex = 0;
-            while (firstNonCompletedIndex < availableGames.length && availableGames[firstNonCompletedIndex].completed) {
-                firstNonCompletedIndex++;
-            }
-            if (firstNonCompletedIndex < availableGames.length) {
-                currentGameIndex = firstNonCompletedIndex;
-                showGame(currentGameIndex);
-            } else {
-                // All games already completed - show message
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'max-w-6xl mx-auto bg-gradient-to-br from-green-50 to-emerald-50 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border-2 border-green-300 mb-8 text-center';
-                messageDiv.innerHTML = `
-                    <h3 class="text-2xl font-bold text-green-800 mb-3">All Games Completed!</h3>
-                    <p class="text-lg text-green-700">You have already played all available games for this lesson.</p>
-                `;
-                document.querySelector('.container').appendChild(messageDiv);
-            }
-        }
+        // Initialize: show first non-completed game (only ONE visible at a time)
+        console.log('=== INITIALIZING GAMES ===');
+        console.log('availableGames.length:', availableGames.length);
+        console.log('availableGames:', JSON.stringify(availableGames, null, 2));
         
-        // Function to move to next game
+        // Wait a bit before initializing to ensure DOM is fully ready, especially for matching pairs
+        setTimeout(() => {
+            hideAllCompletedMessages();
+            hideAllGameContainers();
+            
+            if (availableGames.length > 0) {
+                console.log('Games found, looking for first non-completed game...');
+                let firstNonCompletedIndex = 0;
+                while (firstNonCompletedIndex < availableGames.length && availableGames[firstNonCompletedIndex].completed) {
+                    console.log(`Game ${firstNonCompletedIndex} (${availableGames[firstNonCompletedIndex].type}) is completed, skipping...`);
+                    firstNonCompletedIndex++;
+                }
+                if (firstNonCompletedIndex < availableGames.length) {
+                    console.log(`Showing game at index ${firstNonCompletedIndex}:`, availableGames[firstNonCompletedIndex]);
+                    currentGameIndex = firstNonCompletedIndex;
+                    showGame(currentGameIndex);
+                } else {
+                    console.log('All games are already completed');
+                    // All games already completed - show message
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'max-w-6xl mx-auto bg-gradient-to-br from-green-50 to-emerald-50 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border-2 border-green-300 mb-8 text-center';
+                    messageDiv.innerHTML = `
+                        <h3 class="text-2xl font-bold text-green-800 mb-3">All Games Completed!</h3>
+                        <p class="text-lg text-green-700">You have already played all available games for this lesson.</p>
+                    `;
+                    const container = document.querySelector('.container') || document.body;
+                    container.appendChild(messageDiv);
+                }
+            }
+        }, 150); // Delay to ensure DOM is ready, especially for matching pairs canvas
+        
+        // Prevent rapid auto-advance
+        let lastMoveToNextGameTime = 0;
+        const MIN_TIME_BETWEEN_ADVANCES = 1500; // Minimum 1.5 seconds between advances
+        
+        // Function to move to next game (go in ORDER; do not skip "completed" here)
         window.moveToNextGame = function() {
-            // Find next non-completed game
-            let nextIndex = currentGameIndex + 1;
-            while (nextIndex < availableGames.length && availableGames[nextIndex].completed) {
-                nextIndex++;
+            const now = Date.now();
+            const timeSinceLastAdvance = now - lastMoveToNextGameTime;
+            
+            // Prevent rapid auto-advance (especially for matching pairs)
+            if (timeSinceLastAdvance < MIN_TIME_BETWEEN_ADVANCES) {
+                console.warn(`moveToNextGame() called too soon (${timeSinceLastAdvance}ms ago). Ignoring to prevent rapid advance.`);
+                return;
             }
             
+            // Don't advance if we're currently showing a game (prevent race condition)
+            if (isShowingGame) {
+                console.warn('moveToNextGame() called while showing game. Ignoring.');
+                return;
+            }
+            
+            lastMoveToNextGameTime = now;
+            console.log('=== moveToNextGame() called ===');
+            console.log('Current game index:', currentGameIndex);
+            console.log('Currently showing game type:', window.currentlyShowingGameType);
+            
+            // Go to the next game in the list (even if it's completed; showGame() will handle "already played")
+            let nextIndex = currentGameIndex + 1;
+            
             if (nextIndex < availableGames.length) {
+                const nextGame = availableGames[nextIndex];
+                console.log(`Moving to next game at index ${nextIndex}:`, nextGame);
+                
+                // Special handling for matching pairs - ensure it stays visible
+                if (nextGame.type === 'matchingpairs') {
+                    console.log('Next game is matching pairs - ensuring proper display');
+                }
+                
                 currentGameIndex = nextIndex;
                 showGame(currentGameIndex);
             } else {
@@ -1584,7 +1929,7 @@
                             <div class="flex flex-col sm:flex-row gap-3 justify-center items-center mt-5">
                                 ${lessonViewRoute ? `
                                     <!-- Button 1 - Using #F8C5C8 (lightest pink) -->
-                                    <a href="${lessonViewRoute}" class="group relative px-6 py-3 rounded-xl font-bold text-base md:text-lg shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2 overflow-hidden border-2" style="background-color: #F8C5C8; border-color: #FC8EAC;">
+                                    <a href="${lessonViewRoute}?t=${Date.now()}" class="group relative px-6 py-3 rounded-xl font-bold text-base md:text-lg shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2 overflow-hidden border-2" style="background-color: #F8C5C8; border-color: #FC8EAC;">
                                         <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style="background-color: #FC8EAC;"></div>
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 relative z-10 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color: #FC8EAC;">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -2292,11 +2637,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 wordClockResultMessage.className = 'mt-6 p-4 rounded-lg text-center text-lg font-semibold bg-red-100 text-red-800 border border-red-300';
                 wordClockResultMessage.innerHTML = errorMsg;
                 
-                // Redirect to lesson page after 3 seconds (use this game's specific lesson)
-                if (wordClockLessonRoute) {
-                    setTimeout(() => {
-                        window.location.href = wordClockLessonRoute;
-                    }, 3000);
+                // Stay on this page. Continue to next game / completion popup.
+                if (typeof moveToNextGame === 'function') {
+                    setTimeout(() => moveToNextGame(), 2000);
                 }
             }
         });
@@ -2457,11 +2800,9 @@ document.addEventListener('DOMContentLoaded', function() {
             resultMessage.className = 'mt-6 p-4 rounded-lg text-center text-lg font-semibold bg-red-100 text-red-800 border border-red-300';
             resultMessage.innerHTML = errorMsg;
             
-            // Redirect to lesson page after 3 seconds (use this game's specific lesson)
-            if (scrambledClocksLessonRoute) {
-                setTimeout(() => {
-                    window.location.href = scrambledClocksLessonRoute;
-                }, 3000);
+            // Stay on this page. Continue to next game / completion popup.
+            if (typeof moveToNextGame === 'function') {
+                setTimeout(() => moveToNextGame(), 2000);
             }
         }
     });

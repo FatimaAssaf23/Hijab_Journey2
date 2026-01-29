@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen relative overflow-hidden">
+<div class="relative h-full overflow-y-auto">
     <!-- Background Image Layer - Background3 -->
     <div class="absolute inset-0" style="background-image: url('{{ asset('storage/Teacher_Dashboard/background3.jpg') }}'); background-size: cover; background-position: center center; background-repeat: no-repeat; background-attachment: fixed; opacity: 0.9;"></div>
     
@@ -20,7 +20,7 @@
     <div class="absolute bottom-20 left-20 w-40 h-40 bg-cyan-200/8 rounded-full blur-3xl animate-bounce pointer-events-none" style="animation-duration: 5s; animation-delay: 1s;"></div>
     <div class="absolute top-1/2 left-1/4 w-28 h-28 bg-teal-200/8 rounded-full blur-2xl animate-bounce pointer-events-none" style="animation-duration: 6s; animation-delay: 2s;"></div>
 
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-8">
         <!-- Hero Header Section -->
         <div class="mb-8 animate-fade-in">
             <div class="relative w-full max-w-7xl mx-auto bg-gradient-to-br from-pink-200/80 via-rose-100/70 to-cyan-200/80 rounded-2xl shadow-xl overflow-hidden transform transition-all duration-500 hover:shadow-2xl border border-pink-200/50 backdrop-blur-sm">

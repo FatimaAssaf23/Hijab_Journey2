@@ -13,6 +13,7 @@ class MatchingPairsGame extends Model
     protected $fillable = [
         'game_id',
         'lesson_id',
+        'class_id',
         'title',
     ];
 
