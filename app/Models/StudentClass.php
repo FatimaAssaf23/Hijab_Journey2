@@ -18,6 +18,7 @@ class StudentClass extends Model
         'status',
         'description',
         'color',
+        'is_read',
     ];
 
     protected function casts(): array

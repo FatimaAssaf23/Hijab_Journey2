@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Events\Dispatcher;
+use App\Models\StudentLessonProgress;
+use App\Models\QuizAttempt;
+use App\Observers\StudentLessonProgressObserver;
+use App\Observers\QuizAttemptObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -24,5 +28,9 @@ class EventServiceProvider extends ServiceProvider
     public function boot(): void
     {
         parent::boot();
+
+        // Register observers for ML predictions
+        StudentLessonProgress::observe(StudentLessonProgressObserver::class);
+        QuizAttempt::observe(QuizAttemptObserver::class);
     }
 }

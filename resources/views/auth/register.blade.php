@@ -1,31 +1,39 @@
 <x-guest-layout>
 
-    <form method="POST" action="{{ route('register') }}" style="max-width: 700px; margin: 0 auto; background: #FDEDEF; border-radius: 18px; padding: 40px 32px;">
+    <style>
+        /* Register page specific background */
+        .auth-background {
+            background: #FFF6F9 url('{{ asset("storage/Teacher_Dashboard/register6.png") }}') no-repeat center center !important;
+            background-size: cover !important;
+        }
+    </style>
+
+    <form method="POST" action="{{ route('register') }}" style="max-width: 600px; margin: 0 auto; background: #FDEDEF; border-radius: 18px; padding: 28px 24px;">
         @csrf
 
-        <div style="display: flex; gap: 20px;">
+        <div style="display: flex; gap: 16px;">
             <div style="flex: 1;">
-                <label for="first_name" class="auth-label" style="display: block; font-size: 14px; font-weight: 500; color: #374151;">{{ __('First Name') }}</label>
-                <input id="first_name" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;" type="text" name="first_name" value="{{ old('first_name') }}" required autofocus autocomplete="given-name" />
+                <label for="first_name" class="auth-label" style="display: block; font-size: 13px; font-weight: 500; color: #374151;">{{ __('First Name') }}</label>
+                <input id="first_name" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;" type="text" name="first_name" value="{{ old('first_name') }}" required autofocus autocomplete="given-name" />
                 <x-input-error :messages="$errors->get('first_name')" class="mt-2" />
             </div>
             <div style="flex: 1;">
-                <label for="last_name" class="auth-label" style="display: block; font-size: 14px; font-weight: 500; color: #374151;">{{ __('Last Name') }}</label>
-                <input id="last_name" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;" type="text" name="last_name" value="{{ old('last_name') }}" required autocomplete="family-name" />
+                <label for="last_name" class="auth-label" style="display: block; font-size: 13px; font-weight: 500; color: #374151;">{{ __('Last Name') }}</label>
+                <input id="last_name" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;" type="text" name="last_name" value="{{ old('last_name') }}" required autocomplete="family-name" />
                 <x-input-error :messages="$errors->get('last_name')" class="mt-2" />
             </div>
         </div>
-        <div style="display: flex; gap: 20px;">
+        <div style="display: flex; gap: 16px;">
             <div style="flex: 1;">
-                <label for="email" class="auth-label" style="display: block; font-size: 14px; font-weight: 500; color: #374151;">{{ __('Email') }}</label>
-                <input id="email" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;" type="email" name="email" value="{{ old('email') }}" required autocomplete="username" />
+                <label for="email" class="auth-label" style="display: block; font-size: 13px; font-weight: 500; color: #374151;">{{ __('Email') }}</label>
+                <input id="email" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;" type="email" name="email" value="{{ old('email') }}" required autocomplete="username" />
                 <x-input-error :messages="$errors->get('email')" class="mt-2" />
             </div>
         </div>
 
 
 
-        <div style="display: flex; gap: 20px; margin-top: 16px;">
+        <div style="display: flex; gap: 16px; margin-top: 12px;">
             <div style="flex: 1;">
                 <label for="date_of_birth" class="auth-label">{{ __('Date of Birth') }}</label>
                 <input id="date_of_birth" type="date" name="date_of_birth" class="auth-input block mt-1 w-full" required 
@@ -42,10 +50,10 @@
         </div>
 
 
-        <div style="display: flex; gap: 20px; margin-top: 16px;">
+        <div style="display: flex; gap: 16px; margin-top: 12px;">
             <div style="flex: 1;">
-                <label for="country" class="auth-label" style="display: block; font-size: 14px; font-weight: 500; color: #374151;">{{ __('Country') }}</label>
-                <input id="country" type="text" name="country" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;" required />
+                <label for="country" class="auth-label" style="display: block; font-size: 13px; font-weight: 500; color: #374151;">{{ __('Country') }}</label>
+                <input id="country" type="text" name="country" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;" required />
                 <x-input-error :messages="$errors->get('country')" class="mt-2" />
             </div>
             <div style="flex: 1;">
@@ -55,30 +63,30 @@
             </div>
         </div>
 
-        <div style="display: flex; gap: 20px; margin-top: 16px;">
+        <div style="display: flex; gap: 16px; margin-top: 12px;">
             <div style="flex: 1;">
                 <label for="password" class="auth-label">{{ __('Password') }}</label>
                 <input id="password" type="password" name="password" class="auth-input block mt-1 w-full" required autocomplete="new-password" />
                                 <x-input-error :messages="$errors->get('password')" class="mt-2" />
 
                                 <!-- Password Strength Checker UI -->
-                                <div style="margin-top: 6px; background: #fff; border-radius: 7px; box-shadow: 0 1px 4px rgba(44,62,80,0.06); padding: 5px 8px; max-width: 220px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
-                                    <div style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 1px;">Strength</div>
+                                <div style="margin-top: 6px; background: #fff; border-radius: 7px; box-shadow: 0 1px 4px rgba(44,62,80,0.06); padding: 4px 6px; max-width: 200px; display: flex; flex-direction: column; gap: 3px; align-items: flex-start;">
+                                    <div style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 1px;">Strength</div>
                                     <div style="height: 6px; background: #eee; border-radius: 3px; overflow: hidden; width: 100%; margin-bottom: 2px;">
                                         <div id="strengthFill" style="height: 100%; width: 10%; background: #e63946; transition: width 0.3s, background 0.3s;"></div>
                                     </div>
-                                    <div id="strengthText" style="font-size: 11px; color: #374151; font-weight: 500; margin-bottom: 1px;">Very Weak</div>
+                                    <div id="strengthText" style="font-size: 10px; color: #374151; font-weight: 500; margin-bottom: 1px;">Very Weak</div>
                                     <div style="display: flex; gap: 6px; width: 100%; justify-content: space-between;">
-                                        <span id="lengthIcon" style="font-size: 14px;">❌</span>
-                                        <span id="uppercaseIcon" style="font-size: 14px;">❌</span>
-                                        <span id="numberIcon" style="font-size: 14px;">❌</span>
-                                        <span id="symbolIcon" style="font-size: 14px;">❌</span>
+                                        <span id="lengthIcon" style="font-size: 12px;">❌</span>
+                                        <span id="uppercaseIcon" style="font-size: 12px;">❌</span>
+                                        <span id="numberIcon" style="font-size: 12px;">❌</span>
+                                        <span id="symbolIcon" style="font-size: 12px;">❌</span>
                                     </div>
                                     <div style="display: flex; gap: 6px; width: 100%; justify-content: space-between; font-size: 10px; color: #6b7280;">
-                                        <span id="lengthText" class="requirement-not-met">8+ chars</span>
-                                        <span id="uppercaseText" class="requirement-not-met">Upper</span>
-                                        <span id="numberText" class="requirement-not-met">Num</span>
-                                        <span id="symbolText" class="requirement-not-met">Sym</span>
+                                        <span id="lengthText" class="requirement-not-met" style="font-size: 9px;">8+ chars</span>
+                                        <span id="uppercaseText" class="requirement-not-met" style="font-size: 9px;">Upper</span>
+                                        <span id="numberText" class="requirement-not-met" style="font-size: 9px;">Num</span>
+                                        <span id="symbolText" class="requirement-not-met" style="font-size: 9px;">Sym</span>
                                     </div>
                                 </div>
                                 <style>
@@ -182,11 +190,11 @@
             </div>
         </div>
 
-        <div class="flex items-center justify-end mt-4" style="display: flex; align-items: center; justify-content: flex-end; margin-top: 24px; gap: 16px;">
-            <a class="auth-link underline text-sm text-gray-600" style="font-size: 15px; color: #4b5563; text-decoration: underline;" href="{{ route('login') }}">
+        <div class="flex items-center justify-end mt-4" style="display: flex; align-items: center; justify-content: flex-end; margin-top: 18px; gap: 16px;">
+            <a class="auth-link underline text-sm text-gray-600" style="font-size: 13px; color: #4b5563; text-decoration: underline;" href="{{ route('login') }}">
                 {{ __('Already registered?') }}
             </a>
-            <button type="submit" class="auth-btn ms-4" style="margin-left: 0; display: inline-flex; align-items: center; padding: 12px 28px; background: linear-gradient(90deg, #F8C5C8 0%, #FC8EAC 50%, #EC769A 100%); border: none; border-radius: 8px; font-weight: 700; font-size: 15px; color: white; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 8px rgba(99,102,241,0.12); transition: background 0.2s;">
+            <button type="submit" class="auth-btn ms-4" style="margin-left: 0; display: inline-flex; align-items: center; padding: 10px 24px; background: linear-gradient(90deg, #F8C5C8 0%, #FC8EAC 50%, #EC769A 100%); border: none; border-radius: 8px; font-weight: 700; font-size: 13px; color: white; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 8px rgba(99,102,241,0.12); transition: background 0.2s;">
                 {{ __('Register') }}
             </button>
         </div>

@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════
+  HOW TO START THE ML API - SIMPLE INSTRUCTIONS
+═══════════════════════════════════════════════════════════════
+
+METHOD 1: Double-Click (EASIEST)
+─────────────────────────────────
+1. Go to: C:\wamp64\www\CapHijabJourny
+2. Double-click: START_ML_API.bat
+3. A black window will open - KEEP IT OPEN
+4. Wait until you see: "Running on http://127.0.0.1:5000"
+5. Refresh your teacher dashboard in the browser
+
+METHOD 2: Command Line
+───────────────────────
+1. Open PowerShell or Command Prompt
+2. Type these commands (press Enter after each):
+
+   cd C:\wamp64\www\CapHijabJourny\ml_api
+   python app.py
+
+3. Keep the window open
+4. Refresh your teacher dashboard
+
+═══════════════════════════════════════════════════════════════
+
+WHAT YOU'LL SEE WHEN IT'S WORKING:
+───────────────────────────────────
+✅ Model loaded successfully from ...
+ * Running on http://127.0.0.1:5000
+
+═══════════════════════════════════════════════════════════════
+
+IMPORTANT:
+──────────
+• DO NOT close the terminal window - it will stop the API
+• You can minimize it, but keep it running
+• Refresh your browser after starting the API
+
+═══════════════════════════════════════════════════════════════

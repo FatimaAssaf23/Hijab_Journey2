@@ -16,7 +16,14 @@
         
         <style>
             /* Fallback styles for auth pages */
-            body { font-family: 'Figtree', sans-serif; }
+            html, body {
+                font-family: 'Figtree', sans-serif;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow-x: hidden;
+            }
             .auth-container {
                 min-height: 100vh;
                 max-height: 100vh;
@@ -33,15 +40,15 @@
                 position: fixed;
                 top: 0;
                 left: 0;
+                right: 0;
+                bottom: 0;
                 width: 100vw;
                 height: 100vh;
-                min-width: 100%;
-                min-height: 100%;
-                background-image: url('{{ asset("storage/Teacher_Dashboard/Back4.png") }}');
-                background-size: cover;
-                background-position: center center;
-                background-repeat: no-repeat;
-                background-attachment: fixed;
+                min-width: 100vw;
+                min-height: 100vh;
+                max-width: 100vw;
+                max-height: 100vh;
+                background: #FFF6F9;
                 z-index: 0;
             }
             .auth-card {
@@ -104,7 +111,7 @@
     </head>
     <body class="font-sans text-gray-900 antialiased" style="overflow-x: hidden;">
         <!-- Background Image -->
-        <div class="auth-background"></div>
+        <div class="auth-background" @if(request()->routeIs('login')) style="background-image: url('{{ asset('storage/Teacher_Dashboard/login4.PNG') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;" @endif></div>
         
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 auth-container" style="position: relative; overflow: hidden; z-index: 1; transform: translateY(-1.25cm);">
             <!-- Logo removed -->

@@ -63,44 +63,44 @@
 
         <!-- Overall Statistics Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl p-6 shadow-xl text-white transform hover:scale-105 transition-all">
+            <div class="bg-gradient-to-br from-pink-300 to-rose-400 rounded-2xl p-6 shadow-xl text-gray-800 transform hover:scale-105 transition-all">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <div class="w-12 h-12 bg-white/60 rounded-xl flex items-center justify-center">
                         <span class="text-2xl">🎯</span>
                     </div>
                     <span class="text-3xl font-black">{{ $totalGames }}</span>
                 </div>
-                <p class="text-white/90 font-semibold text-sm">Total Games</p>
+                <p class="text-gray-700 font-semibold text-sm">Total Games</p>
             </div>
             
-            <div class="bg-gradient-to-br from-cyan-400 to-teal-500 rounded-2xl p-6 shadow-xl text-white transform hover:scale-105 transition-all">
+            <div class="bg-gradient-to-br from-cyan-300 to-teal-400 rounded-2xl p-6 shadow-xl text-gray-800 transform hover:scale-105 transition-all">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <div class="w-12 h-12 bg-white/60 rounded-xl flex items-center justify-center">
                         <span class="text-2xl">✅</span>
                     </div>
                     <span class="text-3xl font-black">{{ $completedProgresses }}</span>
                 </div>
-                <p class="text-white/90 font-semibold text-sm">Completed</p>
+                <p class="text-gray-700 font-semibold text-sm">Completed</p>
             </div>
             
-            <div class="bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl p-6 shadow-xl text-white transform hover:scale-105 transition-all">
+            <div class="bg-gradient-to-br from-rose-300 to-pink-400 rounded-2xl p-6 shadow-xl text-gray-800 transform hover:scale-105 transition-all">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <div class="w-12 h-12 bg-white/60 rounded-xl flex items-center justify-center">
                         <span class="text-2xl">📊</span>
                     </div>
                     <span class="text-3xl font-black">{{ number_format($completionRate, 1) }}%</span>
                 </div>
-                <p class="text-white/90 font-semibold text-sm">Completion Rate</p>
+                <p class="text-gray-700 font-semibold text-sm">Completion Rate</p>
             </div>
             
-            <div class="bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl p-6 shadow-xl text-white transform hover:scale-105 transition-all">
+            <div class="bg-gradient-to-br from-teal-300 to-cyan-400 rounded-2xl p-6 shadow-xl text-gray-800 transform hover:scale-105 transition-all">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <div class="w-12 h-12 bg-white/60 rounded-xl flex items-center justify-center">
                         <span class="text-2xl">⭐</span>
                     </div>
                     <span class="text-3xl font-black">{{ number_format($averageScore, 1) }}</span>
                 </div>
-                <p class="text-white/90 font-semibold text-sm">Average Score</p>
+                <p class="text-gray-700 font-semibold text-sm">Average Score</p>
             </div>
         </div>
 
@@ -430,11 +430,10 @@ document.addEventListener('DOMContentLoaded', function() {
     @php
         $totalProgresses = $completedProgresses + $inProgressProgresses + $notStartedProgresses;
         $completedPercent = $totalProgresses > 0 ? round(($completedProgresses / $totalProgresses) * 100, 1) : 0;
-        $inProgressPercent = $totalProgresses > 0 ? round(($inProgressProgresses / $totalProgresses) * 100, 1) : 0;
         $notStartedPercent = $totalProgresses > 0 ? round(($notStartedProgresses / $totalProgresses) * 100, 1) : 0;
     @endphp
     const progressChartOptions = {
-        series: [{{ $completedPercent }}, {{ $inProgressPercent }}, {{ $notStartedPercent }}],
+        series: [{{ $completedPercent }}, {{ $notStartedPercent }}],
         chart: {
             type: 'radialBar',
             height: 400,
@@ -479,8 +478,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         },
-        labels: ['Completed', 'In Progress', 'Not Started'],
-        colors: ['#10b981', '#3b82f6', '#f59e0b'],
+        labels: ['Completed', 'Not Started'],
+        colors: ['#10b981', '#f59e0b'],
         legend: {
             show: true,
             position: 'bottom',
@@ -502,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 shade: 'light',
                 type: 'horizontal',
                 shadeIntensity: 0.5,
-                gradientToColors: ['#34d399', '#60a5fa', '#fbbf24'],
+                gradientToColors: ['#34d399', '#fbbf24'],
                 inverseColors: false,
                 opacityFrom: 1,
                 opacityTo: 1,
@@ -516,7 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
             y: {
                 formatter: function(val, opts) {
                     const index = opts.seriesIndex;
-                    const counts = [{{ $completedProgresses }}, {{ $inProgressProgresses }}, {{ $notStartedProgresses }}];
+                    const counts = [{{ $completedProgresses }}, {{ $notStartedProgresses }}];
                     return counts[index] + ' games (' + val.toFixed(1) + '%)';
                 }
             }

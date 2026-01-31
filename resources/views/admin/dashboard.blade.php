@@ -12,14 +12,14 @@
                 </div>
                 
                 <!-- Notification Bell -->
-                @if($unreadRequestsCount > 0 || $unreadEmergencyRequestsCount > 0)
+                @if($unreadRequestsCount > 0 || $unreadEmergencyRequestsCount > 0 || $unreadAutoCreatedClassesCount > 0)
                 <div class="relative" x-data="{ open: false }">
                     <button @click="open = !open" class="relative bg-white/20 hover:bg-white/30 p-3 rounded-full transition-all">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                         </svg>
                         <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
-                            {{ $unreadRequestsCount + $unreadEmergencyRequestsCount }}
+                            {{ $unreadRequestsCount + $unreadEmergencyRequestsCount + $unreadAutoCreatedClassesCount }}
                         </span>
                     </button>
                     
@@ -46,6 +46,34 @@
                                         <p class="text-xs text-gray-400">{{ $emergency->created_at->diffForHumans() }}</p>
                                     </div>
                                     <span class="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">New</span>
+                                </div>
+                            </a>
+                            @endforeach
+                        </div>
+                        @endif
+                        
+                        @if($unreadAutoCreatedClassesCount > 0)
+                        <div class="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-3 {{ ($unreadEmergencyRequestsCount > 0 || $unreadRequestsCount > 0) ? 'border-t border-gray-200' : '' }}">
+                            <h3 class="text-white font-semibold">📚 Auto-Created Classes ({{ $unreadAutoCreatedClassesCount }})</h3>
+                        </div>
+                        <div class="max-h-48 overflow-y-auto">
+                            @foreach($unreadAutoCreatedClasses as $class)
+                            <a href="{{ route('admin.classes') }}" class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 transition-colors">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                        📚
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-semibold text-gray-800 truncate">{{ $class->class_name }}</p>
+                                        <p class="text-sm text-gray-500 truncate">
+                                            Teacher: {{ $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned' }}
+                                        </p>
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            {{ $class->current_enrollment }}/{{ $class->capacity }} students
+                                        </p>
+                                        <p class="text-xs text-gray-400">{{ $class->created_at->diffForHumans() }}</p>
+                                    </div>
+                                    <span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">New</span>
                                 </div>
                             </a>
                             @endforeach
@@ -714,7 +742,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Engagement Charts Data
     const engagementData = @json($engagementData);
 
-    // Helper function to filter data - only Nov and Dec 2025 (2 months including Dec), then all 2026
+    // Helper function to filter data - Oct, Nov, Dec 2025 and Jan 2026 (4 months)
     function filterDataFromDec2025(dataArray, labelsArray) {
         if (!dataArray || !labelsArray || dataArray.length === 0) {
             return { data: [], labels: [] };
@@ -741,7 +769,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return year * 100 + month;
         }
         
-        // Filter data from Dec 2025 onwards
+        // Filter data from Oct 2025 onwards (4 months: Oct, Nov, Dec 2025, Jan 2026)
         for (var i = 0; i < labelsArray.length; i++) {
             var label = labelsArray[i] || '';
             if (label) {
@@ -750,11 +778,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 var monthMatch = label.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
                 var month = monthMatch ? (monthOrder[monthMatch[1]] || 0) : 0;
                 
-                // Include if year > 2025, or year == 2025 and month >= 11 (Nov and Dec 2025 only - 2 months including Dec)
+                // Include if year == 2026 and month == 1 (Jan 2026), or year == 2025 and month >= 10 (Oct, Nov, Dec 2025 - 4 months total)
                 var shouldInclude = false;
-                if (year > 2025) {
+                if (year === 2026 && month === 1) {
                     shouldInclude = true;
-                } else if (year === 2025 && month >= 11) {
+                } else if (year === 2025 && month >= 10) {
                     shouldInclude = true;
                 }
                 

@@ -127,7 +127,38 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::get('/', function () {
-    return view('welcome');
+    // Get real statistics from database
+    $totalStudents = \App\Models\Student::count();
+    $totalTeachers = \App\Models\User::where('role', 'teacher')->count();
+    $totalLessons = \App\Models\Lesson::count();
+    
+    // Calculate satisfaction/completion rate
+    // This represents the average lesson completion rate across all students
+    $totalProgressRecords = \App\Models\StudentLessonProgress::count();
+    $completedLessons = \App\Models\StudentLessonProgress::where('status', 'completed')->count();
+    
+    // Calculate satisfaction rate as completion percentage
+    // If we have progress records, calculate based on completion rate
+    // Otherwise, calculate based on active students (students with any progress)
+    if ($totalProgressRecords > 0) {
+        $satisfactionRate = round(($completedLessons / $totalProgressRecords) * 100);
+    } else {
+        // Fallback: percentage of students who have started learning
+        $studentsWithProgress = \App\Models\StudentLessonProgress::distinct('student_id')->count();
+        $satisfactionRate = $totalStudents > 0 
+            ? round(($studentsWithProgress / $totalStudents) * 100) 
+            : 0;
+    }
+    
+    // Ensure minimum values for display (at least show 0 if no data)
+    $stats = [
+        'totalStudents' => $totalStudents,
+        'totalTeachers' => $totalTeachers,
+        'totalLessons' => $totalLessons,
+        'satisfactionRate' => min(100, max(0, $satisfactionRate)), // Clamp between 0 and 100
+    ];
+    
+    return view('welcome', $stats);
 });
 
 
@@ -225,7 +256,14 @@ Route::get('/student/dashboard', function () {
     ));
 })->middleware(['auth', 'verified'])->name('student.dashboard');
 
-// Teacher dashboard route
+// Teacher dashboard route (using controller for ML predictions)
+// Note: The original dashboard logic is preserved in the controller
+Route::get('/teacher/dashboard', [App\Http\Controllers\TeacherDashboardController::class, 'index'])
+    ->middleware(['auth', 'verified', 'can:isTeacher'])
+    ->name('teacher.dashboard');
+
+// Original dashboard route (commented out - now handled by controller above)
+/*
 Route::get('/teacher/dashboard', function () {
     $teacher_id = auth()->id();
     $user = Auth::user();
@@ -433,6 +471,7 @@ Route::get('/teacher/dashboard', function () {
         'calendarEvents', 'upcomingAssignmentsList', 'upcomingQuizzesList', 'scheduleEventsList'
     ));
 })->middleware(['auth', 'verified', 'can:isTeacher'])->name('teacher.dashboard');
+*/
 
 
 use App\Http\Controllers\LessonPublicController;
@@ -593,6 +632,19 @@ Route::middleware(['auth', 'verified', 'can:isTeacher'])->prefix('teacher')->gro
     Route::get('/classes', [TeacherClassesController::class, 'index'])->name('teacher.classes');
     Route::get('/grades', [App\Http\Controllers\TeacherGradeController::class, 'index'])->name('teacher.grades');
     Route::get('/progress', [App\Http\Controllers\TeacherProgressController::class, 'index'])->name('teacher.progress');
+    
+    // ML Prediction routes
+    Route::get('/dashboard/ml', [App\Http\Controllers\TeacherDashboardController::class, 'index'])->name('teacher.dashboard.ml');
+    Route::get('/student/{id}/risk', [App\Http\Controllers\TeacherDashboardController::class, 'getStudentRisk'])->name('teacher.student.risk');
+    Route::post('/class/{id}/refresh-predictions', [App\Http\Controllers\TeacherDashboardController::class, 'refreshPredictions'])->name('teacher.class.refresh');
+});
+
+// ML Prediction Test Routes (for testing - remove in production or add authentication)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/test-ml-api-connection', [App\Http\Controllers\MLPredictionTestController::class, 'testApiConnection'])->name('test.ml.api');
+    Route::get('/test-ml-features/{studentId}', [App\Http\Controllers\MLPredictionTestController::class, 'testFeatures'])->name('test.ml.features');
+    Route::get('/test-ml-prediction/{studentId}', [App\Http\Controllers\MLPredictionTestController::class, 'testPrediction'])->name('test.ml.prediction');
+    Route::get('/ml-diagnose/{classId?}', [App\Http\Controllers\MLDiagnosticController::class, 'diagnose'])->name('ml.diagnose');
 });
 
 Route::middleware('auth')->group(function () {
@@ -1022,6 +1074,7 @@ use App\Http\Controllers\MeetingController;
 // Teacher assignments (upload & list)
 Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+    Route::get('/assignments/create', [AssignmentController::class, 'create'])->name('assignments.create');
     Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
 });
 
@@ -1102,4 +1155,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Student attendance routes
     Route::post('/meetings/{meeting:meeting_id}/join', [MeetingController::class, 'join'])->name('meetings.join');
     Route::post('/meetings/{meeting:meeting_id}/leave', [MeetingController::class, 'leave'])->name('meetings.leave');
+    
+    // Automatic attendance system routes (students only)
+    Route::post('/meetings/{meeting:meeting_id}/confirm-presence', [MeetingController::class, 'confirmPresence'])->name('meetings.confirm-presence');
+    Route::post('/meetings/{meeting:meeting_id}/mark-absent', [MeetingController::class, 'markAbsent'])->name('meetings.mark-absent');
+    
+    // Teacher attendance management routes
+    Route::middleware(['can:isTeacher'])->group(function () {
+        Route::post('/meetings/{meeting:meeting_id}/mark-attendance', [MeetingController::class, 'markAttendance'])->name('meetings.mark-attendance');
+        Route::get('/meetings/{meeting:meeting_id}/export-attendance', [MeetingController::class, 'exportAttendance'])->name('meetings.export-attendance');
+    });
 });

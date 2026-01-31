@@ -19,7 +19,7 @@ class TeacherLessonController extends Controller
     }
 
     // Show all lessons for management
-    public function index()
+    public function index(Request $request)
     {
         $teacher_id = Auth::id();
         // Get all classes for this teacher
@@ -30,13 +30,78 @@ class TeacherLessonController extends Controller
             $q->where('teacher_id', $teacher_id);
         }])->get();
 
+        // Get all lesson IDs for statistics
+        $allLessonIds = collect();
+        foreach ($levels as $level) {
+            if ($level->lessons) {
+                $allLessonIds = $allLessonIds->merge($level->lessons->pluck('lesson_id'));
+            }
+        }
+
+        // Get student progress statistics for each lesson
+        $lessonStats = [];
+        if ($allLessonIds->isNotEmpty()) {
+            $progressStats = \App\Models\StudentLessonProgress::whereIn('lesson_id', $allLessonIds)
+                ->selectRaw('lesson_id, 
+                    COUNT(*) as total_students,
+                    SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed_count,
+                    SUM(CASE WHEN status = "in_progress" THEN 1 ELSE 0 END) as in_progress_count,
+                    AVG(score) as avg_score,
+                    AVG(watched_percentage) as avg_watched_percentage')
+                ->groupBy('lesson_id')
+                ->get()
+                ->keyBy('lesson_id');
+
+            foreach ($allLessonIds as $lessonId) {
+                $stats = $progressStats->get($lessonId);
+                $lessonStats[$lessonId] = [
+                    'total_students' => $stats ? (int)$stats->total_students : 0,
+                    'completed_count' => $stats ? (int)$stats->completed_count : 0,
+                    'in_progress_count' => $stats ? (int)$stats->in_progress_count : 0,
+                    'avg_score' => $stats ? round($stats->avg_score, 1) : 0,
+                    'avg_watched_percentage' => $stats ? round($stats->avg_watched_percentage, 1) : 0,
+                    'completion_rate' => $stats && $stats->total_students > 0 
+                        ? round(($stats->completed_count / $stats->total_students) * 100, 1) 
+                        : 0,
+                ];
+            }
+        }
+
+        // Calculate overall statistics
+        $totalLessons = $allLessonIds->count();
+        $totalVisibleLessons = 0;
+        $totalStudents = 0;
+        $totalCompleted = 0;
+        
+        foreach ($levels as $level) {
+            foreach ($level->lessons as $lesson) {
+                $visibilities = $lesson->classLessonVisibilities->where('is_visible', true);
+                if ($visibilities->isNotEmpty()) {
+                    $totalVisibleLessons++;
+                }
+                if (isset($lessonStats[$lesson->lesson_id])) {
+                    $totalStudents += $lessonStats[$lesson->lesson_id]['total_students'];
+                    $totalCompleted += $lessonStats[$lesson->lesson_id]['completed_count'];
+                }
+            }
+        }
+
         // Check if schedule exists
         $hasSchedule = Schedule::where('teacher_id', $teacher_id)
             ->where('status', '!=', 'completed')
             ->exists();
 
         // Pass classes to the view as well
-        return view('teacher.lessons', compact('levels', 'classes', 'hasSchedule'));
+        return view('teacher.lessons', compact(
+            'levels', 
+            'classes', 
+            'hasSchedule', 
+            'lessonStats',
+            'totalLessons',
+            'totalVisibleLessons',
+            'totalStudents',
+            'totalCompleted'
+        ));
     }
 
     // Unlock lesson for students

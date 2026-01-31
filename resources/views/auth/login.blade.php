@@ -8,14 +8,14 @@
         <!-- Email Address -->
         <div>
             <label for="email" class="auth-label" style="display: block; font-size: 14px; font-weight: 500; color: #EC769A;">{{ __('Email') }}</label>
-            <input id="email" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1.5px solid #FC8EAC; border-radius: 8px; background: linear-gradient(135deg, #f8c5c8 0%, #fc8eac 50%, #ec769a 100%); color: #222;" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" />
+            <input id="email" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1.5px solid #FC8EAC; border-radius: 8px; background: linear-gradient(135deg, #f8c5c8 0%, #fc8eac 50%, #ec769a 100%); color: #222;" type="email" name="email" value="{{ old('email') }}" placeholder="{{ __('Email') }}" required autofocus autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
         <!-- Password -->
         <div class="mt-4" style="margin-top: 16px;">
             <label for="password" class="auth-label" style="display: block; font-size: 14px; font-weight: 500; color: #EC769A;">{{ __('Password') }}</label>
-            <input id="password" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1.5px solid #FC8EAC; border-radius: 8px; background: linear-gradient(135deg, #f8c5c8 0%, #fc8eac 50%, #ec769a 100%); color: #222;" type="password" name="password" required autocomplete="current-password" />
+            <input id="password" class="auth-input block mt-1 w-full" style="display: block; width: 100%; margin-top: 4px; padding: 8px 12px; border: 1.5px solid #FC8EAC; border-radius: 8px; background: linear-gradient(135deg, #f8c5c8 0%, #fc8eac 50%, #ec769a 100%); color: #222;" type="password" name="password" placeholder="{{ __('Password') }}" required autocomplete="current-password" />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
@@ -41,10 +41,44 @@
     </form>
 </x-guest-layout>
 
-<div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; overflow: hidden; z-index: 3;">
-    <!-- Greeting Girl Image -->
-    <div style="position: absolute; left: calc(50px + 6cm); top: calc(50% - 1.25cm); transform: translateY(-50%); display: flex; align-items: center; justify-content: center; z-index: 3; background: #fff6f9; border-radius: 16px; padding: 8px; pointer-events: auto;">
-        <img src="{{ asset('images/dashboard/hijab5.png') }}" alt="Greeting Girl" style="max-width: 200px; height: auto; border: none; background: transparent; box-shadow: none;">
-    </div>
-</div>
-
+<style>
+    /* Enhanced button animation for login button */
+    button.auth-btn {
+        animation: slideUpFade 0.6s ease-out 0.5s backwards, pulse 2s ease-in-out infinite 1.5s;
+    }
+    
+    button.auth-btn:hover {
+        animation: none;
+    }
+    
+    /* Placeholder color styling for email and password inputs */
+    input#email::placeholder,
+    input#password::placeholder {
+        color: #AFEEEE !important; /* Light turquoise */
+        opacity: 1 !important; /* Firefox */
+    }
+    
+    input#email::-webkit-input-placeholder,
+    input#password::-webkit-input-placeholder {
+        color: #AFEEEE !important; /* Chrome, Safari, Edge */
+        opacity: 1 !important;
+    }
+    
+    input#email::-moz-placeholder,
+    input#password::-moz-placeholder {
+        color: #AFEEEE !important; /* Firefox */
+        opacity: 1 !important;
+    }
+    
+    input#email:-ms-input-placeholder,
+    input#password:-ms-input-placeholder {
+        color: #AFEEEE !important; /* Internet Explorer */
+        opacity: 1 !important;
+    }
+    
+    input#email:-moz-placeholder,
+    input#password:-moz-placeholder {
+        color: #AFEEEE !important; /* Older Firefox */
+        opacity: 1 !important;
+    }
+</style>

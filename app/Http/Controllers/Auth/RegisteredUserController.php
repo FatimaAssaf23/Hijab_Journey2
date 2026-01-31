@@ -77,17 +77,13 @@ class RegisteredUserController extends Controller
                     ->first();
             }
             
-            // If still no class found, try to find any active class regardless of capacity
-            // (in case capacity tracking is off)
+            // If all classes are full, automatically create a new class
             if (!$studentClass) {
-                $studentClass = \App\Models\StudentClass::where('status', 'active')
-                    ->orderBy('class_id')
-                    ->first();
-            }
-            
-            // If still no class, try any class
-            if (!$studentClass) {
-                $studentClass = \App\Models\StudentClass::orderBy('class_id')->first();
+                $studentClass = $this->createNewClassAutomatically();
+                \Log::info('Auto-created new class because all existing classes are full', [
+                    'new_class_id' => $studentClass->class_id,
+                    'new_class_name' => $studentClass->class_name
+                ]);
             }
             
             $student = \App\Models\Student::create([
@@ -106,15 +102,15 @@ class RegisteredUserController extends Controller
                 // Refresh to get updated enrollment count
                 $studentClass->refresh();
                 
-                // If class is now full, update status
-                if ($studentClass->current_enrollment >= $studentClass->capacity) {
+                // Update status based on enrollment
+                if ($studentClass->current_enrollment == 0) {
+                    $studentClass->status = 'empty';
+                } elseif ($studentClass->current_enrollment >= $studentClass->capacity) {
                     $studentClass->status = 'full';
-                    $studentClass->save();
-                } elseif ($studentClass->status === 'full' && $studentClass->current_enrollment < $studentClass->capacity) {
-                    // If status was 'full' but now has space, set back to 'active'
+                } elseif ($studentClass->current_enrollment > 0 && $studentClass->current_enrollment < $studentClass->capacity) {
                     $studentClass->status = 'active';
-                    $studentClass->save();
                 }
+                $studentClass->save();
                 
                 // Store class info in session for dashboard display
                 session(['enrolled_class_id' => $studentClass->class_id]);
@@ -250,5 +246,129 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         return redirect(route('student.dashboard', absolute: false));
+    }
+
+    /**
+     * Generate the next class name following the pattern: class1, class2, class3, etc.
+     * 
+     * @return string
+     */
+    private function generateNextClassName(): string
+    {
+        // Get all existing classes
+        $existingClasses = \App\Models\StudentClass::pluck('class_name')->toArray();
+        
+        $maxNumber = 0;
+        
+        // Find the highest number in existing class names that match the pattern "class" + number
+        foreach ($existingClasses as $className) {
+            // Match pattern: "class" followed by optional space and a number (case insensitive)
+            if (preg_match('/^class\s*(\d+)$/i', trim($className), $matches)) {
+                $number = (int) $matches[1];
+                if ($number > $maxNumber) {
+                    $maxNumber = $number;
+                }
+            }
+        }
+        
+        // Return the next class name
+        return 'class' . ($maxNumber + 1);
+    }
+
+    /**
+     * Automatically create a new class when all existing classes are full
+     * 
+     * @return \App\Models\StudentClass
+     */
+    private function createNewClassAutomatically(): \App\Models\StudentClass
+    {
+        $className = $this->generateNextClassName();
+        $defaultCapacity = 10; // Default capacity from migration
+        
+        // Find the first available teacher, or get the teacher with the fewest classes
+        $defaultTeacher = \App\Models\User::where('role', 'teacher')
+            ->withCount('taughtClasses')
+            ->orderBy('taught_classes_count', 'asc')
+            ->first();
+        
+        // If no teacher exists, we need to handle this case
+        // For now, we'll throw an exception that will be caught by the outer try-catch
+        if (!$defaultTeacher) {
+            \Log::error('Cannot auto-create class: No teachers available in the system');
+            throw new \Exception('Cannot create class automatically: No teachers available. Please create a teacher account first.');
+        }
+        
+        // Create the new class with a default color and mark as unread for admin notification
+        $newClass = \App\Models\StudentClass::create([
+            'class_name' => $className,
+            'teacher_id' => $defaultTeacher->user_id,
+            'capacity' => $defaultCapacity,
+            'current_enrollment' => 0,
+            'status' => 'active',
+            'description' => 'Automatically created class',
+            'color' => 'pink-dark', // Default color for auto-created classes
+            'is_read' => false, // Mark as unread so admin gets notified
+        ]);
+        
+        \Log::info('Auto-created new class with default teacher', [
+            'class_id' => $newClass->class_id,
+            'class_name' => $newClass->class_name,
+            'teacher_id' => $defaultTeacher->user_id,
+            'teacher_name' => $defaultTeacher->first_name . ' ' . $defaultTeacher->last_name
+        ]);
+        
+        // Send email notification to admin about the auto-created class
+        $emailNotificationsEnabled = AdminSetting::get('email_notifications_enabled', true);
+        if ($emailNotificationsEnabled) {
+            try {
+                $primaryAdminEmail = '10121317@mu.edu.lb';
+                
+                // Send to primary admin email
+                try {
+                    Mail::to($primaryAdminEmail)->send(new \App\Mail\AutoCreatedClassMail($newClass));
+                    \Log::info('Auto-created class notification sent to primary admin', [
+                        'admin_email' => $primaryAdminEmail,
+                        'class_id' => $newClass->class_id,
+                        'class_name' => $newClass->class_name
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send auto-created class notification to primary admin: ' . $e->getMessage(), [
+                        'admin_email' => $primaryAdminEmail,
+                        'class_id' => $newClass->class_id,
+                        'error' => $e->getTraceAsString()
+                    ]);
+                }
+                
+                // Also send to all admin users
+                $adminUsers = User::where('role', 'admin')->get();
+                foreach ($adminUsers as $admin) {
+                    if (strtolower($admin->email) === strtolower($primaryAdminEmail)) {
+                        continue; // Skip if already sent
+                    }
+                    
+                    try {
+                        Mail::to($admin->email)->send(new \App\Mail\AutoCreatedClassMail($newClass));
+                        \Log::info('Auto-created class notification sent to admin user', [
+                            'admin_email' => $admin->email,
+                            'admin_id' => $admin->user_id,
+                            'class_id' => $newClass->class_id
+                        ]);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send auto-created class notification to admin user: ' . $e->getMessage(), [
+                            'admin_email' => $admin->email,
+                            'admin_id' => $admin->user_id
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                // Log error but don't fail class creation if email fails
+                \Log::error('Failed to send auto-created class notification: ' . $e->getMessage(), [
+                    'class_id' => $newClass->class_id,
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+        }
+        
+        return $newClass;
     }
 }

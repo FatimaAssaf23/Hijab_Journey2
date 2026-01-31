@@ -38,6 +38,14 @@ class AssignmentController extends Controller
         return view('assignments.teacher', compact('assignments', 'levels', 'classes'));
     }
 
+    // Show create assignment form
+    public function create()
+    {
+        $levels = Level::all();
+        $classes = StudentClass::where('teacher_id', Auth::id())->get();
+        return view('assignments.create', compact('levels', 'classes'));
+    }
+
     // Handle upload
     public function store(Request $request)
     {
@@ -59,7 +67,7 @@ class AssignmentController extends Controller
             'class_id' => $request->class_id,
             'due_date' => $request->due_date,
         ]);
-        return redirect()->back()->with('success', 'Assignment uploaded!');
+        return redirect()->route('assignments.index')->with('success', 'Assignment uploaded!');
     }
 
     // Show all assignments for students

@@ -14,6 +14,8 @@ use App\Models\Assignment;
 use App\Models\Level;
 use App\Models\Lesson;
 use App\Models\Grade;
+use App\Models\Quiz;
+use App\Models\Game;
 
 class TeacherProgressController extends Controller
 {
@@ -28,6 +30,9 @@ class TeacherProgressController extends Controller
         
         // Get selected class from request
         $selectedClassId = $request->get('class_id');
+        
+        // Get search query from request
+        $searchQuery = $request->get('search', '');
         
         // Get all classes taught by this teacher
         // IMPORTANT: Only load students with role 'student' to exclude teachers
@@ -88,6 +93,7 @@ class TeacherProgressController extends Controller
                     'average_quizzes_score' => 0,
                 ],
                 'selectedClassId' => $selectedClassId,
+                'searchQuery' => $searchQuery,
             ]);
         }
         
@@ -131,17 +137,48 @@ class TeacherProgressController extends Controller
                 ? round(($completedLessons / $totalLessons) * 100, 2) 
                 : 0;
             
+            $pendingLessons = max(0, $totalLessons - $completedLessons - $inProgressLessons);
+            
             // Get games statistics
-            $gamesProgress = StudentGameProgress::where('student_id', $studentId)->get();
+            // Get total games available for lessons in this class
+            $lessonIds = [];
+            foreach ($levels as $level) {
+                foreach ($level->lessons as $lesson) {
+                    $lessonIds[] = $lesson->lesson_id;
+                }
+            }
+            
+            // Get the actual game IDs for games in these lessons
+            $availableGameIds = Game::whereIn('lesson_id', $lessonIds)->pluck('game_id')->toArray();
+            $totalGamesAvailable = count($availableGameIds);
+            
+            // Only get progress for games that are actually in this class's lessons
+            $gamesProgress = StudentGameProgress::where('student_id', $studentId)
+                ->whereIn('game_id', $availableGameIds)
+                ->get();
+            
+            $gamesCompleted = $gamesProgress->where('status', 'completed')->count();
+            $gamesInProgress = $gamesProgress->where('status', 'in_progress')->count();
+            $pendingGames = max(0, $totalGamesAvailable - $gamesCompleted - $gamesInProgress);
+            
             $gamesStats = [
-                'total' => $gamesProgress->count(),
-                'completed' => $gamesProgress->where('status', 'completed')->count(),
-                'in_progress' => $gamesProgress->where('status', 'in_progress')->count(),
+                'total' => $totalGamesAvailable,
+                'completed' => $gamesCompleted,
+                'in_progress' => $gamesInProgress,
+                'pending' => $pendingGames,
                 'average_score' => $gamesProgress->where('status', 'completed')->avg('score') ?? 0,
             ];
             
             // Get quizzes statistics
             $quizAttempts = QuizAttempt::where('student_id', $studentId)->get();
+            
+            // Get total quizzes available for this class
+            $totalQuizzesAvailable = Quiz::where('class_id', $class->class_id)
+                ->where('is_active', true)
+                ->count();
+            
+            $quizzesCompleted = $quizAttempts->whereNotNull('submitted_at')->count();
+            $pendingQuizzes = max(0, $totalQuizzesAvailable - $quizzesCompleted);
             
             // Calculate quiz average score - check both QuizAttempt scores and Grade percentages
             $quizScores = [];
@@ -167,8 +204,9 @@ class TeacherProgressController extends Controller
             $quizAverageScore = count($quizScores) > 0 ? round(array_sum($quizScores) / count($quizScores), 2) : 0;
             
             $quizzesStats = [
-                'total_attempts' => $quizAttempts->count(),
-                'completed' => $quizAttempts->whereNotNull('submitted_at')->count(),
+                'total_attempts' => $totalQuizzesAvailable,
+                'completed' => $quizzesCompleted,
+                'pending' => $pendingQuizzes,
                 'average_score' => $quizAverageScore,
                 'highest_score' => $quizAttempts->max('score') ?? 0,
             ];
@@ -227,6 +265,7 @@ class TeacherProgressController extends Controller
                     'total_lessons' => $totalLessons,
                     'completed_lessons' => $completedLessons,
                     'in_progress_lessons' => $inProgressLessons,
+                    'pending_lessons' => $pendingLessons,
                     'percentage' => $lessonProgressPercentage,
                 ],
                 'games_stats' => $gamesStats,
@@ -235,48 +274,78 @@ class TeacherProgressController extends Controller
             ];
         }
         
-        // Calculate overall statistics
+        // Filter students by search query if provided
+        if (!empty($searchQuery)) {
+            $searchQuery = trim($searchQuery);
+            $searchLower = strtolower($searchQuery);
+            $filteredStudentProgress = [];
+            
+            foreach ($studentProgress as $studentId => $data) {
+                $studentName = strtolower($data['student_name']);
+                $className = strtolower($data['class_name']);
+                
+                // Check if search matches student name or class name
+                if (strpos($studentName, $searchLower) !== false || strpos($className, $searchLower) !== false) {
+                    $filteredStudentProgress[$studentId] = $data;
+                }
+            }
+            
+            $studentProgress = $filteredStudentProgress;
+        }
+        
+        // Calculate overall statistics after filtering
         $totalStudents = count($studentProgress);
         
-        // Calculate average assignment scores
-        $assignmentScores = array_filter(array_map(function($sp) { 
-            return $sp['assignments_stats']['average_score'] > 0 ? $sp['assignments_stats']['average_score'] : null; 
-        }, $studentProgress));
-        $overallAssignmentAverage = count($assignmentScores) > 0 
-            ? round(array_sum($assignmentScores) / count($assignmentScores), 2) 
-            : 0;
+        if ($totalStudents > 0) {
+            // Calculate average assignment scores
+            $assignmentScores = array_filter(array_map(function($sp) { 
+                return $sp['assignments_stats']['average_score'] > 0 ? $sp['assignments_stats']['average_score'] : null; 
+            }, $studentProgress));
+            $overallAssignmentAverage = count($assignmentScores) > 0 
+                ? round(array_sum($assignmentScores) / count($assignmentScores), 2) 
+                : 0;
+            
+            // Calculate average quiz scores
+            $quizScores = array_filter(array_map(function($sp) { 
+                return $sp['quizzes_stats']['average_score'] > 0 ? $sp['quizzes_stats']['average_score'] : null; 
+            }, $studentProgress));
+            $overallQuizAverage = count($quizScores) > 0 
+                ? round(array_sum($quizScores) / count($quizScores), 2) 
+                : 0;
+            
+            // Calculate average games scores
+            $gamesScores = array_filter(array_map(function($sp) { 
+                return $sp['games_stats']['average_score'] > 0 ? $sp['games_stats']['average_score'] : null; 
+            }, $studentProgress));
+            $overallGamesAverage = count($gamesScores) > 0 
+                ? round(array_sum($gamesScores) / count($gamesScores), 2) 
+                : 0;
+            
+            $overallStats = [
+                'total_students' => $totalStudents,
+                'average_lessons_completed' => $totalStudents > 0 
+                    ? round(array_sum(array_map(function($sp) { return $sp['lesson_progress']['percentage']; }, $studentProgress)) / $totalStudents, 2)
+                    : 0,
+                'average_games_completed' => $totalStudents > 0
+                    ? round(array_sum(array_map(function($sp) { return $sp['games_stats']['completed']; }, $studentProgress)) / $totalStudents, 2)
+                    : 0,
+                'average_assignments_submitted' => $totalStudents > 0
+                    ? round(array_sum(array_map(function($sp) { return $sp['assignments_stats']['submitted']; }, $studentProgress)) / $totalStudents, 2)
+                    : 0,
+                'average_games_score' => $overallGamesAverage,
+                'average_quizzes_score' => $overallQuizAverage,
+            ];
+        } else {
+            $overallStats = [
+                'total_students' => 0,
+                'average_lessons_completed' => 0,
+                'average_games_completed' => 0,
+                'average_assignments_submitted' => 0,
+                'average_games_score' => 0,
+                'average_quizzes_score' => 0,
+            ];
+        }
         
-        // Calculate average quiz scores
-        $quizScores = array_filter(array_map(function($sp) { 
-            return $sp['quizzes_stats']['average_score'] > 0 ? $sp['quizzes_stats']['average_score'] : null; 
-        }, $studentProgress));
-        $overallQuizAverage = count($quizScores) > 0 
-            ? round(array_sum($quizScores) / count($quizScores), 2) 
-            : 0;
-        
-        // Calculate average games scores
-        $gamesScores = array_filter(array_map(function($sp) { 
-            return $sp['games_stats']['average_score'] > 0 ? $sp['games_stats']['average_score'] : null; 
-        }, $studentProgress));
-        $overallGamesAverage = count($gamesScores) > 0 
-            ? round(array_sum($gamesScores) / count($gamesScores), 2) 
-            : 0;
-        
-        $overallStats = [
-            'total_students' => $totalStudents,
-            'average_lessons_completed' => $totalStudents > 0 
-                ? round(array_sum(array_map(function($sp) { return $sp['lesson_progress']['percentage']; }, $studentProgress)) / $totalStudents, 2)
-                : 0,
-            'average_games_completed' => $totalStudents > 0
-                ? round(array_sum(array_map(function($sp) { return $sp['games_stats']['completed']; }, $studentProgress)) / $totalStudents, 2)
-                : 0,
-            'average_assignments_submitted' => $totalStudents > 0
-                ? round(array_sum(array_map(function($sp) { return $sp['assignments_stats']['submitted']; }, $studentProgress)) / $totalStudents, 2)
-                : 0,
-            'average_games_score' => $overallGamesAverage,
-            'average_quizzes_score' => $overallQuizAverage,
-        ];
-        
-        return view('teacher.progress', compact('classes', 'allClasses', 'studentProgress', 'overallStats', 'selectedClassId'));
+        return view('teacher.progress', compact('classes', 'allClasses', 'studentProgress', 'overallStats', 'selectedClassId', 'searchQuery'));
     }
 }

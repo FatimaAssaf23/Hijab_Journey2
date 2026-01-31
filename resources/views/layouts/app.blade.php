@@ -14,6 +14,14 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @stack('styles')
+        <style>
+            html {
+                overflow-x: hidden;
+            }
+            body {
+                overflow-x: hidden;
+            }
+        </style>
         
         <!-- 404 Error Debugging Script -->
         <script>
@@ -53,11 +61,11 @@
             };
         </script>
     </head>
-    <body class="font-sans antialiased">
+    <body class="font-sans antialiased overflow-x-hidden">
         @php
             $isTeacherDashboard = request()->routeIs('teacher.dashboard');
         @endphp
-        <div class="{{ $isTeacherDashboard ? 'h-screen flex flex-col overflow-hidden' : 'min-h-screen bg-gray-100 dark:bg-gray-900' }}">
+        <div class="{{ $isTeacherDashboard ? 'flex flex-col' : 'min-h-screen bg-gray-100 dark:bg-gray-900' }}">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
@@ -70,7 +78,7 @@
             @endisset
 
             <!-- Page Content -->
-            <main class="{{ $isTeacherDashboard ? 'flex-1 overflow-hidden' : 'py-4' }}">
+            <main class="{{ $isTeacherDashboard ? 'pt-[2.5cm]' : 'py-4 pt-[2.5cm]' }}">
                 @yield('content')
             </main>
         </div>

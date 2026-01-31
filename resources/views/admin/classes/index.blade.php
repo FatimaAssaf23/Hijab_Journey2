@@ -64,7 +64,8 @@ function showClassInfo(classId) {
     const statusColors = {
         'active': 'bg-green-100 text-green-800',
         'full': 'bg-yellow-100 text-yellow-800',
-        'closed': 'bg-red-100 text-red-800'
+        'closed': 'bg-red-100 text-red-800',
+        'empty': 'bg-gray-300 text-gray-900'
     };
     const content = `
         <div class="space-y-4">
@@ -584,7 +585,8 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
             const statusColors = {
                 'active': 'bg-green-100 text-green-800',
                 'full': 'bg-yellow-100 text-yellow-800',
-                'closed': 'bg-red-100 text-red-800'
+                'closed': 'bg-red-100 text-red-800',
+                'empty': 'bg-gray-300 text-gray-900'
             };
 
             const content = `

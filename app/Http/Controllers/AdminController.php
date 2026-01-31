@@ -285,6 +285,23 @@ class AdminController extends Controller
                     'email' => $user ? $user->email : '',
                 ];
             })->toArray();
+            
+            // Ensure status is correct based on enrollment
+            $correctStatus = $class->status;
+            if ($class->current_enrollment == 0) {
+                $correctStatus = 'empty';
+            } elseif ($class->current_enrollment >= $class->capacity) {
+                $correctStatus = 'full';
+            } elseif ($class->current_enrollment > 0 && $class->current_enrollment < $class->capacity) {
+                $correctStatus = 'active';
+            }
+            
+            // Update status in database if it's incorrect
+            if ($class->status !== $correctStatus) {
+                $class->status = $correctStatus;
+                $class->save();
+            }
+            
                 return [
                     'id' => $class->class_id,
                     'name' => $class->class_name,
@@ -293,7 +310,7 @@ class AdminController extends Controller
                     'grade' => 1,
                     'students' => $class->current_enrollment,
                     'capacity' => $class->capacity,
-                    'status' => $class->status,
+                    'status' => $correctStatus,
                     'color' => $colorKey,
                     'color_gradient' => $colorGradient,
                     'studentsList' => $studentsList,
@@ -402,6 +419,14 @@ class AdminController extends Controller
             $unreadEmergencyRequestsCount = $unreadEmergencyRequests->count();
         }
 
+        // Get unread auto-created classes (classes that were automatically created)
+        $unreadAutoCreatedClasses = StudentClass::with(['teacher', 'students.user'])
+            ->where('is_read', false)
+            ->where('description', 'Automatically created class')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        $unreadAutoCreatedClassesCount = $unreadAutoCreatedClasses->count();
+
         // Calculate class status counts
         $fullClassesCount = StudentClass::where(function($query) {
             $query->where('status', 'full')
@@ -459,6 +484,8 @@ class AdminController extends Controller
             'unreadNewStudentsCount' => $unreadNewStudents->count(),
             'unreadEmergencyRequests' => $unreadEmergencyRequests,
             'unreadEmergencyRequestsCount' => $unreadEmergencyRequestsCount,
+            'unreadAutoCreatedClasses' => $unreadAutoCreatedClasses,
+            'unreadAutoCreatedClassesCount' => $unreadAutoCreatedClassesCount,
             'approvedTeachersCount' => $approvedTeachersCount,
             'rejectedTeachersCount' => $rejectedTeachersCount,
             // New KPI data
@@ -1241,6 +1268,11 @@ class AdminController extends Controller
     // CLASSES
     public function classes()
     {
+        // Mark all auto-created classes as read when admin views the classes page
+        StudentClass::where('is_read', false)
+            ->where('description', 'Automatically created class')
+            ->update(['is_read' => true]);
+        
         return view('admin.classes.index', [
             'classes' => $this->getClassesFromDb(),
             'teachers' => $this->getTeachersFromDb(),
@@ -1327,6 +1359,16 @@ class AdminController extends Controller
         if ($request->filled('color')) {
             $class->color = $request->color;
         }
+        
+        // Update status based on enrollment vs capacity
+        if ($class->current_enrollment == 0) {
+            $class->status = 'empty';
+        } elseif ($class->current_enrollment >= $class->capacity) {
+            $class->status = 'full';
+        } elseif ($class->current_enrollment > 0 && $class->current_enrollment < $class->capacity) {
+            $class->status = 'active';
+        }
+        
         $class->save();
 
         return redirect()->route('admin.classes')->with('success', 'Class updated successfully!');
@@ -2120,6 +2162,18 @@ class AdminController extends Controller
         }
 
         $class->update($validated);
+        
+        // Update status based on enrollment vs capacity (only if capacity was changed)
+        if (isset($validated['capacity'])) {
+            if ($class->current_enrollment == 0) {
+                $class->status = 'empty';
+            } elseif ($class->current_enrollment >= $class->capacity) {
+                $class->status = 'full';
+            } elseif ($class->current_enrollment > 0 && $class->current_enrollment < $class->capacity) {
+                $class->status = 'active';
+            }
+            $class->save();
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -2176,6 +2230,16 @@ class AdminController extends Controller
 
         // Update enrollment count
         $class->current_enrollment += $addedCount;
+        
+        // Update status based on enrollment
+        if ($class->current_enrollment == 0) {
+            $class->status = 'empty';
+        } elseif ($class->current_enrollment >= $class->capacity) {
+            $class->status = 'full';
+        } elseif ($class->current_enrollment > 0 && $class->current_enrollment < $class->capacity) {
+            $class->status = 'active';
+        }
+        
         $class->save();
 
         // Initialize games for all newly added students
@@ -2246,6 +2310,16 @@ class AdminController extends Controller
 
         // Update enrollment count
         $class->current_enrollment = max(0, $class->current_enrollment - $actualRemovalCount);
+        
+        // Update status based on enrollment
+        if ($class->current_enrollment == 0) {
+            $class->status = 'empty';
+        } elseif ($class->current_enrollment >= $class->capacity) {
+            $class->status = 'full';
+        } elseif ($class->current_enrollment > 0 && $class->current_enrollment < $class->capacity) {
+            $class->status = 'active';
+        }
+        
         $class->save();
 
         if ($request->expectsJson()) {
@@ -2299,6 +2373,14 @@ class AdminController extends Controller
             $oldClass = StudentClass::find($oldClassId);
             if ($oldClass) {
                 $oldClass->current_enrollment = max(0, $oldClass->current_enrollment - 1);
+                // Update old class status
+                if ($oldClass->current_enrollment == 0) {
+                    $oldClass->status = 'empty';
+                } elseif ($oldClass->current_enrollment >= $oldClass->capacity) {
+                    $oldClass->status = 'full';
+                } elseif ($oldClass->current_enrollment > 0 && $oldClass->current_enrollment < $oldClass->capacity) {
+                    $oldClass->status = 'active';
+                }
                 $oldClass->save();
             }
         }
@@ -2310,6 +2392,14 @@ class AdminController extends Controller
 
         // Increment new class enrollment
         $newClass->current_enrollment++;
+        // Update new class status
+        if ($newClass->current_enrollment == 0) {
+            $newClass->status = 'empty';
+        } elseif ($newClass->current_enrollment >= $newClass->capacity) {
+            $newClass->status = 'full';
+        } elseif ($newClass->current_enrollment > 0 && $newClass->current_enrollment < $newClass->capacity) {
+            $newClass->status = 'active';
+        }
         $newClass->save();
 
         // Initialize games for the student in the new class

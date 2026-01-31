@@ -186,13 +186,111 @@ document.addEventListener('DOMContentLoaded', function() {
             <p class="text-xl text-gray-600 font-medium">View and track grades for all your students ✨</p>
         </div>
 
+        <!-- Search and Filter Section -->
+        <div class="max-w-4xl mx-auto mb-8 fade-in">
+            <form method="GET" action="{{ route('teacher.grades') }}" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Search Field -->
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            name="search" 
+                            value="{{ $searchQuery ?? '' }}"
+                            placeholder="Search for student by name..." 
+                            class="w-full px-6 py-4 pl-14 pr-12 rounded-2xl border-2 border-pink-200/50 bg-white/90 backdrop-blur-lg shadow-lg focus:outline-none focus:ring-4 focus:ring-pink-300/50 focus:border-pink-400 transition-all duration-300 text-lg font-medium text-gray-700 placeholder-gray-400"
+                            autocomplete="off"
+                        >
+                        <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        @if(!empty($searchQuery))
+                            <a href="{{ route('teacher.grades', ['class_id' => $selectedClassId]) }}" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-pink-500 transition-colors duration-200" title="Clear search">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </a>
+                        @endif
+                    </div>
+                    
+                    <!-- Class Filter -->
+                    <div class="relative">
+                        <select 
+                            name="class_id" 
+                            class="w-full px-6 py-4 pl-14 pr-12 rounded-2xl border-2 border-cyan-200/50 bg-white/90 backdrop-blur-lg shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-300/50 focus:border-cyan-400 transition-all duration-300 text-lg font-medium text-gray-700 appearance-none cursor-pointer"
+                            onchange="this.form.submit()"
+                        >
+                            <option value="">All Classes</option>
+                            @foreach($allClasses ?? $classes as $class)
+                                <option value="{{ $class->class_id }}" {{ ($selectedClassId ?? '') == $class->class_id ? 'selected' : '' }}>
+                                    {{ $class->class_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                        <div class="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <button 
+                    type="submit" 
+                    class="w-full px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" 
+                    style="background: linear-gradient(135deg, #FC8EAC, #6EC6C5);"
+                >
+                    Search & Filter
+                </button>
+            </form>
+        </div>
+
         @if(empty($studentGrades))
             <div class="max-w-2xl mx-auto bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-12 text-center border-2 border-pink-200/50 fade-in">
-                <div class="text-6xl mb-4">📚</div>
-                <h3 class="text-2xl font-bold text-gray-700 mb-2">No Students Yet</h3>
-                <p class="text-gray-500">You don't have any students in your classes yet.</p>
+                <div class="text-6xl mb-4">
+                    @if(!empty($searchQuery))
+                        🔍
+                    @else
+                        📚
+                    @endif
+                </div>
+                <h3 class="text-2xl font-bold text-gray-700 mb-2">
+                    @if(!empty($searchQuery))
+                        No Students Found
+                    @else
+                        No Students Yet
+                    @endif
+                </h3>
+                <p class="text-gray-500">
+                    @if(!empty($searchQuery))
+                        No students found matching "{{ $searchQuery }}". Try a different search term.
+                    @else
+                        You don't have any students in your classes yet.
+                    @endif
+                </p>
+                @if(!empty($searchQuery))
+                    <a href="{{ route('teacher.grades') }}" class="mt-4 inline-block px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" style="background: linear-gradient(135deg, #FC8EAC, #6EC6C5);">
+                        Clear Search
+                    </a>
+                @endif
             </div>
         @else
+            @if(!empty($searchQuery))
+                <div class="max-w-2xl mx-auto mb-6 fade-in">
+                    <div class="bg-gradient-to-r from-pink-100 to-cyan-100 rounded-xl p-4 border-2 border-pink-200/50 shadow-lg">
+                        <p class="text-center text-gray-700 font-semibold">
+                            Found <span class="text-pink-600 font-bold">{{ count($studentGrades) }}</span> 
+                            student{{ count($studentGrades) !== 1 ? 's' : '' }} matching "{{ $searchQuery }}"
+                            <a href="{{ route('teacher.grades') }}" class="ml-2 text-pink-600 hover:text-pink-700 underline">Clear</a>
+                        </p>
+                    </div>
+                </div>
+            @endif
             <!-- Overall Statistics -->
             <div class="w-full mb-12">
                 <div class="bg-gradient-to-br from-white via-pink-50/50 to-cyan-50/50 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border-2 border-pink-200/30 fade-in hover:shadow-3xl transition-all duration-300">
@@ -231,10 +329,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
 
-            <!-- Student Grades Cards -->
-            <div class="w-full space-y-10">
-                @foreach($studentGrades as $studentId => $data)
-                    <div class="bg-gradient-to-br from-white via-pink-50/30 to-cyan-50/30 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border-2 border-pink-200/40 hover:border-pink-300/60 transition-all duration-300 fade-in hover:shadow-3xl overflow-hidden relative">
+            <!-- Student Grades Cards - Grouped by Class -->
+            <div class="w-full space-y-12">
+                @if(isset($studentGradesByClass) && !empty($studentGradesByClass))
+                    @foreach($studentGradesByClass as $classId => $classData)
+                        <!-- Class Header -->
+                        <div class="mb-8 fade-in">
+                            <div class="bg-gradient-to-r from-cyan-500 to-pink-500 rounded-2xl p-6 shadow-xl border-2 border-white/50">
+                                <h2 class="text-3xl font-extrabold text-white flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    {{ $classData['class_name'] }}
+                                    <span class="text-xl font-normal opacity-90">({{ count($classData['students']) }} {{ count($classData['students']) == 1 ? 'student' : 'students' }})</span>
+                                </h2>
+                            </div>
+                        </div>
+                        
+                        <!-- Students in this Class -->
+                        <div class="space-y-10">
+                            @foreach($classData['students'] as $userId => $data)
+                                <div class="bg-gradient-to-br from-white via-pink-50/30 to-cyan-50/30 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border-2 border-pink-200/40 hover:border-pink-300/60 transition-all duration-300 fade-in hover:shadow-3xl overflow-hidden relative">
                         <!-- Decorative gradient overlay -->
                         <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-pink-200/20 to-cyan-200/20 rounded-full blur-3xl -mr-32 -mt-32"></div>
                         <div class="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-br from-cyan-200/15 to-pink-200/15 rounded-full blur-2xl -ml-24 -mb-24"></div>
@@ -293,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <!-- Assignments Section -->
                                 @if(count($assignments) > 0)
                                     <div class="relative">
-                                        <div class="section-header flex items-center gap-4 mb-6 p-5 rounded-2xl border-2 border-pink-200/50 shadow-lg cursor-pointer hover:bg-pink-50/50 transition-colors duration-300" data-toggle-section="assignments-{{ $studentId }}">
+                                        <div class="section-header flex items-center gap-4 mb-6 p-5 rounded-2xl border-2 border-pink-200/50 shadow-lg cursor-pointer hover:bg-pink-50/50 transition-colors duration-300" data-toggle-section="assignments-{{ $userId }}">
                                             <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
                                                 <span class="text-3xl">📄</span>
                                             </div>
@@ -308,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 </svg>
                                             </div>
                                         </div>
-                                        <div id="assignments-{{ $studentId }}" class="section-content">
+                                        <div id="assignments-{{ $userId }}" class="section-content collapsed">
                                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 @foreach($assignments as $index => $grade)
                                                     @php
@@ -428,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <!-- Quizzes Section -->
                                 @if(count($quizzes) > 0)
                                     <div class="relative">
-                                        <div class="section-header flex items-center gap-4 mb-6 p-5 rounded-2xl border-2 border-cyan-200/50 shadow-lg cursor-pointer hover:bg-cyan-50/50 transition-colors duration-300" data-toggle-section="quizzes-{{ $studentId }}">
+                                        <div class="section-header flex items-center gap-4 mb-6 p-5 rounded-2xl border-2 border-cyan-200/50 shadow-lg cursor-pointer hover:bg-cyan-50/50 transition-colors duration-300" data-toggle-section="quizzes-{{ $userId }}">
                                             <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
                                                 <span class="text-3xl">📝</span>
                                             </div>
@@ -443,7 +558,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 </svg>
                                             </div>
                                         </div>
-                                        <div id="quizzes-{{ $studentId }}" class="section-content">
+                                        <div id="quizzes-{{ $userId }}" class="section-content collapsed">
                                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 @foreach($quizzes as $index => $grade)
                                                     @php
@@ -563,7 +678,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <!-- Games Section -->
                                 @if(count($games) > 0)
                                     <div class="relative">
-                                        <div class="section-header flex items-center gap-4 mb-6 p-5 rounded-2xl border-2 border-cyan-200/50 shadow-lg cursor-pointer hover:bg-cyan-50/50 transition-colors duration-300" data-toggle-section="games-{{ $studentId }}">
+                                        <div class="section-header flex items-center gap-4 mb-6 p-5 rounded-2xl border-2 border-cyan-200/50 shadow-lg cursor-pointer hover:bg-cyan-50/50 transition-colors duration-300" data-toggle-section="games-{{ $userId }}">
                                             <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-500 flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
                                                 <span class="text-3xl">🎮</span>
                                             </div>
@@ -578,7 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 </svg>
                                             </div>
                                         </div>
-                                        <div id="games-{{ $studentId }}" class="section-content">
+                                        <div id="games-{{ $userId }}" class="section-content collapsed">
                                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                 @foreach($games as $index => $grade)
                                                     @php
@@ -692,8 +807,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <p class="text-xl font-semibold">No grades yet for this student.</p>
                             </div>
                         @endif
-                    </div>
-                @endforeach
+                                </div>
+                            @endforeach
+                        </div>
+                    @endforeach
+                @else
+                    <!-- Fallback: Show students without grouping if studentGradesByClass is not available -->
+                    @foreach($studentGrades ?? [] as $studentId => $data)
+                        <div class="bg-gradient-to-br from-white via-pink-50/30 to-cyan-50/30 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border-2 border-pink-200/40 hover:border-pink-300/60 transition-all duration-300 fade-in hover:shadow-3xl overflow-hidden relative">
+                            <p class="text-center text-gray-500 py-8">No students found.</p>
+                        </div>
+                    @endforeach
+                @endif
             </div>
         @endif
     </div>

@@ -178,25 +178,43 @@
             transform: translate(-50%, 0);
         }
     }
+    /* Full screen lesson view styles */
+    body.lesson-fullscreen main {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .lesson-fullscreen-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 100vh !important;
+        background-color: #FFF4FA !important;
+    }
+    .lesson-content-wrapper {
+        width: 100% !important;
+        padding: 2rem !important;
+        background-color: #FFF4FA !important;
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="py-12 px-2" style="background-color: #FFF4FA; min-height: 100vh;">
-    <div class="max-w-2xl mx-auto">
-        <div class="relative bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100">
+<div class="lesson-fullscreen-container">
+    <div class="lesson-content-wrapper">
+        <div class="relative bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 w-full">
             <!-- Decorative SVG background -->
             <svg class="absolute right-0 top-0 w-32 h-32 opacity-10 pointer-events-none z-0" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="100" cy="100" r="100" fill="#f472b6"/>
             </svg>
             <div class="relative z-10">
-                <!-- Go Back Button -->
+                <!-- Exit Full Screen Button -->
                 <div class="mb-6">
-                    <a href="{{ route('student.dashboard') }}" class="inline-flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
+                    <a href="{{ route('levels') }}" class="inline-flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        Go Back
+                        Exit Full Screen
                     </a>
                 </div>
                 <div class="flex items-center gap-4 mb-4">
@@ -342,6 +360,13 @@
 <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Add full screen class to body
+    document.body.classList.add('lesson-fullscreen');
+    
+    // Remove class when leaving page
+    window.addEventListener('beforeunload', function() {
+        document.body.classList.remove('lesson-fullscreen');
+    });
     // Only initialize if video element exists
     const videoElement = document.getElementById('lesson-video-player');
     if (!videoElement) return;
