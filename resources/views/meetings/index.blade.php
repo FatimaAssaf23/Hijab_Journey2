@@ -366,8 +366,8 @@
                                 
                                 <!-- Right: Actions & Status -->
                                 <div class="flex flex-col items-end gap-4 lg:min-w-[220px] w-full lg:w-auto">
-                                    <!-- Status Badge -->
-                                    <div class="w-full lg:w-auto">
+                                    <!-- Status Badge with Actions Menu -->
+                                    <div class="w-full lg:w-auto flex items-center gap-2">
                                         <span class="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-bold shadow-lg
                                             @if($meeting->status === 'scheduled' && $meeting->start_time && $meeting->start_time->isFuture())
                                                 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border-2 border-blue-300/50
@@ -397,6 +397,48 @@
                                                 {{ ucfirst($meeting->status) }}
                                             @endif
                                         </span>
+                                        
+                                        <!-- 2-Dot Menu for Edit/Delete -->
+                                        @if(Auth::check() && Auth::user()->role === 'teacher' && Auth::user()->user_id == $meeting->teacher_id)
+                                            <div class="relative dropdown-container">
+                                                <button onclick="toggleDropdown(this)" 
+                                                        class="p-2 rounded-lg bg-white/80 backdrop-blur-sm hover:bg-white border-2 border-pink-200/50 shadow-md hover:shadow-lg transition-all duration-200">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 hover:text-pink-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                                    </svg>
+                                                </button>
+                                                
+                                                <!-- Dropdown Menu -->
+                                                <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-30 hidden">
+                                                    <div class="py-1">
+                                                        @if(!in_array($meeting->status ?? 'scheduled', ['completed', 'cancelled']))
+                                                            <a href="{{ route('teacher.meetings.edit', $meeting->meeting_id) }}" 
+                                                               class="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-yellow-50 transition-colors">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                </svg>
+                                                                <span class="font-medium">Edit</span>
+                                                            </a>
+                                                        @endif
+                                                        
+                                                        @if(($meeting->status ?? 'scheduled') !== 'ongoing')
+                                                            <form action="{{ route('teacher.meetings.destroy', $meeting->meeting_id) }}" method="POST" 
+                                                                  onsubmit="return confirm('Are you sure you want to delete this meeting? This action cannot be undone.');">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" 
+                                                                        class="w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 transition-colors text-left">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                    <span class="font-medium">Delete</span>
+                                                                </button>
+                                                            </form>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
                                     </div>
                                     
                                     <!-- Action Buttons -->
@@ -484,6 +526,54 @@
             opacity: 1;
         }
     }
+    
+    .dropdown-menu {
+        animation: fadeInDown 0.2s ease-out;
+    }
+    
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+    function toggleDropdown(button) {
+        const container = button.closest('.dropdown-container');
+        const menu = container.querySelector('.dropdown-menu');
+        const isHidden = menu.classList.contains('hidden');
+        
+        // Close all other dropdowns
+        document.querySelectorAll('.dropdown-menu').forEach(m => {
+            if (m !== menu) {
+                m.classList.add('hidden');
+            }
+        });
+        
+        // Toggle current dropdown
+        if (isHidden) {
+            menu.classList.remove('hidden');
+        } else {
+            menu.classList.add('hidden');
+        }
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.dropdown-container')) {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+        }
+    });
+</script>
 @endpush
 @endsection

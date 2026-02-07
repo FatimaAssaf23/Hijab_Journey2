@@ -1,6 +1,17 @@
 @extends('layouts.app')
 @section('content')
 <div class="w-full max-w-full mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <!-- Go Back Button -->
+    <div class="mb-6">
+        <a href="{{ url()->previous() !== url()->current() ? url()->previous() : (Auth::check() && Auth::user()->role === 'teacher' ? route('assignments.index') : '/') }}" 
+           class="inline-flex items-center gap-2 text-pink-600 hover:text-pink-700 font-semibold transition-colors duration-200 group bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl border-2 border-pink-300/50 shadow-md hover:shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Go Back</span>
+        </a>
+    </div>
+
     <div class="bg-white shadow-2xl rounded-3xl p-10 border border-pink-200">
         <h2 class="text-3xl font-extrabold mb-8 text-pink-600 flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

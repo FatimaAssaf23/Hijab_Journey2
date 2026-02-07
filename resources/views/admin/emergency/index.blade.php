@@ -1,15 +1,33 @@
-
 @extends('layouts.admin')
 
 @section('content')
-<div class="max-w-5xl mx-auto mt-10">
-    <div class="shadow-xl mb-8" style="background: linear-gradient(90deg, #EC769A 0%, #FC9EAC 50%, #F8C5C8 100%);">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 class="text-4xl font-extrabold text-white mb-2 drop-shadow-lg">⚠️ Emergency Reassignment</h1>
-            <p class="text-white drop-shadow">Handle teacher unavailability and reassign coverage</p>
+<div class="min-h-screen" style="background: linear-gradient(135deg, #FFF4FA 0%, #FDF2F8 30%, #F0F9FF 70%, #E0F7FA 100%);">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-pink-200/90 via-rose-100/80 to-cyan-200/90 shadow-2xl border-b-4 border-pink-300/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="flex items-center gap-6 text-center md:text-left">
+                    <!-- Emergency Icon -->
+                    <div class="hidden md:flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-2xl transform hover:scale-105 transition-all duration-300 border-4 border-white/50">
+                        <div class="text-6xl filter drop-shadow-2xl">⚠️</div>
+                    </div>
+                    <div>
+                        <h1 class="text-5xl font-extrabold text-gray-800 mb-3 drop-shadow-lg flex items-center gap-4 justify-center md:justify-start">
+                            <span class="md:hidden flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-xl border-4 border-white/50">
+                                <span class="text-5xl">⚠️</span>
+                            </span>
+                            <span class="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">Emergency Reassignment</span>
+                        </h1>
+                        <p class="text-gray-700 text-lg font-medium">Handle teacher unavailability and reassign coverage</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <h2 class="text-3xl font-bold mb-8 text-[#197D8C]">Emergency Absence Requests</h2>
+
+    <!-- Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h2 class="text-3xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">Emergency Absence Requests</h2>
     
     @if($unreadEmergencyRequestsCount > 0)
     <div class="mb-6 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-4 flex items-center gap-4 shadow-sm">
@@ -147,15 +165,16 @@
             </tbody>
         </table>
     </div>
-</div>
-<!-- Success Message -->
-@if (session('success'))
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-        <div class="bg-green-500 text-white rounded-lg p-4 shadow-lg">
-            ✓ {{ session('success') }}
+
+    <!-- Success Message -->
+    @if (session('success'))
+        <div class="mt-4">
+            <div class="bg-green-500 text-white rounded-lg p-4 shadow-lg">
+                ✓ {{ session('success') }}
+            </div>
         </div>
-    </div>
-@endif
+    @endif
+</div>
 
 <script>
     function showRejectReason(requestId) {

@@ -6,9 +6,16 @@
     <div class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-4xl font-extrabold text-white mb-2">📄 Assignments Management</h1>
-                    <p class="text-pink-100">View all assignments uploaded by teachers</p>
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('admin.dashboard') }}" class="flex items-center justify-center w-12 h-12 bg-white/20 backdrop-blur-xl rounded-xl border border-white/30 shadow-lg hover:bg-white/30 transition-all transform hover:scale-105" title="Go Back">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="text-4xl font-extrabold text-white mb-2">📄 Assignments Management</h1>
+                        <p class="text-pink-100">View all assignments uploaded by teachers</p>
+                    </div>
                 </div>
                 <div class="bg-white/20 rounded-xl px-6 py-3 backdrop-blur">
                     <p class="text-white font-bold text-xl">{{ $assignments->count() }} Assignment{{ $assignments->count() !== 1 ? 's' : '' }}</p>

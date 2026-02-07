@@ -1,12 +1,27 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="min-h-screen">
+<div class="min-h-screen" style="background: linear-gradient(135deg, #FFF4FA 0%, #FDF2F8 30%, #F0F9FF 70%, #E0F7FA 100%);">
     <!-- Header -->
-    <div class="shadow-xl" style="background: linear-gradient(90deg, #EC769A 0%, #FC9EAC 50%, #F8C5C8 100%);">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 class="text-4xl font-extrabold text-white mb-2 drop-shadow-lg">✓ Teacher Requests</h1>
-            <p class="text-white drop-shadow">Review and approve teacher applications</p>
+    <div class="bg-gradient-to-r from-pink-200/90 via-rose-100/80 to-cyan-200/90 shadow-2xl border-b-4 border-pink-300/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="flex items-center gap-6 text-center md:text-left">
+                    <!-- Requests Icon -->
+                    <div class="hidden md:flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-2xl transform hover:scale-105 transition-all duration-300 border-4 border-white/50">
+                        <div class="text-6xl filter drop-shadow-2xl">✓</div>
+                    </div>
+                    <div>
+                        <h1 class="text-5xl font-extrabold text-gray-800 mb-3 drop-shadow-lg flex items-center gap-4 justify-center md:justify-start">
+                            <span class="md:hidden flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-xl border-4 border-white/50">
+                                <span class="text-5xl">✓</span>
+                            </span>
+                            <span class="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">Teacher Requests</span>
+                        </h1>
+                        <p class="text-gray-700 text-lg font-medium">Review and approve teacher applications</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -23,7 +38,7 @@
         <!-- Pending Requests -->
         <div>
             <div class="mb-6">
-                <h2 class="text-3xl font-extrabold mb-2 drop-shadow" style="color: #EC769A;">⏳ Pending Requests (<span id="pendingCount">{{ count($pending) }}</span>)</h2>
+                <h2 class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">⏳ Pending Requests (<span id="pendingCount">{{ count($pending) }}</span>)</h2>
                 <p class="text-gray-700 font-medium">Review and approve new teacher applications</p>
             </div>
 
@@ -166,7 +181,7 @@
         <!-- Approved Teachers -->
         <div>
             <div class="mb-6">
-                <h2 class="text-3xl font-extrabold mb-2 drop-shadow" style="color: #5cb85c;">✅ Approved Teachers (<span id="approvedCount">{{ count($approved) }}</span>)</h2>
+                <h2 class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-600 via-emerald-500 to-teal-600">✅ Approved Teachers (<span id="approvedCount">{{ count($approved) }}</span>)</h2>
                 <p class="text-gray-700 font-medium">Successfully onboarded teachers</p>
             </div>
 
@@ -189,7 +204,7 @@
         <!-- Rejected Applications -->
         <div>
             <div class="mb-6">
-                <h2 class="text-3xl font-extrabold mb-2 drop-shadow" style="color: #CCB083;">❌ Rejected (<span id="rejectedCount">{{ count($rejected) }}</span>)</h2>
+                <h2 class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-600">❌ Rejected (<span id="rejectedCount">{{ count($rejected) }}</span>)</h2>
                 <p class="text-gray-700 font-medium">Application history</p>
             </div>
 

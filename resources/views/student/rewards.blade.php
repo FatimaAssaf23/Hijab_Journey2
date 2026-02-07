@@ -149,8 +149,8 @@
                             <div class="flex items-center justify-center lg:justify-start gap-4 mb-6">
                                 <div class="score-card bg-white/90 backdrop-blur-sm px-6 py-4 rounded-2xl shadow-xl transform hover:scale-105 transition-all duration-300 border-2 border-yellow-300 group-hover:border-yellow-400">
                                     <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Today's Performance</div>
-                                    <div class="text-3xl font-black text-yellow-700 animate-number-glow">{{ number_format($topOfDay->performance_score ?? 0, 1) }} <span class="text-lg">pts</span></div>
-                                    <div class="text-lg font-bold text-yellow-600 mt-1">({{ number_format($topOfDay->percentage ?? 0, 1) }}%)</div>
+                                    <div class="text-3xl font-black text-yellow-700 animate-number-glow">{{ round($topOfDay->performance_score ?? 0) }}</div>
+                                    <div class="text-lg font-bold text-yellow-600 mt-1">{{ round($topOfDay->percentage ?? 0) }}%</div>
                                 </div>
                             </div>
                             <p class="text-xl font-bold text-gray-700 leading-relaxed">
@@ -244,10 +244,10 @@
                                     <div class="bg-white/90 backdrop-blur-sm px-5 py-4 rounded-2xl shadow-lg mb-4 transform group-hover:scale-105 transition-transform duration-300 border-2 border-transparent group-hover:border-white/50">
                                         <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Weekly Performance</div>
                                         <div class="text-3xl font-black {{ $index === 0 ? 'text-yellow-700' : ($index === 1 ? 'text-gray-700' : 'text-orange-700') }} animate-number-glow">
-                                            {{ number_format($student->performance_score ?? 0, 1) }} <span class="text-sm">pts</span>
+                                            {{ round($student->performance_score ?? 0) }}
                                         </div>
                                         <div class="text-base font-bold {{ $index === 0 ? 'text-yellow-600' : ($index === 1 ? 'text-gray-600' : 'text-orange-600') }} mt-1">
-                                            ({{ number_format($student->percentage ?? 0, 1) }}%)
+                                            {{ round($student->percentage ?? 0) }}%
                                         </div>
                                     </div>
                                     
@@ -332,13 +332,13 @@
                     </div>
                     <div class="bg-white/90 backdrop-blur-sm px-6 py-5 rounded-2xl shadow-xl text-center transform hover:scale-105 transition-transform duration-300 border-2 border-pink-300/50">
                         <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Today's Performance</div>
-                        <div class="text-4xl font-black text-pink-700 animate-number-glow">{{ number_format($currentStudentDailyScore ?? 0, 1) }} <span class="text-sm">pts</span></div>
-                        <div class="text-lg font-bold text-pink-600 mt-1">({{ number_format($currentStudentDailyPercentage ?? 0, 1) }}%)</div>
+                        <div class="text-4xl font-black text-pink-700 animate-number-glow">{{ round($currentStudentDailyScore ?? 0) }}</div>
+                        <div class="text-lg font-bold text-pink-600 mt-1">{{ round($currentStudentDailyPercentage ?? 0) }}%</div>
                     </div>
                     <div class="bg-white/90 backdrop-blur-sm px-6 py-5 rounded-2xl shadow-xl text-center transform hover:scale-105 transition-transform duration-300 border-2 border-cyan-300/50">
                         <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Weekly Performance</div>
-                        <div class="text-4xl font-black text-cyan-700 animate-number-glow">{{ number_format($currentStudentWeeklyScore ?? 0, 1) }} <span class="text-sm">pts</span></div>
-                        <div class="text-lg font-bold text-cyan-600 mt-1">({{ number_format($currentStudentWeeklyPercentage ?? 0, 1) }}%)</div>
+                        <div class="text-4xl font-black text-cyan-700 animate-number-glow">{{ round($currentStudentWeeklyScore ?? 0) }}</div>
+                        <div class="text-lg font-bold text-cyan-600 mt-1">{{ round($currentStudentWeeklyPercentage ?? 0) }}%</div>
                     </div>
                 </div>
             </div>

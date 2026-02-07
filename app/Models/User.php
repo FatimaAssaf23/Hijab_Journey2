@@ -30,6 +30,7 @@ class User extends Authenticatable
         'profile_photo_path',
         'bio',
         'phone_number',
+        'language',
         'date_joined',
         'is_admin',
     ];

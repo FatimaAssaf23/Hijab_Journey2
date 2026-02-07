@@ -3,12 +3,12 @@
 @section('content')
 <div class="min-h-screen">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl">
+    <div class="bg-gradient-to-r from-[#FFC5D9] via-[#FFB8D1] to-[#B8E8E7] shadow-xl">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-4xl font-extrabold text-white mb-2">Admin Dashboard</h1>
-                    <p class="text-pink-100">Manage lessons, classes, and teacher assignments</p>
+                    <p class="text-pink-50">Manage lessons, classes, and teacher assignments</p>
                 </div>
                 
                 <!-- Notification Bell -->
@@ -81,14 +81,14 @@
                         @endif
                         
                         @if($unreadRequestsCount > 0)
-                        <div class="bg-gradient-to-r from-pink-500 to-teal-500 px-4 py-3 {{ $unreadEmergencyRequestsCount > 0 ? 'border-t border-gray-200' : '' }}">
+                        <div class="bg-gradient-to-r from-pink-300 to-teal-300 px-4 py-3 {{ $unreadEmergencyRequestsCount > 0 ? 'border-t border-gray-200' : '' }}">
                             <h3 class="text-white font-semibold">New Teacher Requests ({{ $unreadRequestsCount }})</h3>
                         </div>
                         <div class="max-h-48 overflow-y-auto">
                             @foreach($unreadRequests as $request)
                             <a href="{{ route('admin.requests') }}" class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 transition-colors">
                                 <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-pink-400 to-teal-400 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-pink-300 to-teal-300 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                                         {{ substr($request->full_name ?? 'U', 0, 1) }}
                                     </div>
                                     <div class="flex-1 min-w-0">
@@ -203,7 +203,7 @@
             </div>
 
             <!-- Quizzes Card -->
-            <div class="bg-gradient-to-br from-[#FC8EAC] to-[#FC8EAC]/90 border border-[#FC8EAC] rounded-xl p-6 hover:shadow-lg transition-all">
+            <div class="bg-gradient-to-br from-[#FFC5D9] to-[#FFC5D9]/90 border border-[#FFC5D9] rounded-xl p-6 hover:shadow-lg transition-all">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-white text-sm font-medium drop-shadow-sm">❓ Quizzes</p>
@@ -216,7 +216,7 @@
             </div>
 
             <!-- Games Card -->
-            <div class="bg-gradient-to-br from-[#EC769A] to-[#EC769A]/90 border border-[#EC769A] rounded-xl p-6 hover:shadow-lg transition-all">
+            <div class="bg-gradient-to-br from-[#FFB8D1] to-[#FFB8D1]/90 border border-[#FFB8D1] rounded-xl p-6 hover:shadow-lg transition-all">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-white text-sm font-medium drop-shadow-sm">🎮 Games</p>
@@ -395,7 +395,7 @@
                     <!-- Active Classes Bar -->
                     <div class="flex flex-col items-center gap-2 flex-1">
                         <div class="relative w-full flex items-end justify-center" style="height: {{ $barHeight }}px;">
-                            <div class="w-full max-w-20 bg-gradient-to-t from-[#6EC6C5] to-[#79BDBC] rounded-t-lg transition-all duration-300 hover:opacity-90" 
+                            <div class="w-full max-w-20 bg-gradient-to-t from-[#B8E8E7] to-[#A8E0DF] rounded-t-lg transition-all duration-300 hover:opacity-90" 
                                  style="height: {{ $maxCount > 0 ? ($activeClassesCount / $maxCount) * $barHeight : 0 }}px;">
                             </div>
                         </div>
@@ -426,7 +426,7 @@
                         <span class="text-sm text-gray-700">Full Classes: {{ $fullClassesCount }}</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <div class="w-4 h-4 rounded bg-gradient-to-r from-[#6EC6C5] to-[#79BDBC]"></div>
+                        <div class="w-4 h-4 rounded bg-gradient-to-r from-[#B8E8E7] to-[#A8E0DF]"></div>
                         <span class="text-sm text-gray-700">Active Classes: {{ $activeClassesCount }}</span>
                     </div>
                     <div class="flex items-center gap-2">
@@ -460,14 +460,6 @@
                             <span class="text-gray-600">Avg Score:</span>
                             <span class="font-bold text-gray-800">{{ $activitiesOverview['assignments']['avg_score'] }}%</span>
                         </div>
-                        <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                            <span class="text-gray-600">Status:</span>
-                            @php
-                                $status = $activitiesOverview['assignments']['status'];
-                                $statusColor = $status === 'Healthy' ? 'bg-green-100 text-green-800' : ($status === 'Needs Review' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800');
-                            @endphp
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $statusColor }}">{{ $status }}</span>
-                        </div>
                     </div>
                 </div>
 
@@ -490,14 +482,6 @@
                             <span class="text-gray-600">Avg Score:</span>
                             <span class="font-bold text-gray-800">{{ $activitiesOverview['quizzes']['avg_score'] }}%</span>
                         </div>
-                        <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                            <span class="text-gray-600">Status:</span>
-                            @php
-                                $status = $activitiesOverview['quizzes']['status'];
-                                $statusColor = $status === 'Healthy' ? 'bg-green-100 text-green-800' : ($status === 'Needs Review' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800');
-                            @endphp
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $statusColor }}">{{ $status }}</span>
-                        </div>
                     </div>
                 </div>
 
@@ -519,14 +503,6 @@
                         <div class="flex justify-between">
                             <span class="text-gray-600">Avg Score:</span>
                             <span class="font-bold text-gray-800">{{ $activitiesOverview['games']['avg_score'] }}</span>
-                        </div>
-                        <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                            <span class="text-gray-600">Status:</span>
-                            @php
-                                $status = $activitiesOverview['games']['status'];
-                                $statusColor = $status === 'Healthy' ? 'bg-green-100 text-green-800' : ($status === 'Needs Review' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800');
-                            @endphp
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $statusColor }}">{{ $status }}</span>
                         </div>
                     </div>
                 </div>
@@ -648,7 +624,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        Inactive Teachers (No activity in last 3 months)
+                        Inactive Teachers (No activity in last 15 days)
                     </h3>
                     <ul class="space-y-2">
                         @foreach(array_slice($alerts['inactive_teachers'], 0, 5) as $alert)
@@ -719,14 +695,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 shade: 'light',
                 type: 'horizontal',
                 shadeIntensity: 0.5,
-                gradientToColors: ['#6EC6C5', '#EC769A'],
+                gradientToColors: ['#B8E8E7', '#FFB8D1'],
                 inverseColors: false,
                 opacityFrom: 1,
                 opacityTo: 1,
                 stops: [0, 100]
             }
         },
-        colors: ['#79BDBC', '#FFB9C6'],
+        colors: ['#A8E0DF', '#FFC5D9'],
         labels: ['Approved', 'Rejected'],
         stroke: {
             lineCap: 'round'
@@ -742,23 +718,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Engagement Charts Data
     const engagementData = @json($engagementData);
 
-    // Helper function to filter data - Oct, Nov, Dec 2025 and Jan 2026 (4 months)
+    // Helper function to filter data for last 3 months (auto-updates dynamically)
     function filterDataFromDec2025(dataArray, labelsArray) {
         if (!dataArray || !labelsArray || dataArray.length === 0) {
             return { data: [], labels: [] };
         }
         
-        var filteredData = [];
-        var filteredLabels = [];
-        var seenLabels = new Set();
-        
-        // Month order for sorting
+        // Since controller now generates only last 3 months, just return all data
+        // But sort it to ensure chronological order
         var monthOrder = {
             'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
             'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
         };
         
-        // Helper function to create sort key from label
         function getSortKey(label, monthOrder) {
             var yearMatch = label.match(/(\d{4})/);
             var monthMatch = label.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
@@ -769,43 +741,34 @@ document.addEventListener('DOMContentLoaded', function() {
             return year * 100 + month;
         }
         
-        // Filter data from Oct 2025 onwards (4 months: Oct, Nov, Dec 2025, Jan 2026)
+        // Create array with sort keys
+        var dataWithKeys = [];
         for (var i = 0; i < labelsArray.length; i++) {
-            var label = labelsArray[i] || '';
-            if (label) {
-                var yearMatch = label.match(/(\d{4})/);
-                var year = yearMatch ? parseInt(yearMatch[1]) : 0;
-                var monthMatch = label.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
-                var month = monthMatch ? (monthOrder[monthMatch[1]] || 0) : 0;
-                
-                // Include if year == 2026 and month == 1 (Jan 2026), or year == 2025 and month >= 10 (Oct, Nov, Dec 2025 - 4 months total)
-                var shouldInclude = false;
-                if (year === 2026 && month === 1) {
-                    shouldInclude = true;
-                } else if (year === 2025 && month >= 10) {
-                    shouldInclude = true;
-                }
-                
-                if (shouldInclude && !seenLabels.has(label)) {
-                    filteredData.push({
-                        value: dataArray[i] || 0,
-                        label: label,
-                        sortKey: getSortKey(label, monthOrder)
-                    });
-                    seenLabels.add(label);
-                }
-            }
+            dataWithKeys.push({
+                value: dataArray[i] || 0,
+                label: labelsArray[i] || '',
+                sortKey: getSortKey(labelsArray[i] || '', monthOrder)
+            });
         }
         
         // Sort by date (earliest first)
-        filteredData.sort(function(a, b) {
+        dataWithKeys.sort(function(a, b) {
             return a.sortKey - b.sortKey;
         });
         
+        // Return last 3 months (or all if less than 3)
+        var lastThree = dataWithKeys.slice(-3);
+        
         return {
-            data: filteredData.map(function(item) { return item.value; }),
-            labels: filteredData.map(function(item) { return item.label; })
+            data: lastThree.map(function(item) { return item.value; }),
+            labels: lastThree.map(function(item) { return item.label; })
         };
+    }
+
+    // Helper function to filter data for last 3 months (auto-updates dynamically)
+    function filterDataForJunFebAndUpcoming(dataArray, labelsArray) {
+        // Use the same dynamic filter as other charts
+        return filterDataFromDec2025(dataArray, labelsArray);
     }
 
     // Assignment Submissions Chart - Horizontal Bar Chart with Gradient
@@ -820,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var barData = [];
         var barLabels = [];
         
-        // Filter data from Dec 2025 onwards
+        // Filter data for last 3 months (auto-updates)
         var filteredSubmissions = filterDataFromDec2025(submissionData, submissionLabels);
         barData = filteredSubmissions.data;
         barLabels = filteredSubmissions.labels;
@@ -950,7 +913,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Quiz Attempts Chart - Creative Stacked Area with Multiple Gradients
     if (document.querySelector("#quizAttemptsChart")) {
-        // Filter data from Dec 2025 onwards
+        // Filter data for last 3 months (auto-updates)
         var filteredQuizAttempts = filterDataFromDec2025(
             engagementData.quiz_attempts.data,
             engagementData.quiz_attempts.labels
@@ -1055,7 +1018,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Quiz Average Scores Chart - Creative Radar/Spider Chart with Time Series
     if (document.querySelector("#quizAvgScoresChart")) {
-        // Filter data from Dec 2025 onwards
+        // Filter data for last 3 months (auto-updates)
         var filteredQuizScores = filterDataFromDec2025(
             engagementData.quiz_avg_scores.data,
             engagementData.quiz_avg_scores.labels
@@ -1142,8 +1105,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Game Play Counts Chart - Creative Step Line Chart with Filled Markers
     if (document.querySelector("#gamePlayCountsChart")) {
-        // Filter data from Dec 2025 onwards
-        var filteredGamePlays = filterDataFromDec2025(
+        // Filter data for last 3 months (auto-updates)
+        var filteredGamePlays = filterDataForJunFebAndUpcoming(
             engagementData.game_play_counts.data,
             engagementData.game_play_counts.labels
         );

@@ -6,11 +6,18 @@
     <div class="relative bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl overflow-hidden">
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                    <h1 class="text-4xl font-black text-white mb-1 drop-shadow-lg tracking-tight">
-                        🎯 Quiz Analytics Hub
-                    </h1>
-                    <p class="text-white/90 text-sm font-medium">Comprehensive insights into student quiz performance</p>
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('admin.dashboard') }}" class="flex items-center justify-center w-12 h-12 bg-white/20 backdrop-blur-xl rounded-xl border border-white/30 shadow-lg hover:bg-white/30 transition-all transform hover:scale-105" title="Go Back">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="text-4xl font-black text-white mb-1 drop-shadow-lg tracking-tight">
+                            🎯 Quiz Analytics Hub
+                        </h1>
+                        <p class="text-white/90 text-sm font-medium">Comprehensive insights into student quiz performance</p>
+                    </div>
                 </div>
                 <div class="bg-white/20 backdrop-blur-xl rounded-xl px-6 py-3 border border-white/30 shadow-lg">
                     <div class="text-center">

@@ -102,9 +102,9 @@ class Student extends Model
     /**
      * Get the meeting attendances for the student.
      */
-    public function meetingAttendances()
+    public function attendances()
     {
-        return $this->hasMany(MeetingAttendance::class, 'student_id', 'student_id');
+        return $this->hasManyThrough(Attendance::class, User::class, 'user_id', 'user_id', 'user_id', 'user_id');
     }
 
 }

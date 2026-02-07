@@ -1,17 +1,28 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="min-h-screen">
+<div class="min-h-screen" style="background: linear-gradient(135deg, #FFF4FA 0%, #FDF2F8 30%, #F0F9FF 70%, #E0F7FA 100%);">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-4xl font-extrabold text-white mb-2">👩‍🏫 All Teachers</h1>
-                    <p class="text-pink-100">Manage and view all registered teachers</p>
+    <div class="bg-gradient-to-r from-pink-200/90 via-rose-100/80 to-cyan-200/90 shadow-2xl border-b-4 border-pink-300/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="flex items-center gap-6 text-center md:text-left">
+                    <!-- Teachers Icon -->
+                    <div class="hidden md:flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-2xl transform hover:scale-105 transition-all duration-300 border-4 border-white/50">
+                        <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-20 h-20 object-cover rounded-xl filter drop-shadow-2xl">
+                    </div>
+                    <div>
+                        <h1 class="text-5xl font-extrabold text-gray-800 mb-3 drop-shadow-lg flex items-center gap-4 justify-center md:justify-start">
+                            <span class="md:hidden flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-xl border-4 border-white/50">
+                                <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-16 h-16 object-cover rounded-lg">
+                            </span>
+                            <span class="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">All Teachers</span>
+                        </h1>
+                        <p class="text-gray-700 text-lg font-medium">Manage and view all registered teachers</p>
+                    </div>
                 </div>
                 <a href="{{ route('admin.teachers.export') }}" 
-                   class="bg-white hover:bg-pink-50 text-pink-600 font-semibold px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2">
+                   class="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white px-8 py-4 rounded-2xl font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 flex items-center gap-3 text-lg border-2 border-pink-300/50">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
@@ -26,16 +37,16 @@
         <!-- Search Bar -->
         <div class="bg-white rounded-xl shadow-lg p-4 mb-6">
             <input type="text" id="searchInput" placeholder="🔍 Search by name, email, language, or bio..." 
-                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                   class="w-full px-4 py-2 border border-gray-100 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
         </div>
 
         <!-- Improved Teachers List -->
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-50">
             <!-- Table Header -->
-            <div class="bg-gradient-to-r from-pink-500 via-rose-500 to-teal-500 px-6 py-4">
+            <div class="bg-gradient-to-r from-pink-300/90 via-rose-200/80 to-cyan-300/90 px-6 py-4 border-b-4 border-pink-300/50">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-white">Teachers List</h2>
-                    <div class="text-white/90 text-sm">
+                    <h2 class="text-xl font-bold text-gray-800">Teachers List</h2>
+                    <div class="text-gray-700 text-sm font-medium">
                         <span class="font-semibold">{{ $teachers->count() }}</span> total teachers
                     </div>
                 </div>
@@ -44,7 +55,7 @@
             <!-- Teachers Table -->
             <div class="overflow-x-auto">
                 <table class="w-full">
-                    <thead class="bg-gradient-to-r from-gray-50 to-pink-50 border-b-2 border-pink-200">
+                    <thead class="bg-gradient-to-r from-pink-50/50 via-rose-50/30 to-cyan-50/50 border-b border-pink-100">
                         <tr>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Teacher</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Contact</th>
@@ -52,7 +63,14 @@
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Classes</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Bio</th>
                             <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Joined</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">Status</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700">
+                                <div class="flex flex-col">
+                                    <span>Status</span>
+                                    <span class="text-xs font-normal normal-case text-gray-500 mt-0.5" style="font-size: 9px;">
+                                        (Active = has classes, Available = no classes)
+                                    </span>
+                                </div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100" id="teachersTableBody">
@@ -96,8 +114,8 @@
                                                 </svg>
                                             </a>
                                         </div>
-                                        @if($profile && $profile->bio)
-                                        <div class="text-xs text-gray-500 mt-0.5 truncate max-w-xs">{{ Str::limit($profile->bio, 35) }}</div>
+                                        @if($user->bio ?? null)
+                                        <div class="text-xs text-gray-500 mt-0.5 truncate max-w-xs">{{ Str::limit($user->bio, 35) }}</div>
                                         @endif
                                     </div>
                                 </div>
@@ -150,9 +168,9 @@
                             
                             <!-- Bio -->
                             <td class="px-6 py-5">
-                                @if($profile && $profile->bio)
+                                @if($user->bio ?? null)
                                 <div class="text-sm text-gray-700 max-w-xs">
-                                    <div class="line-clamp-2">{{ Str::limit($profile->bio, 80) }}</div>
+                                    <div class="line-clamp-2">{{ Str::limit($user->bio, 80) }}</div>
                                 </div>
                                 @else
                                 <span class="text-sm text-gray-400 italic">No bio available</span>

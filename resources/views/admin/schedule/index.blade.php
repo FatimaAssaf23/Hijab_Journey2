@@ -42,18 +42,18 @@
             <div class="lg:col-span-2">
                 <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-pink-200/40 overflow-hidden">
                     <!-- Calendar Header -->
-                    <div class="bg-gradient-to-r from-pink-400 via-rose-400 to-cyan-400 p-4">
+                    <div class="bg-gradient-to-r from-pink-200 via-rose-200 to-cyan-200 p-4">
                         <div class="flex items-center justify-between">
-                            <button id="prevMonth" class="text-white hover:bg-white/20 p-2 rounded-lg transition">
+                            <button id="prevMonth" class="text-gray-800 hover:bg-gray-100 p-2 rounded-lg transition">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                                 </svg>
                             </button>
                             <div class="text-center">
-                                <h2 id="currentMonth" class="text-xl font-black text-white"></h2>
-                                <p id="currentYear" class="text-sm text-white/90"></p>
+                                <h2 id="currentMonth" class="text-xl font-black text-gray-800"></h2>
+                                <p id="currentYear" class="text-sm text-gray-700"></p>
                             </div>
-                            <button id="nextMonth" class="text-white hover:bg-white/20 p-2 rounded-lg transition">
+                            <button id="nextMonth" class="text-gray-800 hover:bg-gray-100 p-2 rounded-lg transition">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
@@ -81,9 +81,9 @@
             <!-- Events List Section -->
             <div class="lg:col-span-1">
                 <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-cyan-200/40 overflow-hidden">
-                    <div class="bg-gradient-to-r from-cyan-400 to-teal-400 p-4">
-                        <h3 class="text-lg font-black text-white">Upcoming Events</h3>
-                        <p class="text-xs text-white/90">{{ now()->format('M d, Y') }}</p>
+                    <div class="bg-gradient-to-r from-cyan-200 to-teal-200 p-4">
+                        <h3 class="text-lg font-black text-gray-800">Upcoming Events</h3>
+                        <p class="text-xs text-gray-700">{{ now()->format('M d, Y') }}</p>
                     </div>
                     <div class="p-4 max-h-[600px] overflow-y-auto">
                         <div id="eventsList" class="space-y-3">
@@ -96,8 +96,8 @@
 
         <!-- Events Table -->
         <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-pink-200/40 overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 p-4">
-                <h3 class="text-lg font-black text-white">All Events</h3>
+            <div class="bg-gradient-to-r from-purple-200 via-pink-200 to-cyan-200 p-4">
+                <h3 class="text-lg font-black text-gray-800">All Events</h3>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -105,7 +105,6 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Title</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Time</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
@@ -123,10 +122,10 @@
 <!-- Add/Edit Event Modal -->
 <div id="eventModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
-        <div class="bg-gradient-to-r from-pink-400 to-cyan-400 p-6 rounded-t-2xl">
+        <div class="bg-gradient-to-r from-pink-200 to-cyan-200 p-6 rounded-t-2xl">
             <div class="flex items-center justify-between">
-                <h3 id="modalTitle" class="text-xl font-black text-white">Add New Event</h3>
-                <button id="closeModal" class="text-white hover:bg-white/20 p-2 rounded-lg transition">
+                <h3 id="modalTitle" class="text-xl font-black text-gray-800">Add New Event</h3>
+                <button id="closeModal" class="text-gray-800 hover:bg-gray-100 p-2 rounded-lg transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -143,15 +142,9 @@
                 <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
                 <textarea id="eventDescription" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"></textarea>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Date *</label>
-                    <input type="date" id="eventDate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Time</label>
-                    <input type="time" id="eventTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Date *</label>
+                <input type="date" id="eventDate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -159,8 +152,9 @@
                     <select id="eventType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                         <option value="task">Task</option>
                         <option value="reminder">Reminder</option>
-                        <option value="deadline">Deadline</option>
+                        <option value="quiz">Quiz</option>
                         <option value="meeting">Meeting</option>
+                        <option value="assignment">Assignment</option>
                         <option value="lesson">Lesson</option>
                     </select>
                 </div>
@@ -186,7 +180,7 @@
 let currentDate = new Date();
 let selectedDate = null;
 let editingEventId = null;
-const events = @json($events);
+let events = @json($formattedEvents ?? $events);
 
 function renderCalendar() {
     const year = currentDate.getFullYear();
@@ -217,16 +211,52 @@ function renderCalendar() {
         const dayEvents = events.filter(e => e.event_date === dateStr);
         const isToday = new Date(year, month, day).toDateString() === new Date().toDateString();
         
-        dayCell.className = `aspect-square p-1 rounded-lg border-2 transition-all cursor-pointer hover:shadow-md ${
-            isToday ? 'bg-gradient-to-br from-pink-400 to-cyan-400 text-white border-pink-500' : 
-            'bg-gray-50 border-gray-200 hover:border-pink-300'
-        }`;
+        // Determine background color and text color
+        let backgroundColor = '';
+        let textColor = 'text-gray-800';
+        let borderColor = 'border-gray-200';
+        
+        if (dayEvents.length > 0) {
+            // Use the first event's color for the entire cell
+            backgroundColor = dayEvents[0].color;
+            // Use white text for better contrast on colored backgrounds
+            textColor = 'text-white';
+            borderColor = 'border-gray-300';
+        } else if (isToday) {
+            backgroundColor = 'bg-gradient-to-br from-pink-200 to-cyan-200';
+            textColor = 'text-gray-800';
+            borderColor = 'border-pink-300';
+        } else {
+            backgroundColor = 'bg-gray-50';
+            textColor = 'text-gray-800';
+            borderColor = 'border-gray-200';
+        }
+        
+        dayCell.className = `aspect-square p-1.5 rounded-lg border-2 transition-all cursor-pointer hover:shadow-md flex flex-col overflow-hidden ${borderColor} ${textColor}`;
+        
+        // Apply background color as inline style if it's a hex color
+        if (dayEvents.length > 0 && backgroundColor.startsWith('#')) {
+            dayCell.style.backgroundColor = backgroundColor;
+        } else if (backgroundColor) {
+            dayCell.className += ` ${backgroundColor}`;
+        }
+        
+        // Show event title(s) inside the box - show full text with wrapping
+        let eventContent = '';
+        if (dayEvents.length > 0) {
+            const firstEvent = dayEvents[0];
+            // Show full title, let it wrap to 2 lines max
+            eventContent = `
+                <div class="text-[10px] font-semibold leading-tight mt-0.5 line-clamp-2 break-words hyphens-auto">${firstEvent.title}</div>
+                ${dayEvents.length > 1 ? `<div class="text-[8px] mt-0.5 opacity-80">+${dayEvents.length - 1} more</div>` : ''}
+            `;
+        }
         
         dayCell.innerHTML = `
-            <div class="text-xs font-bold ${isToday ? 'text-white' : 'text-gray-800'}">${day}</div>
-            ${dayEvents.length > 0 ? `<div class="flex gap-0.5 mt-1 flex-wrap">${dayEvents.slice(0, 3).map(e => 
-                `<div class="w-1.5 h-1.5 rounded-full" style="background-color: ${e.color}"></div>`
-            ).join('')}${dayEvents.length > 3 ? '<span class="text-[8px] text-gray-500">+</span>' : ''}</div>` : ''}
+            <div class="text-xs font-bold flex-shrink-0">${day}</div>
+            <div class="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
+                ${eventContent}
+            </div>
         `;
         
         dayCell.addEventListener('click', () => {
@@ -260,7 +290,6 @@ function renderEventsList() {
                         <h4 class="font-bold text-sm text-gray-800">${event.title}</h4>
                     </div>
                     <p class="text-xs text-gray-600">${new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                    ${event.event_time ? `<p class="text-xs text-gray-500">${event.event_time}</p>` : ''}
                 </div>
             </div>
         </div>
@@ -284,9 +313,6 @@ function renderEventsTable() {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                 ${new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                ${event.event_time || '-'}
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 py-1 text-xs font-semibold rounded-full bg-pink-100 text-pink-800">${event.event_type}</span>
@@ -318,7 +344,6 @@ function openModal(eventId = null) {
         document.getElementById('eventTitle').value = event.title;
         document.getElementById('eventDescription').value = event.description || '';
         document.getElementById('eventDate').value = event.event_date;
-        document.getElementById('eventTime').value = event.event_time || '';
         document.getElementById('eventType').value = event.event_type;
         document.getElementById('eventColor').value = event.color;
     } else {
@@ -350,18 +375,61 @@ async function saveEvent(formData) {
             method: method,
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
             },
             body: JSON.stringify(formData)
         });
         
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            alert('Error: Server returned an invalid response. Please check the console for details.');
+            return;
+        }
+        
         const data = await response.json();
         if (data.success) {
-            location.reload();
+            // If editing, update the event in the array, otherwise add the new event
+            if (editingEventId) {
+                const index = events.findIndex(e => e.event_id == editingEventId);
+                if (index !== -1) {
+                    events[index] = data.event;
+                }
+            } else {
+                // Add the new event to the events array
+                events.push(data.event);
+            }
+            
+            // Sort events by date and time
+            events.sort((a, b) => {
+                const dateA = new Date(a.event_date + (a.event_time ? ' ' + a.event_time : ''));
+                const dateB = new Date(b.event_date + (b.event_time ? ' ' + b.event_time : ''));
+                return dateA - dateB;
+            });
+            
+            // Re-render the calendar and events
+            renderCalendar();
+            renderEventsList();
+            renderEventsTable();
+            
+            // Close the modal
+            closeModal();
+            
+            // Show success message
+            alert(data.message || 'Event saved successfully!');
         } else {
-            alert('Error: ' + (data.message || 'Failed to save event'));
+            let errorMessage = data.message || 'Failed to save event';
+            if (data.errors) {
+                const errorList = Object.values(data.errors).flat().join('\n');
+                errorMessage += '\n\n' + errorList;
+            }
+            alert('Error: ' + errorMessage);
         }
     } catch (error) {
+        console.error('Error saving event:', error);
         alert('Error: ' + error.message);
     }
 }
@@ -373,17 +441,40 @@ async function deleteEvent(eventId) {
         const response = await fetch(`/admin/schedule/${eventId}`, {
             method: 'DELETE',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
             }
         });
         
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            alert('Error: Server returned an invalid response. Please check the console for details.');
+            return;
+        }
+        
         const data = await response.json();
         if (data.success) {
-            location.reload();
+            // Remove the event from the events array
+            const index = events.findIndex(e => e.event_id == eventId);
+            if (index !== -1) {
+                events.splice(index, 1);
+            }
+            
+            // Re-render the calendar and events
+            renderCalendar();
+            renderEventsList();
+            renderEventsTable();
+            
+            // Show success message
+            alert(data.message || 'Event deleted successfully!');
         } else {
             alert('Error: ' + (data.message || 'Failed to delete event'));
         }
     } catch (error) {
+        console.error('Error deleting event:', error);
         alert('Error: ' + error.message);
     }
 }
@@ -410,7 +501,6 @@ document.getElementById('eventForm').addEventListener('submit', (e) => {
         title: document.getElementById('eventTitle').value,
         description: document.getElementById('eventDescription').value,
         event_date: document.getElementById('eventDate').value,
-        event_time: document.getElementById('eventTime').value,
         event_type: document.getElementById('eventType').value,
         color: document.getElementById('eventColor').value,
     };
@@ -432,6 +522,14 @@ renderEventsTable();
     }
     .animate-fade-in {
         animation: fade-in 0.6s ease-out;
+    }
+    
+    /* Line clamp utility for event titles */
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 </style>
 @endpush

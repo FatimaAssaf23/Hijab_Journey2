@@ -8,7 +8,8 @@
     .video-js {
         width: 100%;
         height: auto;
-        min-height: 400px;
+        min-height: 240px;
+        max-height: 360px;
         border-radius: 0.75rem;
         background-color: #000;
     }
@@ -22,6 +23,20 @@
     #lesson-video-player {
         width: 100%;
         max-width: 100%;
+    }
+    /* Minimize video container */
+    .video-container {
+        max-width: 850px;
+        margin: 0 auto;
+    }
+    @media (max-width: 768px) {
+        .video-container {
+            max-width: 100%;
+        }
+        .video-js {
+            min-height: 220px;
+            max-height: 300px;
+        }
     }
     /* Warning message styling for forward seeking */
     .video-seek-warning {
@@ -45,7 +60,7 @@
     }
     /* Progress bar styling */
     .video-progress-bar {
-        height: 8px;
+        height: 10px;
         background-color: #fce7f3;
         border-radius: 10px;
         overflow: hidden;
@@ -182,19 +197,32 @@
     body.lesson-fullscreen main {
         padding: 0 !important;
         margin: 0 !important;
+        overflow: visible !important;
+    }
+    body.lesson-fullscreen {
+        overflow: visible !important;
     }
     .lesson-fullscreen-container {
         width: 100% !important;
         max-width: 100% !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 1.5rem !important;
         min-height: 100vh !important;
         background-color: #FFF4FA !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
     }
     .lesson-content-wrapper {
         width: 100% !important;
-        padding: 2rem !important;
+        padding: 2rem 1.5rem !important;
         background-color: #FFF4FA !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+    }
+    /* Prevent text cropping */
+    .relative.z-10 {
+        overflow: visible !important;
+        padding-top: 0.5rem !important;
     }
 </style>
 @endpush
@@ -202,29 +230,29 @@
 @section('content')
 <div class="lesson-fullscreen-container">
     <div class="lesson-content-wrapper">
-        <div class="relative bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-pink-100 w-full">
+        <div class="relative bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl p-7 border border-pink-100 w-full overflow-visible" style="overflow: visible !important; box-sizing: border-box;">
             <!-- Decorative SVG background -->
-            <svg class="absolute right-0 top-0 w-32 h-32 opacity-10 pointer-events-none z-0" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg class="absolute right-0 top-0 w-24 h-24 opacity-10 pointer-events-none z-0" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="100" cy="100" r="100" fill="#f472b6"/>
             </svg>
-            <div class="relative z-10">
-                <!-- Exit Full Screen Button -->
-                <div class="mb-6">
-                    <a href="{{ route('levels') }}" class="inline-flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
+            <div class="relative z-10" style="overflow: visible !important; padding-top: 0;">
+                <!-- Go Back Button -->
+                <div class="mb-5" style="margin-top: 0 !important;">
+                    <a href="{{ route('levels') }}" class="inline-flex items-center gap-2 bg-white hover:bg-pink-50 text-pink-600 px-4 py-2.5 rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-150 border-2 border-pink-200 hover:border-pink-300">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                        Exit Full Screen
+                        Go Back
                     </a>
                 </div>
-                <div class="flex items-center gap-4 mb-4">
-                    <span class="text-5xl drop-shadow">{{ $lesson->icon ?? '📘' }}</span>
-                    <div class="flex-1">
-                        <h1 class="text-3xl font-extrabold text-pink-600 tracking-tight">{{ $lesson->title }}</h1>
+                <div class="flex items-start gap-3 mb-4 overflow-visible">
+                    <span class="text-3xl drop-shadow flex-shrink-0 mt-1">{{ $lesson->icon ?? '📘' }}</span>
+                    <div class="flex-1 min-w-0 overflow-visible" style="overflow: visible !important; word-wrap: break-word;">
+                        <h1 class="text-xl font-extrabold text-pink-600 tracking-tight break-words" style="overflow: visible !important; word-wrap: break-word; hyphens: auto; line-height: 1.4;">{{ $lesson->title }}</h1>
                         {{-- Completed Lesson Indicator --}}
                         @if(isset($progress) && $progress && $progress->status === 'completed')
-                            <div class="mt-2">
-                                <span class="completed-badge">
+                            <div class="mt-1.5">
+                                <span class="completed-badge" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
                                     <span>✓</span>
                                     <span>Lesson Completed</span>
                                 </span>
@@ -253,39 +281,39 @@
                     }
                 @endphp
                 @if($isVideo)
-                    <div class="mb-4" id="video-progress-container">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold text-pink-600">Video Progress</span>
-                            <span class="text-sm text-gray-600" id="video-progress-percentage">
+                    <div class="mb-3" id="video-progress-container">
+                        <div class="flex items-center justify-between mb-1.5 gap-2">
+                            <span class="text-xs font-semibold text-pink-600 whitespace-nowrap">Video Progress</span>
+                            <span class="text-xs text-gray-600 whitespace-nowrap" id="video-progress-percentage">
                                 {{ $initialProgress }}%
                             </span>
                         </div>
                         <div class="video-progress-bar">
                             <div class="video-progress-fill" id="video-progress-bar" style="width: {{ $initialProgress }}%"></div>
                         </div>
-                        <div id="video-progress-message">
+                        <div id="video-progress-message" class="break-words">
                             @if($initialProgress >= 80)
-                                <p class="text-xs text-green-600 mt-1 font-medium">✓ Lesson completed! Game unlocked.</p>
+                                <p class="text-xs text-green-600 mt-1 font-medium break-words">✓ Lesson completed! Game unlocked.</p>
                             @else
-                                <p class="text-xs text-gray-500 mt-1">Watch {{ round(80 - $initialProgress, 1) }}% more to complete lesson and unlock game</p>
+                                <p class="text-xs text-gray-500 mt-1 break-words">Watch {{ round(80 - $initialProgress, 1) }}% more to complete lesson and unlock game</p>
                             @endif
                         </div>
                     </div>
                 @endif
 
-                <div class="mb-5 text-lg text-gray-700 leading-relaxed">{{ $lesson->description }}</div>
-                <div class="mb-2 text-sm text-gray-500 flex gap-4">
+                <div class="mb-3 text-sm text-gray-700 leading-relaxed break-words">{{ $lesson->description }}</div>
+                <div class="mb-2 text-xs text-gray-500 flex gap-4 flex-wrap">
                     <span><span class="font-semibold text-pink-500">Skills:</span> {{ $lesson->skills }}</span>
                     <span><span class="font-semibold text-pink-500">Duration:</span> {{ $lesson->duration_minutes ?? '-' }} min</span>
                 </div>
                 
                 {{-- Game Button - Locked/Unlocked States --}}
                 @if(isset($hasGame) && $hasGame)
-                    <div class="mb-6 mt-6" id="game-button-container">
+                    <div class="mb-4 mt-4" id="game-button-container">
                         @if(isset($isVideoCompleted) && $isVideoCompleted)
                             {{-- Unlocked Game Button --}}
                             <a href="{{ route('student.games', ['lesson_id' => $lesson->lesson_id]) }}" 
-                               class="inline-flex items-center gap-2 bg-gradient-to-r from-green-400 via-green-300 to-green-200 hover:from-green-500 hover:to-green-300 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all text-base transform hover:scale-105">
+                               class="inline-flex items-center gap-2 bg-gradient-to-r from-green-400 via-green-300 to-green-200 hover:from-green-500 hover:to-green-300 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-all text-sm transform hover:scale-105">
                                 <span class="text-xl">🎮</span>
                                 <span>Play Game</span>
                                 @if(isset($isGameCompleted) && $isGameCompleted)
@@ -296,19 +324,19 @@
                             </a>
                         @else
                             {{-- Locked Game Button --}}
-                            <div id="locked-game-button" class="inline-flex items-center gap-2 bg-gray-200 text-gray-500 font-semibold py-3 px-8 rounded-full shadow cursor-not-allowed relative">
+                            <div id="locked-game-button" class="inline-flex items-center gap-2 bg-gray-200 text-gray-500 font-semibold py-2 px-6 rounded-full shadow cursor-not-allowed relative text-sm">
                                 <span class="text-xl opacity-50">🔒</span>
                                 <span>Play Game</span>
                                 <span class="ml-2 bg-gray-400 px-2 py-1 rounded-full text-xs text-white">Locked</span>
                             </div>
-                            <p id="game-unlock-message" class="text-sm text-gray-600 mt-2 ml-2">
+                            <p id="game-unlock-message" class="text-xs text-gray-600 mt-1.5 ml-2 break-words">
                                 ⏳ Watch 80% of the video to unlock this game
                             </p>
                         @endif
                     </div>
                 @endif
                 @if($lesson->content_url)
-                    <div class="mt-8">
+                    <div class="mt-3">
                         @php
                             $fileExtension = strtolower(pathinfo($lesson->content_url, PATHINFO_EXTENSION));
                             $isVideo = in_array($fileExtension, ['mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'webm']);
@@ -319,12 +347,12 @@
                         @endphp
                         
                         @if($isPdf)
-                            <iframe src="{{ $storageUrl }}" width="100%" height="600px" class="rounded-xl border border-pink-100 shadow"></iframe>
+                            <iframe src="{{ $storageUrl }}" width="100%" height="400px" class="rounded-xl border border-pink-100 shadow"></iframe>
                             <div class="mt-2">
-                                <a href="{{ $storageUrl }}" target="_blank" class="inline-block bg-pink-100 text-pink-700 px-4 py-2 rounded-lg shadow hover:bg-pink-200 transition text-base font-semibold mt-2">Open PDF in New Tab</a>
+                                <a href="{{ $storageUrl }}" target="_blank" class="inline-block bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg shadow hover:bg-pink-200 transition text-sm font-semibold mt-2">Open PDF in New Tab</a>
                             </div>
                         @elseif($isVideo)
-                            <div class="video-container rounded-xl border border-pink-100 shadow overflow-hidden" style="background-color: #000;">
+                            <div class="video-container rounded-xl border border-pink-100 shadow overflow-hidden mx-auto" style="background-color: #000; max-width: 850px;">
                                 <video
                                     id="lesson-video-player"
                                     class="video-js vjs-default-skin"
@@ -339,11 +367,11 @@
                                 </video>
                             </div>
                             @if($lesson->video_duration_seconds)
-                                <p class="text-sm text-gray-500 mt-2">Duration: {{ gmdate('i:s', $lesson->video_duration_seconds) }}</p>
+                                <p class="text-xs text-gray-500 mt-1.5 text-center">Duration: {{ gmdate('i:s', $lesson->video_duration_seconds) }}</p>
                             @endif
                         @else
-                            <a href="{{ $storageUrl }}" class="inline-block bg-pink-100 text-pink-700 px-4 py-2 rounded-lg shadow hover:bg-pink-200 transition text-base font-semibold mt-2" target="_blank">Download Content</a>
-                            <p class="text-sm text-gray-500 mt-2">File: {{ basename($lesson->content_url) }}</p>
+                            <a href="{{ $storageUrl }}" class="inline-block bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg shadow hover:bg-pink-200 transition text-sm font-semibold mt-2" target="_blank">Download Content</a>
+                            <p class="text-xs text-gray-500 mt-1.5">File: {{ basename($lesson->content_url) }}</p>
                         @endif
                     </div>
                 @else
@@ -389,11 +417,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Player is ready
         console.log('Video.js player initialized');
         
-        // Ensure video is visible
+        // Ensure video is visible and respects max-height
         const videoElement = this.el();
         if (videoElement) {
             videoElement.style.width = '100%';
             videoElement.style.height = 'auto';
+            videoElement.style.maxHeight = '360px';
         }
     });
 
@@ -1157,6 +1186,56 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
+        // Function to position warning with all styles
+        function positionWarning() {
+            if (!centerX) centerX = window.innerWidth / 2;
+            if (!topY) topY = 100;
+            
+            // Use requestAnimationFrame to ensure DOM is ready
+            requestAnimationFrame(() => {
+                // Position the warning with all necessary styles
+                warning.style.position = 'fixed';
+                warning.style.left = centerX + 'px';
+                warning.style.top = topY + 'px';
+                warning.style.transform = 'translate(-50%, 0)';
+                warning.style.zIndex = '99999';
+                warning.style.backgroundColor = '#ef4444';
+                warning.style.color = 'white';
+                warning.style.padding = '0.75rem 1rem';
+                warning.style.borderRadius = '0.5rem';
+                warning.style.fontSize = '0.875rem';
+                warning.style.fontWeight = '600';
+                warning.style.whiteSpace = 'nowrap';
+                warning.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.5)';
+                warning.style.animation = 'slideUpVolume 0.3s ease-out';
+                warning.style.pointerEvents = 'none';
+                warning.style.minWidth = '220px';
+                warning.style.textAlign = 'center';
+                warning.style.opacity = '1';
+                warning.style.display = 'block';
+                warning.style.visibility = 'visible';
+                warning.style.width = 'auto';
+                warning.style.height = 'auto';
+                warning.style.lineHeight = '1.5';
+                warning.style.maxWidth = '90vw';
+                warning.style.overflow = 'visible';
+                warning.style.textOverflow = 'clip';
+                
+                // Force a reflow to ensure styles are applied
+                void warning.offsetHeight;
+                
+                console.log('Volume warning positioned at:', centerX, topY);
+                console.log('Volume warning element:', warning);
+                console.log('Volume warning computed style:', window.getComputedStyle(warning));
+                console.log('Volume warning dimensions:', {
+                    width: warning.offsetWidth,
+                    height: warning.offsetHeight,
+                    clientWidth: warning.clientWidth,
+                    clientHeight: warning.clientHeight
+                });
+            });
+        }
+        
         // Try to find video player position
         if (!findVideoPlayerPosition()) {
             // Retry after a short delay
@@ -1170,20 +1249,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 50);
         } else {
             positionWarning();
-        }
-        
-        function positionWarning() {
-            if (!centerX) centerX = window.innerWidth / 2;
-            if (!topY) topY = 100;
-            
-            // Position the warning
-            warning.style.position = 'fixed';
-            warning.style.left = centerX + 'px';
-            warning.style.top = topY + 'px';
-            warning.style.transform = 'translateX(-50%)';
-            warning.style.zIndex = '99999';
-            
-            console.log('Volume warning positioned at:', centerX, topY);
         }
         
         // Auto-remove after 2.5 seconds
@@ -1924,8 +1989,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Use the accurate percentage from the API response
                 if (progressData.watched_percentage !== undefined) {
                     const savedPercentage = parseFloat(progressData.watched_percentage) || 0;
-                    const videoCompleted = progressData.video_completed || false;
-                    updateProgressBarUI(savedPercentage, videoCompleted);
+                    // Use video_completed from API, or calculate from percentage
+                    const videoCompleted = progressData.video_completed || 
+                                         progressData.status === 'completed' || 
+                                         savedPercentage >= 80;
+                    
+                    // Only update if API data is more recent/accurate than server-side initial values
+                    // This prevents resetting progress that was already displayed
+                    @if(isset($progress) && $progress && isset($accuratePercentageForView))
+                        const serverPercentage = {{ $accuratePercentageForView }};
+                        // Use the maximum percentage to ensure progress never decreases
+                        const finalPercentage = Math.max(savedPercentage, serverPercentage);
+                        updateProgressBarUI(finalPercentage, videoCompleted);
+                    @else
+                        updateProgressBarUI(savedPercentage, videoCompleted);
+                    @endif
                     
                     // Unlock game button immediately if video is completed
                     if (videoCompleted || savedPercentage >= 80) {
@@ -1935,6 +2013,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('Progress loaded from API:', {
                         percentage: savedPercentage,
                         videoCompleted: videoCompleted,
+                        status: progressData.status,
                         maxWatchedTime: progressData.max_watched_time
                     });
                 }
@@ -2026,9 +2105,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // CRITICAL: Initialize with server-side values first to prevent reset
+    // This ensures the UI shows correct state immediately, even before API call
+    @if(isset($progress) && $progress && isset($accuratePercentageForView))
+        const serverSideProgress = {
+            watched_percentage: {{ $accuratePercentageForView }},
+            video_completed: {{ ($progress->video_completed ?? false) || ($progress->status === 'completed') || ($accuratePercentageForView >= 80) ? 'true' : 'false' }},
+            status: '{{ $progress->status ?? 'not_started' }}',
+            max_watched_time: {{ $progress->max_watched_time ?? 0 }},
+            watched_seconds: {{ $progress->watched_seconds ?? 0 }},
+            last_position: {{ $progress->last_position ?? 0 }}
+        };
+        
+        // Update UI immediately with server-side values
+        updateProgressBarUI(serverSideProgress.watched_percentage, serverSideProgress.video_completed);
+        
+        // Unlock game button if video is completed according to server
+        if (serverSideProgress.video_completed || serverSideProgress.watched_percentage >= 80) {
+            unlockGameButton();
+        }
+        
+        console.log('Initialized with server-side progress:', serverSideProgress);
+    @endif
+    
     // Load progress immediately when player is ready
     player.ready(function() {
-        // Load progress right away
+        // Load progress right away (will update if different from server-side)
         loadVideoProgress();
         
         // Also start tracking immediately

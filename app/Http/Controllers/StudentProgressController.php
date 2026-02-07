@@ -171,11 +171,6 @@ class StudentProgressController extends Controller
         // Get video duration to cap watched seconds and percentage
         $videoDuration = $lesson->video_duration_seconds ?? 0;
         
-        // Cap watched seconds at video duration (prevent >100% completion)
-        $cappedWatchedSeconds = $videoDuration > 0 
-            ? min($request->watched_seconds, $videoDuration) 
-            : $request->watched_seconds;
-        
         // Recalculate percentage based on max_watched_time (most accurate) or capped seconds
         // max_watched_time represents the furthest point reached in the video
         // CRITICAL: Always use the MAXIMUM value between request and existing database value
@@ -190,6 +185,21 @@ class StudentProgressController extends Controller
             ? min($maxWatchedTime, $videoDuration)
             : $maxWatchedTime;
         
+        // CRITICAL: watched_seconds should also never decrease
+        // It should be at least equal to max_watched_time to ensure consistency
+        // Use the maximum between request value and existing value to prevent progress from decreasing
+        $requestWatchedSeconds = $request->watched_seconds ?? 0;
+        $existingWatchedSeconds = $progress->watched_seconds ?? 0;
+        
+        // Always use the maximum watched_seconds (prevents progress from decreasing)
+        // Also ensure it's at least equal to max_watched_time for consistency
+        $maxWatchedSeconds = max($requestWatchedSeconds, $existingWatchedSeconds, $cappedMaxWatchedTime);
+        
+        // Cap watched seconds at video duration (prevent >100% completion)
+        $cappedWatchedSeconds = $videoDuration > 0 
+            ? min($maxWatchedSeconds, $videoDuration) 
+            : $maxWatchedSeconds;
+        
         // Use max_watched_time for percentage calculation (more accurate than watched_seconds)
         // This ensures percentage reflects the actual furthest point reached
         $cappedPercentage = $videoDuration > 0 
@@ -198,6 +208,7 @@ class StudentProgressController extends Controller
 
         // Update video tracking fields
         // Use max_watched_time as the source of truth for percentage calculation
+        // CRITICAL: watched_seconds should never decrease - always use maximum value
         $progress->watched_seconds = $cappedWatchedSeconds;
         $progress->watched_percentage = $cappedPercentage;
         $progress->last_position = $request->current_position ?? $progress->last_position;
@@ -270,9 +281,42 @@ class StudentProgressController extends Controller
             $finalPercentage = $progress->watched_percentage ?? 0;
         }
         
+        // CRITICAL: Ensure watched_seconds is at least equal to max_watched_time
+        // This prevents progress from appearing to decrease
+        $finalWatchedSeconds = $progress->watched_seconds ?? 0;
+        if ($finalWatchedSeconds < $finalMaxWatchedTime) {
+            $finalWatchedSeconds = $finalMaxWatchedTime;
+            if ($finalVideoDuration > 0) {
+                $finalWatchedSeconds = min($finalWatchedSeconds, $finalVideoDuration);
+            }
+            $progress->watched_seconds = $finalWatchedSeconds;
+        }
+        
         // Ensure watched_percentage matches the calculated value
         if (abs(($progress->watched_percentage ?? 0) - $finalPercentage) > 0.01) {
             $progress->watched_percentage = $finalPercentage;
+        }
+        
+        // CRITICAL: Ensure video_completed and status are set correctly based on final percentage
+        // This ensures completion status persists even if there were calculation discrepancies
+        if ($finalPercentage >= 80) {
+            if (!($progress->video_completed ?? false)) {
+                $progress->video_completed = true;
+            }
+            if ($progress->status !== 'completed') {
+                $progress->status = 'completed';
+                if (!$progress->completed_at) {
+                    $progress->completed_at = now();
+                }
+                // Unlock games if lesson just became completed
+                $this->unlockLessonGame($student->student_id, $lessonId);
+                // Unlock next lesson
+                $this->unlockNextLesson($student->student_id, $lesson->level_id, $lessonId);
+            }
+        }
+        
+        // Save if any changes were made
+        if ($progress->isDirty()) {
             $progress->save();
             $progress->refresh();
         }
@@ -620,23 +664,65 @@ class StudentProgressController extends Controller
             $accuratePercentage = $progress->watched_percentage ?? 0;
         }
         
-        // Ensure video_completed is set correctly based on accurate percentage
-        if ($accuratePercentage >= 80 && !($progress->video_completed ?? false)) {
-            $progress->video_completed = true;
-            $progress->save();
-            
-            // Also unlock games if not already unlocked
-            $this->unlockLessonGame($student->student_id, $lessonId);
+        // Ensure watched_percentage is updated to match accurate calculation
+        if (abs(($progress->watched_percentage ?? 0) - $accuratePercentage) > 0.01) {
+            $progress->watched_percentage = $accuratePercentage;
         }
+        
+        // Ensure video_completed and status are set correctly based on accurate percentage
+        $needsSave = false;
+        if ($accuratePercentage >= 80) {
+            if (!($progress->video_completed ?? false)) {
+                $progress->video_completed = true;
+                $needsSave = true;
+            }
+            if ($progress->status !== 'completed') {
+                $progress->status = 'completed';
+                if (!$progress->completed_at) {
+                    $progress->completed_at = now();
+                }
+                $needsSave = true;
+                
+                // Also unlock games if not already unlocked
+                $this->unlockLessonGame($student->student_id, $lessonId);
+                // Unlock next lesson
+                $this->unlockNextLesson($student->student_id, $lesson->level_id, $lessonId);
+            }
+        }
+        
+        // Save if any changes were made
+        if ($needsSave || $progress->isDirty()) {
+            $progress->save();
+            $progress->refresh();
+        }
+        
+        // Refresh progress to ensure we have latest values
+        $progress->refresh();
+        
+        // Recalculate percentage one more time after refresh
+        $finalVideoDuration = $lesson->video_duration_seconds ?? 0;
+        $finalMaxWatchedTime = $progress->max_watched_time ?? 0;
+        $finalPercentage = 0;
+        
+        if ($finalVideoDuration > 0 && $finalMaxWatchedTime > 0) {
+            $finalPercentage = round(($finalMaxWatchedTime / $finalVideoDuration) * 100, 2);
+        } else {
+            $finalPercentage = $progress->watched_percentage ?? 0;
+        }
+        
+        // Ensure video_completed reflects the actual state
+        $isVideoCompleted = ($progress->video_completed ?? false) || 
+                           ($progress->status === 'completed') || 
+                           ($finalPercentage >= 80);
         
         return response()->json([
             'success' => true,
             'data' => [
                 'watched_seconds' => $progress->watched_seconds ?? 0,
-                'watched_percentage' => $accuratePercentage,
+                'watched_percentage' => $finalPercentage,
                 'last_position' => $progress->last_position ?? 0,
-                'max_watched_time' => $maxWatchedTime,
-                'video_completed' => $progress->video_completed ?? false,
+                'max_watched_time' => $finalMaxWatchedTime,
+                'video_completed' => $isVideoCompleted,
                 'status' => $progress->status,
             ]
         ]);

@@ -58,7 +58,7 @@
     <body class="font-sans antialiased">
         <div class="min-h-screen flex flex-col bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
             <!-- Admin Navbar -->
-            <nav class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl sticky top-0 z-50">
+            <nav class="bg-gradient-to-r from-[#FF9BB8] via-[#FF8DAF] to-[#88D5D4] shadow-xl sticky top-0 z-50">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex items-center justify-between h-16">
                         <!-- Logo -->
@@ -106,10 +106,10 @@
                                 </button>
                                 <div class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
                                     <a href="{{ route('admin.students.index') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
-                                        <span>👧</span> Students
+                                        <span>🧕</span> Students
                                     </a>
                                     <a href="{{ route('admin.teachers.index') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
-                                        <span>👩‍🏫</span> Teachers
+                                        <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded"> Teachers
                                     </a>
                                 </div>
                             </div>
@@ -150,10 +150,6 @@
                                     </a>
                                     <a href="{{ route('admin.games') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 {{ request()->routeIs('admin.games*') ? 'bg-pink-100' : '' }}">
                                         <span>🎮</span> Games
-                                    </a>
-                                    <hr class="my-2 border-gray-200">
-                                    <a href="#" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
-                                        <span>💳</span> Payments
                                     </a>
                                     <a href="{{ route('admin.schedule.index') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 {{ request()->routeIs('admin.schedule*') ? 'bg-pink-100' : '' }}">
                                         <span>📅</span> Schedule
@@ -230,10 +226,10 @@
                             <span>🎓</span> Classes
                         </a>
                         <a href="{{ route('admin.students.index') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
-                            <span>👧</span> Students
+                            <span>🧕</span> Students
                         </a>
                         <a href="{{ route('admin.teachers.index') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
-                            <span>👩‍🏫</span> Teachers
+                            <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded"> Teachers
                         </a>
                         <a href="{{ route('admin.requests') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
                             <span>📝</span> Teacher Requests

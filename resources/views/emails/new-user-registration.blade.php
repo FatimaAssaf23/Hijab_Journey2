@@ -4,48 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>New User Registration Notification</title>
+    <title>New User Registration - Hijab Journey</title>
     <!--[if mso]>
     <style type="text/css">
         body, table, td {font-family: Arial, sans-serif !important;}
     </style>
     <![endif]-->
     <style>
-        /* Reset styles */
-        body {
+        * {
             margin: 0;
             padding: 0;
-            width: 100% !important;
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
-        }
-        table {
-            border-collapse: collapse;
-            mso-table-lspace: 0pt;
-            mso-table-rspace: 0pt;
-        }
-        img {
-            border: 0;
-            height: auto;
-            line-height: 100%;
-            outline: none;
-            text-decoration: none;
-            -ms-interpolation-mode: bicubic;
+            box-sizing: border-box;
         }
         
-        /* Main styles */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background-color: #f5f7fa;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #fdf2f8 0%, #ecfeff 30%, #f0fdfa 100%);
+            background-color: #f5f6fa;
             color: #2d3748;
             margin: 0;
             padding: 0;
             line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         
         .email-wrapper {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #fdf2f8 0%, #ecfeff 30%, #f0fdfa 100%);
             padding: 40px 20px;
             width: 100%;
             box-sizing: border-box;
@@ -55,16 +40,18 @@
             max-width: 600px;
             margin: 0 auto;
             background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(236, 118, 154, 0.15);
             overflow: hidden;
+            border: 1px solid #F8C5C8;
         }
         
         .header-gradient {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px 30px;
+            background: linear-gradient(135deg, #FC8EAC 0%, #EC769A 50%, #6EC6C5 100%);
+            padding: 50px 30px;
             text-align: center;
             position: relative;
+            overflow: hidden;
         }
         
         .header-gradient::before {
@@ -85,76 +72,131 @@
             z-index: 1;
         }
         
+        .notification-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 50px;
+            padding: 8px 20px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
         .icon-wrapper {
-            width: 64px;
-            height: 64px;
-            background: rgba(255, 255, 255, 0.2);
+            width: 90px;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.25);
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 20px;
             backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .icon-wrapper::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent);
+            top: -3px;
+            left: -3px;
         }
         
         .header-icon {
-            font-size: 32px;
+            font-size: 45px;
+            position: relative;
+            z-index: 1;
         }
         
         .header-title {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 700;
             color: #ffffff;
-            margin: 0 0 10px 0;
+            margin: 0 0 12px 0;
             letter-spacing: -0.5px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
         
         .header-subtitle {
-            font-size: 16px;
+            font-size: 18px;
             color: rgba(255, 255, 255, 0.95);
             margin: 0;
-            font-weight: 400;
+            font-weight: 500;
+            line-height: 1.5;
         }
         
         .content-section {
-            padding: 40px 30px;
+            padding: 45px 35px;
         }
         
         .greeting {
-            font-size: 18px;
+            font-size: 20px;
             color: #2d3748;
-            margin: 0 0 16px 0;
+            margin: 0 0 20px 0;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .greeting-icon {
+            font-size: 24px;
         }
         
         .intro-text {
-            font-size: 15px;
+            font-size: 16px;
             color: #4a5568;
             margin: 0 0 30px 0;
-            line-height: 1.7;
+            line-height: 1.8;
         }
         
         .user-card {
-            background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
-            border-radius: 12px;
-            padding: 24px;
+            background: linear-gradient(135deg, #fdf2f8 0%, #f0f9ff 100%);
+            border-radius: 16px;
+            padding: 28px;
             margin: 30px 0;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border: 2px solid #F8C5C8;
+            box-shadow: 0 4px 16px rgba(236, 118, 154, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .user-card::before {
+            content: '✨';
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 40px;
+            opacity: 0.15;
+            animation: sparkle 3s ease-in-out infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.15; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(1.1); }
         }
         
         .card-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #667eea;
+            font-size: 15px;
+            font-weight: 700;
+            color: #EC769A;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
             margin: 0 0 20px 0;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
         
         .info-grid {
@@ -165,31 +207,55 @@
         .info-item {
             display: flex;
             align-items: flex-start;
-            padding: 16px;
+            padding: 18px;
             background: #ffffff;
-            border-radius: 8px;
-            border-left: 3px solid #667eea;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
+            border-radius: 12px;
+            border-left: 4px solid #EC769A;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .info-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(135deg, #FC8EAC 0%, #EC769A 50%, #6EC6C5 100%);
+            border-radius: 0 4px 4px 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
         
         .info-item:hover {
             transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            box-shadow: 0 4px 12px rgba(236, 118, 154, 0.15);
+        }
+        
+        .info-item:hover::before {
+            opacity: 1;
         }
         
         .info-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 8px;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #FC8EAC 0%, #EC769A 100%);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             margin-right: 16px;
             color: #ffffff;
-            font-size: 18px;
+            font-size: 22px;
+            box-shadow: 0 4px 12px rgba(236, 118, 154, 0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .info-item:hover .info-icon {
+            transform: scale(1.1) rotate(5deg);
         }
         
         .info-content {
@@ -201,8 +267,8 @@
             font-weight: 600;
             color: #718096;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin: 0 0 4px 0;
+            letter-spacing: 0.8px;
+            margin: 0 0 6px 0;
         }
         
         .info-value {
@@ -215,12 +281,13 @@
         
         .badge {
             display: inline-block;
-            padding: 6px 14px;
+            padding: 8px 16px;
             border-radius: 20px;
             font-size: 13px;
             font-weight: 600;
             text-transform: capitalize;
             letter-spacing: 0.3px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
         .badge-student {
@@ -241,51 +308,111 @@
             border: 1px solid #f9a8d4;
         }
         
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid rgba(236, 118, 154, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #EC769A;
+        }
+        
         .cta-wrapper {
-            margin: 30px 0 20px 0;
+            margin: 35px 0 25px 0;
             text-align: center;
         }
         
         .cta-button {
             display: inline-block;
-            padding: 16px 32px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 18px 40px;
+            background: linear-gradient(135deg, #FC8EAC 0%, #EC769A 50%, #6EC6C5 100%);
+            background-size: 200% auto;
             color: #ffffff !important;
             text-decoration: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 16px;
-            letter-spacing: 0.3px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 17px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 6px 20px rgba(236, 118, 154, 0.4);
             transition: all 0.3s ease;
             border: none;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .cta-button:hover::before {
+            left: 100%;
         }
         
         .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(236, 118, 154, 0.5);
+            background-position: right center;
         }
         
         .footer {
-            background: #f7fafc;
-            padding: 30px;
+            background: linear-gradient(135deg, #f7fafc 0%, #f1f5f9 100%);
+            padding: 35px 30px;
             text-align: center;
             border-top: 1px solid #e2e8f0;
+        }
+        
+        .footer-logo {
+            color: #EC769A;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
         }
         
         .footer-text {
             font-size: 13px;
             color: #718096;
             margin: 0;
-            line-height: 1.6;
+            line-height: 1.7;
         }
         
-        .footer-logo {
-            color: #667eea;
-            font-weight: 700;
-            font-size: 16px;
-            margin-bottom: 8px;
+        .footer-emoji {
+            font-size: 20px;
+            margin: 0 5px;
         }
         
         /* Responsive */
@@ -295,11 +422,15 @@
             }
             
             .header-gradient {
-                padding: 30px 20px;
+                padding: 40px 20px;
             }
             
             .header-title {
-                font-size: 24px;
+                font-size: 26px;
+            }
+            
+            .header-subtitle {
+                font-size: 16px;
             }
             
             .content-section {
@@ -319,26 +450,14 @@
                 margin-right: 0;
                 margin-bottom: 12px;
             }
-        }
-        
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            .email-container {
-                background: #1a202c;
+            
+            .stats-section {
+                grid-template-columns: 1fr;
             }
             
-            .greeting,
-            .info-value {
-                color: #f7fafc;
-            }
-            
-            .intro-text {
-                color: #cbd5e0;
-            }
-            
-            .user-card {
-                background: #2d3748;
-                border-color: #4a5568;
+            .cta-button {
+                padding: 16px 30px;
+                font-size: 16px;
             }
         }
     </style>
@@ -349,6 +468,7 @@
             <!-- Header with Gradient -->
             <div class="header-gradient">
                 <div class="header-content">
+                    <div class="notification-badge">🔔 New Registration</div>
                     <div class="icon-wrapper">
                         <span class="header-icon">👤</span>
                     </div>
@@ -359,9 +479,12 @@
             
             <!-- Content Section -->
             <div class="content-section">
-                <p class="greeting">Hello Admin,</p>
+                <p class="greeting">
+                    <span class="greeting-icon">👋</span>
+                    Hello Admin,
+                </p>
                 <p class="intro-text">
-                    A new user has successfully registered on the platform. Below are the registration details for your review.
+                    Great news! 🌟 A new user has successfully registered on the platform. Below are the complete registration details for your review and management.
                 </p>
                 
                 <!-- User Information Card -->
@@ -423,19 +546,33 @@
                     </div>
                 </div>
                 
-                <!-- Call to Action -->
-                <div class="cta-wrapper">
-                    <a href="{{ url('/admin') }}" class="cta-button">View in Admin Dashboard →</a>
+                <!-- Stats Section -->
+                <div class="stats-section">
+                    <div class="stat-card">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-label">Today</div>
+                        <div class="stat-value">New User</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎯</div>
+                        <div class="stat-label">Action Required</div>
+                        <div class="stat-value">Review</div>
+                    </div>
                 </div>
                 
-                <p style="text-align: center; font-size: 14px; color: #718096; margin: 20px 0 0 0;">
-                    Manage users, view analytics, and monitor platform activity from your admin dashboard.
+                <!-- Call to Action -->
+                <div class="cta-wrapper">
+                    <a href="{{ url('/admin') }}" class="cta-button">📊 View in Admin Dashboard</a>
+                </div>
+                
+                <p style="text-align: center; font-size: 15px; color: #718096; margin: 25px 0 0 0; line-height: 1.7;">
+                    Manage users, view analytics, and monitor platform activity from your admin dashboard. 💼
                 </p>
             </div>
             
             <!-- Footer -->
             <div class="footer">
-                <p class="footer-logo">{{ config('app.name', 'Hijab Journey') }}</p>
+                <p class="footer-logo">Hijab Journey <span class="footer-emoji">🌸</span></p>
                 <p class="footer-text">
                     &copy; {{ date('Y') }} {{ config('app.name', 'Hijab Journey') }}. All rights reserved.<br>
                     This is an automated notification. Please do not reply to this email.

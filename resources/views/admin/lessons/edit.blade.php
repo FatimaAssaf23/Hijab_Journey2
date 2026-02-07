@@ -3,15 +3,20 @@
 @section('content')
 <div class="min-h-screen">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-pink-600 via-pink-400 to-teal-400 shadow-xl">
+    <div class="bg-gradient-to-r from-pink-200 via-pink-100 to-teal-200 shadow-xl">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 class="text-4xl font-extrabold text-white mb-2">✏️ Edit Lesson</h1>
-            <p class="text-pink-100">Update lesson details</p>
+            <div class="flex items-center gap-4 mb-4">
+                <a href="{{ route('admin.lessons') }}" class="bg-white/40 hover:bg-white/50 text-gray-700 px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm">
+                    ← Go Back
+                </a>
+            </div>
+            <h1 class="text-4xl font-extrabold text-gray-700 mb-2">✏️ Edit Lesson</h1>
+            <p class="text-gray-600">Update lesson details</p>
         </div>
     </div>
 
     <!-- Form -->
-    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="bg-white rounded-2xl p-8 shadow-xl">
             <form method="POST" action="{{ route('admin.lessons.update', $lesson['id']) }}" enctype="multipart/form-data">
                 @csrf
@@ -21,7 +26,7 @@
                     <!-- Title -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Lesson Title</label>
-                        <input type="text" name="title" value="{{ old('title', $lesson['title']) }}" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" required>
+                        <input type="text" name="title" value="{{ old('title', $lesson['title']) }}" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-300" required>
                         @error('title') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                     </div>
 
@@ -32,10 +37,10 @@
                         
                         <!-- Selected emoji display with change button -->
                         <div id="selectedEmojiContainer" class="mb-3">
-                            <div class="flex items-center gap-3 p-4 border-2 border-pink-400 rounded-lg bg-gradient-to-br from-pink-50 to-purple-50">
+                            <div class="flex items-center gap-3 p-4 border-2 border-pink-200 rounded-lg bg-gradient-to-br from-pink-50 to-purple-50">
                                 <span id="chosenEmoji" class="text-4xl">{{ old('icon', $lesson['icon']) }}</span>
                                 <span class="text-gray-600 font-medium">Selected Icon</span>
-                                <button type="button" onclick="toggleEmojiGrid()" class="ml-auto bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                                <button type="button" onclick="toggleEmojiGrid()" class="ml-auto bg-pink-300 hover:bg-pink-400 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-all">
                                     Change
                                 </button>
                             </div>
@@ -54,7 +59,7 @@
                             @foreach($emojis as $emoji)
                                 <button type="button" 
                                     onclick="selectIcon('{{ $emoji }}')" 
-                                    class="emoji-btn text-2xl p-3 rounded-lg hover:bg-pink-200 hover:scale-110 transition-all border-2 border-transparent focus:outline-none bg-white shadow-sm"
+                                    class="emoji-btn text-2xl p-3 rounded-lg hover:bg-pink-100 hover:scale-110 transition-all border-2 border-transparent focus:outline-none bg-white shadow-sm"
                                     data-emoji="{{ $emoji }}">
                                     {{ $emoji }}
                                 </button>
@@ -90,11 +95,21 @@
                         }
                     </script>
 
-                    <!-- Skills -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Number of Skills</label>
-                        <input type="number" name="skills" value="{{ old('skills', $lesson['skills']) }}" min="0" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" required>
-                        @error('skills') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    <!-- Skills and Duration (Inline) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Skills -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Number of Skills</label>
+                            <input type="number" name="skills" value="{{ old('skills', $lesson['skills']) }}" min="0" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-300" required>
+                            @error('skills') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Duration -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Duration (Minutes, Optional)</label>
+                            <input type="number" name="duration_minutes" value="{{ old('duration_minutes', $lesson['duration_minutes'] ?? '') }}" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-300" placeholder="e.g., 45">
+                            @error('duration_minutes') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
                     <!-- Hidden Level ID -->
@@ -103,7 +118,7 @@
                     <!-- Description -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Description (Optional)</label>
-                        <textarea name="description" rows="3" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" placeholder="Brief description of the lesson...">{{ old('description', $lesson['description'] ?? '') }}</textarea>
+                        <textarea name="description" rows="3" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-300" placeholder="Brief description of the lesson...">{{ old('description', $lesson['description'] ?? '') }}</textarea>
                         @error('description') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                     </div>
 
@@ -120,7 +135,7 @@
                                 $contentUrl = ltrim($lesson['content_url'], '/');
                             @endphp
                             
-                            <div class="bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-4 border-2 border-pink-200">
+                            <div class="bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-4 border-2 border-pink-100">
                                 @if($isYouTube)
                                     <div class="mb-3">
                                         <p class="font-semibold text-gray-800 mb-2">YouTube Video</p>
@@ -136,7 +151,7 @@
                                                 <iframe width="100%" height="100%" src="https://www.youtube.com/embed/{{ $videoId }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded-lg"></iframe>
                                             </div>
                                         @else
-                                            <a href="{{ $lesson['content_url'] }}" target="_blank" class="text-pink-500 hover:text-pink-600 text-sm font-medium">Open YouTube Link →</a>
+                                            <a href="{{ $lesson['content_url'] }}" target="_blank" class="text-pink-400 hover:text-pink-500 text-sm font-medium">Open YouTube Link →</a>
                                         @endif
                                     </div>
                                 @elseif($isVideo)
@@ -151,7 +166,7 @@
                                         <span class="text-4xl">📄</span>
                                         <div>
                                             <p class="font-semibold text-gray-800">PDF Document</p>
-                                            <a href="{{ asset('storage/' . $contentUrl) }}" target="_blank" class="text-pink-500 hover:text-pink-600 text-sm font-medium">View PDF →</a>
+                                            <a href="{{ asset('storage/' . $contentUrl) }}" target="_blank" class="text-pink-400 hover:text-pink-500 text-sm font-medium">View PDF →</a>
                                         </div>
                                     </div>
                                 @else
@@ -159,7 +174,7 @@
                                         <span class="text-4xl">🔗</span>
                                         <div>
                                             <p class="font-semibold text-gray-800">External Link</p>
-                                            <a href="{{ $lesson['content_url'] }}" target="_blank" class="text-pink-500 hover:text-pink-600 text-sm font-medium">Open Link →</a>
+                                            <a href="{{ $lesson['content_url'] }}" target="_blank" class="text-pink-400 hover:text-pink-500 text-sm font-medium">Open Link →</a>
                                         </div>
                                     </div>
                                 @endif
@@ -186,7 +201,7 @@
                             );
                             $displayUrl = isset($lesson['content_url']) && $lesson['content_url'] && !$isFileExtension ? $lesson['content_url'] : '';
                         @endphp
-                        <input type="url" name="content_url" value="{{ old('content_url', $displayUrl) }}" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/...">
+                        <input type="url" name="content_url" value="{{ old('content_url', $displayUrl) }}" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-300" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/...">
                         <p class="text-gray-500 text-xs mt-1">Enter a YouTube link or any other content URL. Leave empty if uploading a file below or to keep current file.</p>
                         @error('content_url') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                     </div>
@@ -194,17 +209,11 @@
                     <!-- Content File Upload -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">OR Upload Lesson Content File <span class="text-gray-400 font-normal">(Optional)</span></label>
-                        <input type="file" name="content_file" accept=".pdf,.mp4,.mov,.avi" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100">
+                        <input type="file" name="content_file" accept=".pdf,.mp4,.mov,.avi" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-500 hover:file:bg-pink-100">
                         <p class="text-gray-500 text-xs mt-1">{{ isset($lesson['content_url']) && $lesson['content_url'] && !$isYouTubeUrl ? 'Leave empty to keep current file.' : '' }} Accepted formats: PDF, MP4, MOV, AVI (Max 100MB). Use either URL above or file upload, not both.</p>
                         @error('content_file') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Duration -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Duration (Minutes, Optional)</label>
-                        <input type="number" name="duration_minutes" value="{{ old('duration_minutes', $lesson['duration_minutes'] ?? '') }}" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" placeholder="e.g., 45">
-                        @error('duration_minutes') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                    </div>
                 </div>
 
                 <!-- Buttons -->
@@ -212,7 +221,7 @@
                     <a href="{{ route('admin.lessons') }}" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 rounded-lg transition-all text-center">
                         Cancel
                     </a>
-                    <button type="submit" class="flex-1 bg-gradient-to-r from-pink-500 to-teal-400 hover:shadow-lg text-white font-semibold py-3 rounded-lg transition-all">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-pink-300 to-teal-300 hover:shadow-lg text-gray-700 font-semibold py-3 rounded-lg transition-all">
                         Update Lesson
                     </button>
                 </div>

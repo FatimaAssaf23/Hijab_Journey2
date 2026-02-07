@@ -13,6 +13,7 @@ class ScheduleEvent extends Model
         'title',
         'description',
         'event_date',
+        'release_date',
         'event_time',
         'event_type',
         'color',
@@ -21,7 +22,8 @@ class ScheduleEvent extends Model
 
     protected $casts = [
         'event_date' => 'date',
-        'event_time' => 'datetime',
+        'release_date' => 'date',
+        'event_time' => 'string', // TIME column, not datetime
         'is_active' => 'boolean',
     ];
 

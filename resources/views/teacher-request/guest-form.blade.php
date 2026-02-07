@@ -15,7 +15,7 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(135deg, #fdf2f8 0%, #ecfeff 30%, #f0fdfa 100%);
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
@@ -29,41 +29,118 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ec4899' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
             pointer-events: none;
             z-index: 0;
+            animation: patternMove 20s linear infinite;
         }
 
-        /* Floating Orbs */
+        @keyframes patternMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(60px, 60px); }
+        }
+
+        /* Floating Orbs - Light Theme */
         .orb {
             position: fixed;
             border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.4;
+            filter: blur(90px);
+            opacity: 0.3;
             animation: float 10s ease-in-out infinite;
             z-index: 0;
+            pointer-events: none;
         }
 
         .orb-1 {
-            width: 300px;
-            height: 300px;
-            background: linear-gradient(135deg, #e94560, #ff6b9d);
-            top: -100px;
-            right: -50px;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #f472b6, #ec4899);
+            top: -150px;
+            right: -150px;
         }
 
         .orb-2 {
-            width: 250px;
-            height: 250px;
-            background: linear-gradient(135deg, #0f9b8e, #14b8a6);
-            bottom: -50px;
-            left: -50px;
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #22d3ee, #06b6d4);
+            bottom: -100px;
+            left: -100px;
             animation-delay: -3s;
         }
 
         @keyframes float {
             0%, 100% { transform: translateY(0) scale(1); }
             50% { transform: translateY(-20px) scale(1.02); }
+        }
+
+        /* Floating Stars - 3 Stars Distributed */
+        .star {
+            position: fixed;
+            font-size: 2.5rem;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.7;
+            animation: starFloat 15s ease-in-out infinite, starSpin 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.4));
+        }
+
+        .star-1 {
+            top: 20%;
+            left: 8%;
+            animation-delay: 0s;
+            font-size: 2.2rem;
+        }
+
+        .star-2 {
+            top: 50%;
+            right: 10%;
+            animation-delay: -5s;
+            font-size: 2.5rem;
+        }
+
+        .star-3 {
+            top: 75%;
+            left: 12%;
+            animation-delay: -10s;
+            font-size: 2.3rem;
+        }
+
+        @keyframes starFloat {
+            0%, 100% { 
+                transform: translate(0, 0) rotate(0deg) scale(1);
+                opacity: 0.6;
+            }
+            25% { 
+                transform: translate(10px, -15px) rotate(90deg) scale(1.1);
+                opacity: 0.75;
+            }
+            50% { 
+                transform: translate(-8px, -25px) rotate(180deg) scale(1.05);
+                opacity: 0.7;
+            }
+            75% { 
+                transform: translate(12px, -10px) rotate(270deg) scale(1.08);
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes starSpin {
+            0%, 100% { 
+                transform: rotate(0deg) scale(1);
+                opacity: 0.6;
+            }
+            25% { 
+                transform: rotate(90deg) scale(1.1);
+                opacity: 0.8;
+            }
+            50% { 
+                transform: rotate(180deg) scale(1.2);
+                opacity: 0.7;
+            }
+            75% { 
+                transform: rotate(270deg) scale(1.1);
+                opacity: 0.85;
+            }
         }
 
         /* Header */
@@ -74,6 +151,10 @@
             align-items: center;
             position: relative;
             z-index: 10;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(236, 72, 153, 0.1);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
         }
 
         .logo {
@@ -90,7 +171,7 @@
         .logo-text {
             font-size: 1.3rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #e94560, #14b8a6);
+            background: linear-gradient(135deg, #ec4899, #06b6d4);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -100,19 +181,23 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: rgba(255, 255, 255, 0.8);
+            color: #64748b;
             text-decoration: none;
             padding: 10px 20px;
             border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
             transition: all 0.3s ease;
             font-weight: 500;
         }
 
         .back-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 1);
+            color: #ec4899;
+            border-color: rgba(236, 72, 153, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
         }
 
         /* Main Container */
@@ -126,12 +211,13 @@
 
         /* Form Card */
         .form-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(236, 72, 153, 0.1);
+            border-radius: 28px;
             padding: 3rem;
             animation: fadeInUp 0.6s ease-out;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
         }
 
         @keyframes fadeInUp {
@@ -159,12 +245,12 @@
         .form-title {
             font-size: 2rem;
             font-weight: 700;
-            color: #fff;
+            color: #1e293b;
             margin-bottom: 0.5rem;
         }
 
         .form-subtitle {
-            color: rgba(255, 255, 255, 0.6);
+            color: #64748b;
             font-size: 1rem;
         }
 
@@ -191,13 +277,13 @@
         }
 
         .alert-success {
-            background: rgba(20, 184, 166, 0.15);
-            border: 1px solid rgba(20, 184, 166, 0.3);
-            color: #14b8a6;
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            color: #06b6d4;
         }
 
         .alert-error {
-            background: rgba(239, 68, 68, 0.15);
+            background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.3);
             color: #ef4444;
         }
@@ -231,14 +317,14 @@
 
         .form-label {
             display: block;
-            color: rgba(255, 255, 255, 0.9);
+            color: #1e293b;
             font-weight: 500;
             margin-bottom: 0.5rem;
             font-size: 0.95rem;
         }
 
         .form-label .required {
-            color: #e94560;
+            color: #ec4899;
             margin-left: 2px;
         }
 
@@ -247,10 +333,10 @@
         .form-textarea {
             width: 100%;
             padding: 14px 18px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(236, 72, 153, 0.2);
             border-radius: 12px;
-            color: #fff;
+            color: #1e293b;
             font-family: 'Poppins', sans-serif;
             font-size: 1rem;
             transition: all 0.3s ease;
@@ -258,16 +344,16 @@
 
         .form-input::placeholder,
         .form-textarea::placeholder {
-            color: rgba(255, 255, 255, 0.4);
+            color: #94a3b8;
         }
 
         .form-input:focus,
         .form-select:focus,
         .form-textarea:focus {
             outline: none;
-            border-color: #14b8a6;
-            background: rgba(255, 255, 255, 0.12);
-            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+            border-color: #06b6d4;
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
         }
 
         .form-select {
@@ -281,8 +367,8 @@
         }
 
         .form-select option {
-            background: #1a1a2e;
-            color: #fff;
+            background: #ffffff;
+            color: #1e293b;
         }
 
         .form-textarea {
@@ -300,7 +386,7 @@
         }
 
         .form-hint {
-            color: rgba(255, 255, 255, 0.5);
+            color: #94a3b8;
             font-size: 0.85rem;
             margin-top: 0.5rem;
         }
@@ -309,7 +395,8 @@
         .submit-btn {
             width: 100%;
             padding: 16px 32px;
-            background: linear-gradient(135deg, #14b8a6, #0f9b8e);
+            background: linear-gradient(135deg, #ec4899, #f472b6, #ec4899);
+            background-size: 200% auto;
             color: #fff;
             border: none;
             border-radius: 12px;
@@ -325,6 +412,8 @@
             margin-top: 1rem;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
+            animation: shimmer 3s linear infinite;
         }
 
         .submit-btn::before {
@@ -334,13 +423,19 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
             transition: left 0.5s ease;
         }
 
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
         .submit-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(20, 184, 166, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(236, 72, 153, 0.5);
+            animation: shimmer 1.5s linear infinite;
         }
 
         .submit-btn:hover::before {
@@ -358,8 +453,8 @@
 
         /* Info Box */
         .info-box {
-            background: rgba(139, 92, 246, 0.1);
-            border: 1px solid rgba(139, 92, 246, 0.2);
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.2);
             border-radius: 12px;
             padding: 1.25rem;
             margin-top: 2rem;
@@ -370,19 +465,19 @@
         .info-box svg {
             width: 24px;
             height: 24px;
-            color: #a78bfa;
+            color: #06b6d4;
             flex-shrink: 0;
             margin-top: 2px;
         }
 
         .info-box-content h4 {
-            color: #a78bfa;
+            color: #06b6d4;
             font-weight: 600;
             margin-bottom: 0.25rem;
         }
 
         .info-box-content p {
-            color: rgba(255, 255, 255, 0.6);
+            color: #64748b;
             font-size: 0.9rem;
             line-height: 1.6;
         }
@@ -400,6 +495,11 @@
     <!-- Floating Orbs -->
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
+
+    <!-- Floating Stars -->
+    <div class="star star-1">✨</div>
+    <div class="star star-2">🌟</div>
+    <div class="star star-3">⭐</div>
 
     <!-- Header -->
     <header class="header">

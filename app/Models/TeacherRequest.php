@@ -29,6 +29,9 @@ class TeacherRequest extends Model
         'processed_date',
         'rejection_reason',
         'is_read',
+        'old_name',
+        'old_email',
+        'old_password_hash',
     ];
 
     protected function casts(): array

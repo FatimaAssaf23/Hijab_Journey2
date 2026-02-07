@@ -11,9 +11,11 @@ use App\Models\StudentClass;
 use App\Models\QuizAttempt;
 use App\Models\StudentAnswer;
 use App\Models\ClassLessonVisibility;
+use App\Models\TeacherScheduleEvent;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class QuizController extends Controller
 {
@@ -33,6 +35,8 @@ class QuizController extends Controller
             'level_id' => 'required|exists:levels,level_id',
             'class_id' => 'required|exists:student_classes,class_id',
             'timer_minutes' => 'required|integer|min:1',
+            'deadline_date' => 'required|date|after_or_equal:today',
+            'deadline_time' => 'required|date_format:H:i',
             'questions' => 'required|array|min:1',
             'questions.*.question_text' => 'required|string',
             'questions.*.image' => 'nullable|image|max:2048',
@@ -54,6 +58,16 @@ class QuizController extends Controller
                 throw new \Exception('You do not have permission to create quizzes for this class.');
             }
 
+            // Get due_date from deadline_date and deadline_time
+            $deadlineDate = $request->deadline_date;
+            $deadlineTime = $request->deadline_time;
+            $dueDate = Carbon::parse($deadlineDate . ' ' . $deadlineTime);
+            
+            // Ensure deadline is in the future
+            if ($dueDate->isPast()) {
+                throw new \Exception('Deadline must be in the future.');
+            }
+            
             $quiz = Quiz::create([
                 'teacher_id' => Auth::id(),
                 'level_id' => $request->level_id,
@@ -61,9 +75,21 @@ class QuizController extends Controller
                 'title' => $request->title,
                 'description' => $request->description ?? null,
                 'timer_minutes' => $request->timer_minutes,
-                'due_date' => now()->addDays(30),
+                'due_date' => $dueDate,
                 'max_score' => count($request->questions),
                 'passing_score' => ceil(count($request->questions) * 0.6),
+                'is_active' => true,
+            ]);
+            
+            // Create schedule event for quiz deadline
+            TeacherScheduleEvent::create([
+                'teacher_id' => Auth::id(),
+                'title' => 'Quiz Deadline: ' . $quiz->title,
+                'description' => 'Quiz deadline for ' . $quiz->title . ($quiz->description ? ': ' . $quiz->description : ''),
+                'event_date' => $dueDate->format('Y-m-d'),
+                'event_time' => $dueDate->format('H:i'),
+                'event_type' => 'quiz',
+                'color' => '#FF6B6B', // Red color for deadlines
                 'is_active' => true,
             ]);
 
@@ -156,26 +182,59 @@ class QuizController extends Controller
     public function update(Request $request, $id)
     {
         $quiz = Quiz::where('teacher_id', Auth::id())->findOrFail($id);
+        
+        // Find and update/delete existing schedule event for this quiz
+        $existingEvent = TeacherScheduleEvent::where('teacher_id', Auth::id())
+            ->where('title', 'LIKE', 'Quiz Deadline: ' . $quiz->title . '%')
+            ->where('event_type', 'quiz')
+            ->first();
 
         $request->validate([
             'title' => 'required|string|max:255',
             'level_id' => 'required|exists:levels,level_id',
             'timer_minutes' => 'required|integer|min:1',
+            'due_date' => 'nullable|date|after_or_equal:today',
         ]);
 
         DB::beginTransaction();
         try {
             // Update quiz basic info only (questions are edited separately)
+            $dueDate = $request->has('due_date') && $request->due_date 
+                ? Carbon::parse($request->due_date) 
+                : $quiz->due_date;
+            
             $quiz->update([
                 'title' => $request->title,
                 'level_id' => $request->level_id,
                 'description' => $request->description ?? null,
                 'timer_minutes' => (int)$request->timer_minutes,
+                'due_date' => $dueDate,
                 // Keep existing max_score and passing_score based on current questions
             ]);
             
             // Refresh the model to ensure we have the latest data
             $quiz->refresh();
+            
+            // Update or create schedule event for quiz deadline
+            if ($existingEvent) {
+                $existingEvent->update([
+                    'title' => 'Quiz Deadline: ' . $quiz->title,
+                    'description' => 'Quiz deadline for ' . $quiz->title . ($quiz->description ? ': ' . $quiz->description : ''),
+                    'event_date' => $dueDate->format('Y-m-d'),
+                    'event_time' => $dueDate->format('H:i'),
+                ]);
+            } else {
+                TeacherScheduleEvent::create([
+                    'teacher_id' => Auth::id(),
+                    'title' => 'Quiz Deadline: ' . $quiz->title,
+                    'description' => 'Quiz deadline for ' . $quiz->title . ($quiz->description ? ': ' . $quiz->description : ''),
+                    'event_date' => $dueDate->format('Y-m-d'),
+                    'event_time' => $dueDate->format('H:i'),
+                    'event_type' => 'quiz',
+                    'color' => '#FF6B6B',
+                    'is_active' => true,
+                ]);
+            }
 
             DB::commit();
             return redirect()->route('quizzes.show', $quiz->quiz_id)->with('success', 'Quiz updated successfully!');
@@ -288,6 +347,12 @@ class QuizController extends Controller
             $attempt->answers()->delete();
         }
         $quiz->attempts()->delete();
+        
+        // Delete associated schedule event
+        TeacherScheduleEvent::where('teacher_id', Auth::id())
+            ->where('title', 'LIKE', 'Quiz Deadline: ' . $quiz->title . '%')
+            ->where('event_type', 'quiz')
+            ->delete();
         
         $quiz->delete();
         

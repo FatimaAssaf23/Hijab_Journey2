@@ -305,7 +305,11 @@ class MLPredictionService
             ];
         }
 
+        // Only get students with role 'student' to exclude teachers
         $students = Student::where('class_id', $classId)
+            ->whereHas('user', function($query) {
+                $query->where('role', 'student');
+            })
             ->with('user')
             ->get();
 

@@ -3,16 +3,28 @@
 @section('content')
 <div class="min-h-screen">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 class="text-4xl font-extrabold text-white mb-2">✏️ Edit Class</h1>
-            <p class="text-pink-100">Update class details and teacher assignment</p>
+    <div class="bg-gradient-to-r from-pink-200/90 via-rose-100/80 to-cyan-200/90 shadow-2xl border-b-4 border-pink-300/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="flex items-center gap-4 mb-4">
+                <a href="{{ route('admin.classes') }}" class="bg-white/90 hover:bg-white text-gray-800 px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 flex items-center gap-2 border-2 border-pink-300/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Go Back
+                </a>
+            </div>
+            <div>
+                <h1 class="text-5xl font-extrabold text-gray-800 mb-3 drop-shadow-lg">
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">✏️ Edit Class</span>
+                </h1>
+                <p class="text-gray-700 text-lg font-medium">Update class details and teacher assignment</p>
+            </div>
         </div>
     </div>
 
     <!-- Form -->
-    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="bg-white rounded-2xl p-8 shadow-xl">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="bg-white/90 backdrop-blur-md rounded-3xl p-8 shadow-xl border-2 border-pink-200/50">
             <form method="POST" action="{{ route('admin.classes.update', $class['id']) }}">
                 @csrf
                 @method('PATCH')
@@ -43,78 +55,14 @@
                         @error('teacherId') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Class Color -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Class Color</label>
-                        <div class="grid grid-cols-6 gap-3">
-                            <!-- Row 1 - Beige & Neutral Tones -->
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="tan" class="sr-only peer" {{ ($class['color'] ?? '') === 'tan' ? 'checked' : '' }} required>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#CCB083] to-[#C4A677] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-amber-400 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Tan</p>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="beige" class="sr-only peer" {{ ($class['color'] ?? '') === 'beige' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#E4CFB3] to-[#DCC5A5] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-amber-300 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Beige</p>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="ivory" class="sr-only peer" {{ ($class['color'] ?? '') === 'ivory' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#F4F4DD] to-[#EEEED0] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-yellow-300 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Ivory</p>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="blush" class="sr-only peer" {{ ($class['color'] ?? '') === 'blush' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#F8C5C8] to-[#F5B5B9] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-pink-300 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Blush</p>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="coral" class="sr-only peer" {{ ($class['color'] ?? '') === 'coral' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#FC8EAC] to-[#FA7A9C] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-pink-400 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Coral</p>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="rose" class="sr-only peer" {{ ($class['color'] ?? '') === 'rose' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#EC769A] to-[#E8628A] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-pink-500 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Rose</p>
-                            </label>
-                            <!-- Row 2 - Original Colors -->
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="pink-dark" class="sr-only peer" {{ ($class['color'] ?? '') === 'pink-dark' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#E88A93] to-[#F08080] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-pink-400 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Pink</p>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="pink-light" class="sr-only peer" {{ ($class['color'] ?? '') === 'pink-light' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#F2C4C4] to-[#F4B8B8] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-pink-300 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Peach</p>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="cream" class="sr-only peer" {{ ($class['color'] ?? '') === 'cream' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#EDE4D8] to-[#E5D9C9] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-amber-300 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Cream</p>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="turquoise" class="sr-only peer" {{ ($class['color'] ?? '') === 'turquoise' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#3DD9C4] to-[#2ED3BC] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-teal-400 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Turquoise</p>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="color" value="teal" class="sr-only peer" {{ ($class['color'] ?? '') === 'teal' ? 'checked' : '' }}>
-                                <div class="w-full h-14 rounded-lg bg-gradient-to-br from-[#2DBCB0] to-[#25A99E] border-4 border-transparent peer-checked:border-gray-800 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-teal-500 hover:scale-105 transition-all shadow-md"></div>
-                                <p class="text-xs text-center mt-1 text-gray-600">Teal</p>
-                            </label>
-                        </div>
-                        @error('color') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                    </div>
                 </div>
 
                 <!-- Buttons -->
                 <div class="flex gap-3 mt-8">
-                    <a href="{{ route('admin.classes') }}" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 rounded-lg transition-all text-center">
+                    <a href="{{ route('admin.classes') }}" class="flex-1 bg-gradient-to-r from-gray-300 to-gray-400 hover:from-gray-400 hover:to-gray-500 text-gray-800 font-bold py-3 rounded-xl transition-all transform hover:scale-105 shadow-md text-center">
                         Cancel
                     </a>
-                    <button type="submit" class="flex-1 bg-gradient-to-r from-pink-500 to-teal-400 hover:shadow-lg text-white font-semibold py-3 rounded-lg transition-all">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white font-bold py-3 rounded-xl transition-all transform hover:scale-105 shadow-lg border-2 border-pink-300/50">
                         Update Class
                     </button>
                 </div>

@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\TeacherRequest;
+use App\Models\AdminSetting;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NewTeacherRequestMail;
 
 class TeacherRequestController extends Controller
 {
@@ -81,7 +85,7 @@ class TeacherRequestController extends Controller
         }
 
         // Create the teacher request
-        TeacherRequest::create([
+        $teacherRequest = TeacherRequest::create([
             'full_name' => $validated['full_name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
@@ -96,6 +100,84 @@ class TeacherRequestController extends Controller
             'request_date' => now(),
             'is_read' => false,
         ]);
+
+        // Send email notification to admin
+        $notifyAdmin = AdminSetting::get('notify_admin_on_new_registrations', false);
+        $emailNotificationsEnabled = AdminSetting::get('email_notifications_enabled', true);
+        
+        // Primary admin email (always send to this address)
+        $primaryAdminEmail = '10121317@mu.edu.lb';
+        
+        // Send notification if email notifications are enabled
+        if ($emailNotificationsEnabled) {
+            try {
+                $emailsSent = 0;
+                
+                // Always send to primary admin email
+                try {
+                    Mail::to($primaryAdminEmail)->send(new NewTeacherRequestMail($teacherRequest));
+                    $emailsSent++;
+                    \Log::info('New teacher request notification sent to primary admin', [
+                        'admin_email' => $primaryAdminEmail,
+                        'teacher_request_id' => $teacherRequest->request_id,
+                        'teacher_email' => $teacherRequest->email
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send new teacher request notification to primary admin: ' . $e->getMessage(), [
+                        'admin_email' => $primaryAdminEmail,
+                        'teacher_request_id' => $teacherRequest->request_id,
+                        'error' => $e->getTraceAsString()
+                    ]);
+                }
+                
+                // Also send to all admin users if the setting is enabled
+                if ($notifyAdmin) {
+                    $adminUsers = User::where('role', 'admin')->get();
+                    
+                    foreach ($adminUsers as $admin) {
+                        // Skip if this admin is the primary admin email (already sent)
+                        if (strtolower($admin->email) === strtolower($primaryAdminEmail)) {
+                            continue;
+                        }
+                        
+                        try {
+                            Mail::to($admin->email)->send(new NewTeacherRequestMail($teacherRequest));
+                            $emailsSent++;
+                            \Log::info('New teacher request notification sent to admin user', [
+                                'admin_email' => $admin->email,
+                                'admin_id' => $admin->user_id,
+                                'teacher_request_id' => $teacherRequest->request_id
+                            ]);
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to send new teacher request notification to admin user: ' . $e->getMessage(), [
+                                'admin_email' => $admin->email,
+                                'admin_id' => $admin->user_id,
+                                'teacher_request_id' => $teacherRequest->request_id
+                            ]);
+                        }
+                    }
+                }
+                
+                if ($emailsSent === 0) {
+                    \Log::warning('No new teacher request notifications were sent', [
+                        'email_notifications_enabled' => $emailNotificationsEnabled,
+                        'notify_admin_setting' => $notifyAdmin,
+                        'teacher_request_id' => $teacherRequest->request_id
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Log error but don't fail request creation if email fails
+                \Log::error('Failed to send new teacher request notification: ' . $e->getMessage(), [
+                    'teacher_request_id' => $teacherRequest->request_id,
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+        } else {
+            \Log::warning('Email notifications are disabled, skipping new teacher request notification', [
+                'teacher_request_id' => $teacherRequest->request_id,
+                'email_notifications_enabled' => false
+            ]);
+        }
 
         return redirect()->route('teacher-request.guest')
             ->with('success', 'Your teacher application has been submitted successfully! We will review your request and contact you via email soon.');
@@ -157,8 +239,10 @@ class TeacherRequestController extends Controller
         $user->save();
 
         // Create the teacher request
-        TeacherRequest::create([
+        $teacherRequest = TeacherRequest::create([
             'user_id' => Auth::id(),
+            'full_name' => $validated['full_name'],
+            'email' => $user->email,
             'age' => $validated['age'],
             'language' => $validated['language'],
             'specialization' => $validated['specialization'],
@@ -169,6 +253,84 @@ class TeacherRequestController extends Controller
             'status' => 'pending',
             'request_date' => now(),
         ]);
+
+        // Send email notification to admin
+        $notifyAdmin = AdminSetting::get('notify_admin_on_new_registrations', false);
+        $emailNotificationsEnabled = AdminSetting::get('email_notifications_enabled', true);
+        
+        // Primary admin email (always send to this address)
+        $primaryAdminEmail = '10121317@mu.edu.lb';
+        
+        // Send notification if email notifications are enabled
+        if ($emailNotificationsEnabled) {
+            try {
+                $emailsSent = 0;
+                
+                // Always send to primary admin email
+                try {
+                    Mail::to($primaryAdminEmail)->send(new NewTeacherRequestMail($teacherRequest));
+                    $emailsSent++;
+                    \Log::info('New teacher request notification sent to primary admin', [
+                        'admin_email' => $primaryAdminEmail,
+                        'teacher_request_id' => $teacherRequest->request_id,
+                        'teacher_email' => $teacherRequest->email
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send new teacher request notification to primary admin: ' . $e->getMessage(), [
+                        'admin_email' => $primaryAdminEmail,
+                        'teacher_request_id' => $teacherRequest->request_id,
+                        'error' => $e->getTraceAsString()
+                    ]);
+                }
+                
+                // Also send to all admin users if the setting is enabled
+                if ($notifyAdmin) {
+                    $adminUsers = User::where('role', 'admin')->get();
+                    
+                    foreach ($adminUsers as $admin) {
+                        // Skip if this admin is the primary admin email (already sent)
+                        if (strtolower($admin->email) === strtolower($primaryAdminEmail)) {
+                            continue;
+                        }
+                        
+                        try {
+                            Mail::to($admin->email)->send(new NewTeacherRequestMail($teacherRequest));
+                            $emailsSent++;
+                            \Log::info('New teacher request notification sent to admin user', [
+                                'admin_email' => $admin->email,
+                                'admin_id' => $admin->user_id,
+                                'teacher_request_id' => $teacherRequest->request_id
+                            ]);
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to send new teacher request notification to admin user: ' . $e->getMessage(), [
+                                'admin_email' => $admin->email,
+                                'admin_id' => $admin->user_id,
+                                'teacher_request_id' => $teacherRequest->request_id
+                            ]);
+                        }
+                    }
+                }
+                
+                if ($emailsSent === 0) {
+                    \Log::warning('No new teacher request notifications were sent', [
+                        'email_notifications_enabled' => $emailNotificationsEnabled,
+                        'notify_admin_setting' => $notifyAdmin,
+                        'teacher_request_id' => $teacherRequest->request_id
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Log error but don't fail request creation if email fails
+                \Log::error('Failed to send new teacher request notification: ' . $e->getMessage(), [
+                    'teacher_request_id' => $teacherRequest->request_id,
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+        } else {
+            \Log::warning('Email notifications are disabled, skipping new teacher request notification', [
+                'teacher_request_id' => $teacherRequest->request_id,
+                'email_notifications_enabled' => false
+            ]);
+        }
 
         return redirect()->route('dashboard')->with('success', 'Your teacher request has been submitted successfully! We will review it soon.');
     }

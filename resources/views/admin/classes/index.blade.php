@@ -32,15 +32,15 @@ function showStudentsList(classId) {
         content = '<div class="space-y-2">';
         students.forEach((student, index) => {
             content += `
-                <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg hover:shadow-md transition-all">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold">
+                <div class="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl hover:shadow-lg transition-all transform hover:scale-[1.02] border-2 border-pink-200/50 student-card">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center text-white font-bold shadow-md">
                         ${index + 1}
                     </div>
                     <div class="flex-1">
-                        <p class="font-semibold text-gray-800">${student.name}</p>
-                        <p class="text-xs text-gray-500">${student.email}</p>
+                        <p class="font-bold text-gray-800">${student.name}</p>
+                        <p class="text-xs text-gray-600 font-medium">${student.email}</p>
                     </div>
-                    <div class="text-pink-500">👤</div>
+                    <div class="text-2xl">👤</div>
                 </div>
             `;
         });
@@ -122,17 +122,17 @@ function renderManageStudents(students) {
     let content = '';
     if (students.length > 0) {
         students.forEach((student, index) => {
-            content += `
-                <div class="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg hover:shadow-md transition-all">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold">
+                    content += `
+                <div class="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl hover:shadow-lg transition-all transform hover:scale-[1.02] border-2 border-pink-200/50 student-card">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center text-white font-bold shadow-md">
                         ${index + 1}
                     </div>
                     <div class="flex-1">
-                        <p class="font-semibold text-gray-800">${student.name}</p>
-                        <p class="text-xs text-gray-500">${student.email}</p>
+                        <p class="font-bold text-gray-800">${student.name}</p>
+                        <p class="text-xs text-gray-600 font-medium">${student.email}</p>
                     </div>
-                    <button onclick="changeStudentClass(${student.id}, '${student.name}')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-all">🔄 Change Class</button>
-                    <button onclick="removeStudent(${student.id})" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all">🗑️ Remove</button>
+                    <button onclick="changeStudentClass(${student.id}, '${student.name}')" class="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white px-4 py-2 rounded-xl font-bold transition-all transform hover:scale-105 shadow-md">🔄 Change</button>
+                    <button onclick="removeStudent(${student.id})" class="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-4 py-2 rounded-xl font-bold transition-all transform hover:scale-105 shadow-md">🗑️ Remove</button>
                 </div>
             `;
         });
@@ -142,60 +142,6 @@ function renderManageStudents(students) {
     document.getElementById('manageStudentsContent').innerHTML = content;
 }
 window.renderManageStudents = renderManageStudents;
-
-function addStudentToClass() {
-    const select = document.getElementById('newStudentSelect');
-    const studentId = select.value;
-    if (!studentId) {
-        alert('Please select a student');
-        return;
-    }
-    const option = select.options[select.selectedIndex];
-    const studentName = option.text.split(' (')[0]; // Extract name from "Name (email)" format
-    const students = studentsData[currentClassId] || [];
-    if (students.find(s => s.id == studentId)) {
-        alert('Student is already in this class');
-        return;
-    }
-    // Send POST request to backend to update class_id
-    fetch(`/admin/classes/${currentClassId}/students/add`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({ student_ids: [parseInt(studentId)] })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Extract email from option text
-            const emailMatch = option.text.match(/\(([^)]+)\)/);
-            const email = emailMatch ? emailMatch[1] : '';
-            const newStudent = {
-                id: parseInt(studentId),
-                name: studentName,
-                email: email
-            };
-            if (!studentsData[currentClassId]) {
-                studentsData[currentClassId] = [];
-            }
-            studentsData[currentClassId].push(newStudent);
-            renderManageStudents(studentsData[currentClassId]);
-            // Remove the option from the dropdown
-            option.remove();
-            select.value = '';
-            alert('Student added successfully!');
-        } else {
-            alert('Failed to add student: ' + (data.message || 'Unknown error'));
-        }
-    })
-    .catch(() => {
-        alert('Failed to add student due to network error.');
-    });
-}
-window.addStudentToClass = addStudentToClass;
 
 function removeStudent(studentId) {
     if (!confirm('Are you sure you want to remove this student from the class?')) {
@@ -345,74 +291,143 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
 @extends('layouts.admin')
 
 @section('content')
-<div class="min-h-screen">
+<div class="min-h-screen" style="background: linear-gradient(135deg, #FFF4FA 0%, #FDF2F8 30%, #F0F9FF 70%, #E0F7FA 100%);">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-[#FC8EAC] via-[#EC769A] to-[#6EC6C5] shadow-xl">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex justify-between items-center">
-            <div>
-                <h1 class="text-4xl font-extrabold text-white mb-2">🏫 Classes Manager</h1>
-                <p class="text-pink-100">Create and manage your classes</p>
+    <div class="bg-gradient-to-r from-pink-200/90 via-rose-100/80 to-cyan-200/90 shadow-2xl border-b-4 border-pink-300/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div class="flex items-center gap-6 text-center md:text-left">
+                    <!-- Classes Icon -->
+                    <div class="hidden md:flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-2xl transform hover:scale-105 transition-all duration-300 border-4 border-white/50">
+                        <div class="text-6xl filter drop-shadow-2xl">🏫</div>
+                    </div>
+                    <div>
+                        <h1 class="text-5xl font-extrabold text-gray-800 mb-3 drop-shadow-lg flex items-center gap-4 justify-center md:justify-start">
+                            <span class="md:hidden flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-xl border-4 border-white/50">
+                                <span class="text-5xl">🏫</span>
+                            </span>
+                            <span class="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">Classes Manager</span>
+                        </h1>
+                        <p class="text-gray-700 text-lg font-medium">Create and manage your classes • Organize students and assign teachers</p>
+                    </div>
+                </div>
+                <a href="{{ route('admin.classes.create') }}" class="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white px-8 py-4 rounded-2xl font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 flex items-center gap-3 text-lg border-2 border-pink-300/50">
+                    <span class="text-2xl">➕</span> Create New Class
+                </a>
             </div>
-            <a href="{{ route('admin.classes.create') }}">
-                <span class="bg-[#EC769A] hover:bg-[#FC8EAC] text-white px-8 py-4 rounded-xl font-bold shadow-xl transition-all flex items-center gap-2 text-lg" style="box-shadow: 0 8px 24px 0 rgba(236,118,154,0.18);">+ Add New Class</span>
-            </a>
         </div>
     </div>
 
     <!-- Success Message -->
     @if (session('success'))
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-            <div class="bg-emerald-100 border border-emerald-400 rounded-lg p-4 text-emerald-700 font-medium">
-                ✓ {{ session('success') }}
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 text-green-800 px-6 py-4 rounded-xl shadow-lg backdrop-blur-lg">
+                <div class="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="font-semibold">{{ session('success') }}</span>
+                </div>
             </div>
         </div>
     @endif
 
+    <!-- Search Bar -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <form method="GET" action="{{ route('admin.classes') }}" class="bg-white/90 backdrop-blur-md rounded-2xl p-6 shadow-lg border-2 border-pink-200/50">
+            <div class="flex flex-col md:flex-row gap-4 items-center">
+                <div class="flex-1 w-full">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            name="search" 
+                            value="{{ $search ?? '' }}" 
+                            placeholder="Search by class name, teacher name, or status. For capacity, enter a number (e.g., 30)" 
+                            class="w-full border-2 border-pink-300 rounded-xl px-6 py-4 pl-12 focus:outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-200 text-gray-800 font-medium"
+                        >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500 absolute left-4 top-1/2 transform -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button 
+                        type="submit" 
+                        class="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 border-2 border-pink-300/50 flex items-center gap-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Search
+                    </button>
+                    @if(!empty($search))
+                        <a 
+                            href="{{ route('admin.classes') }}" 
+                            class="bg-gradient-to-r from-gray-300 to-gray-400 hover:from-gray-400 hover:to-gray-500 text-gray-800 px-8 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 border-2 border-gray-300/50 flex items-center gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Clear
+                        </a>
+                    @endif
+                </div>
+            </div>
+            @if(!empty($search))
+                <div class="mt-4 text-sm text-gray-600 font-medium">
+                    <span class="text-pink-600 font-bold">{{ count($classes) }}</span> class(es) found for "<span class="text-pink-600 font-bold">{{ $search }}</span>"
+                </div>
+            @endif
+        </form>
+    </div>
+
     <!-- Classes Grid -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @forelse($classes as $class)
-                <div class="bg-gradient-to-br {{ $class['color_gradient'] ?? 'from-pink-100 to-pink-200' }} rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                <div class="group relative bg-white/90 backdrop-blur-md rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-pink-200/50 hover:border-cyan-300/50">
+                    <!-- Gradient Top Border -->
+                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-pink-400 via-rose-400 to-cyan-400 rounded-t-3xl"></div>
+                    
                     <!-- Card Header -->
-                    <div class="flex justify-between items-start mb-4">
+                    <div class="flex justify-between items-start mb-5 mt-2">
                         <div class="flex-1">
-                            <h3 class="text-2xl font-bold text-white mb-1">{{ $class['name'] }}</h3>
-                            <p class="text-white/90 text-sm">Grade {{ $class['grade'] }}</p>
+                            <h3 class="text-2xl font-extrabold text-gray-800 mb-1 group-hover:text-pink-600 transition-colors">{{ $class['name'] }}</h3>
                         </div>
-                        <div class="flex gap-2 items-start">
-                            <a href="{{ route('admin.classes.edit', $class['id']) }}" class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all flex items-center justify-center" style="width:56px;height:56px;">
-                                ✏️
+                        <div class="flex gap-2">
+                            <a href="{{ route('admin.classes.edit', $class['id']) }}" class="bg-gradient-to-r from-cyan-400 to-teal-400 hover:from-cyan-500 hover:to-teal-500 text-white rounded-xl transition-all transform hover:scale-110 shadow-lg hover:shadow-xl border-2 border-cyan-300/50 flex items-center justify-center" style="width: 48px; height: 48px;">
+                                <span class="text-lg">✏️</span>
                             </a>
                             <form method="POST" action="{{ route('admin.classes.delete', $class['id']) }}" style="display:inline;">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" onclick="return confirm('Delete this class?')" class="bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all flex items-center justify-center" style="width:56px;height:56px;">
-                                    🗑️
+                                <button type="submit" onclick="return confirm('Are you sure you want to delete this class?')" class="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white rounded-xl transition-all transform hover:scale-110 shadow-lg hover:shadow-xl border-2 border-pink-300/50 flex items-center justify-center" style="width: 48px; height: 48px;">
+                                    <span class="text-lg">🗑️</span>
                                 </button>
                             </form>
                         </div>
                     </div>
 
                     <!-- Card Stats -->
-                    <div class="space-y-3 mb-4">
-                        <div class="bg-white/30 backdrop-blur rounded-lg p-3">
-                            <p class="text-white/80 text-sm font-medium">👨‍🏫 Teacher</p>
-                            <p class="text-white font-semibold">
+                    <div class="space-y-3 mb-5">
+                        <div class="bg-gradient-to-r from-cyan-50 to-teal-50 rounded-xl p-4 shadow-md border-2 border-cyan-200/50">
+                            <p class="text-cyan-700 text-xs font-semibold mb-1 uppercase tracking-wide">👨‍🏫 Teacher</p>
+                            <p class="text-gray-800 font-bold text-lg">
                                 @php
                                     $teacher = collect($teachers)->firstWhere('id', $class['teacherId']);
                                     echo $teacher ? $teacher['name'] : 'Unassigned';
                                 @endphp
                             </p>
                         </div>
-                        <div class="bg-white/30 backdrop-blur rounded-lg p-3">
+                        <div class="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-4 shadow-md border-2 border-pink-200/50">
                             <div class="flex items-center justify-between">
                                 <div class="flex-1">
-                                    <p class="text-white/80 text-sm font-medium">👥 Students</p>
-                                    <p class="text-white font-semibold" id="studentCount_{{ $class['id'] }}">
+                                    <p class="text-pink-700 text-xs font-semibold mb-1 uppercase tracking-wide">👥 Students</p>
+                                    <p class="text-gray-800 font-bold text-lg" id="studentCount_{{ $class['id'] }}">
                                         <script>document.write((studentsData[{{ $class['id'] }}] ? studentsData[{{ $class['id'] }}].length : 0) + ' students');</script>
                                     </p>
                                 </div>
-                                <button onclick="showStudentsList({{ $class['id'] }})" class="bg-white/50 hover:bg-white text-gray-800 px-3 py-1 rounded-lg text-xs font-semibold transition-all">
+                                <button onclick="showStudentsList({{ $class['id'] }})" class="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all transform hover:scale-105 shadow-md">
                                     View List
                                 </button>
                             </div>
@@ -420,19 +435,23 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="grid grid-cols-2 gap-2">
-                        <!-- Removed old Class Info button and re-added below for clean markup and event binding -->
-                        <button onclick="showClassInfo({{ $class['id'] }})" class="bg-white/90 text-gray-800 font-semibold py-2 rounded-lg hover:bg-white transition-all text-sm">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="showClassInfo({{ $class['id'] }})" class="bg-gradient-to-r from-cyan-50 to-teal-50 hover:from-cyan-100 hover:to-teal-100 text-cyan-700 font-bold py-3 rounded-xl transition-all transform hover:scale-105 shadow-md border-2 border-cyan-200/50 text-sm">
                             📋 Class Info
                         </button>
-                        <button onclick="manageClass({{ $class['id'] }})" class="bg-white/90 text-gray-800 font-semibold py-2 rounded-lg hover:bg-white transition-all text-sm">
-                            ⚙️ Manage Class
+                        <button onclick="manageClass({{ $class['id'] }})" class="bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 text-pink-700 font-bold py-3 rounded-xl transition-all transform hover:scale-105 shadow-md border-2 border-pink-200/50 text-sm">
+                            ⚙️ Manage
                         </button>
                     </div>
+
+                    <!-- Hover Effect Overlay -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-pink-200/0 to-cyan-200/0 group-hover:from-pink-200/10 group-hover:to-cyan-200/10 rounded-3xl transition-all duration-300 pointer-events-none"></div>
                 </div>
             @empty
-                <div class="col-span-full bg-white/10 backdrop-blur rounded-lg p-8 text-center text-white/70">
-                    No classes created yet. Add your first class!
+                <div class="col-span-full bg-gradient-to-br from-pink-100/90 via-rose-50/80 to-cyan-100/90 backdrop-blur-lg rounded-3xl p-12 text-center border-2 border-pink-300/50 shadow-xl">
+                    <div class="text-6xl mb-4">🏫</div>
+                    <p class="text-gray-700 text-xl font-bold">No classes created yet</p>
+                    <p class="text-gray-500 mt-2">Start by creating your first class!</p>
                 </div>
             @endforelse
         </div>
@@ -440,17 +459,17 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
 
     <!-- Students List Modal -->
     <div id="studentsModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl transform transition-all">
+        <div class="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl transform transition-all border-2 border-pink-200/50">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">Students List</h2>
-                <button onclick="closeStudentsList()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                <h2 class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">👥 Students List</h2>
+                <button onclick="closeStudentsList()" class="text-gray-400 hover:text-gray-600 text-3xl transition-transform hover:rotate-90">&times;</button>
             </div>
             
-            <div id="studentsContent" class="max-h-96 overflow-y-auto">
+            <div id="studentsContent" class="max-h-96 overflow-y-auto space-y-2">
                 <!-- Content will be inserted here -->
             </div>
 
-            <button onclick="closeStudentsList()" class="w-full mt-6 bg-gradient-to-r from-pink-500 to-teal-400 hover:shadow-lg text-white font-semibold py-3 rounded-lg transition-all">
+            <button onclick="closeStudentsList()" class="w-full mt-6 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white font-bold py-3 rounded-xl transition-all transform hover:scale-105 shadow-lg border-2 border-pink-300/50">
                 Close
             </button>
         </div>
@@ -458,17 +477,17 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
 
     <!-- Class Info Modal -->
     <div id="classInfoModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-8 max-w-2xl w-full shadow-2xl transform transition-all">
+        <div class="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl transform transition-all border-2 border-pink-200/50">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">📋 Class Information</h2>
-                <button onclick="closeClassInfo()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                <h2 class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">📋 Class Information</h2>
+                <button onclick="closeClassInfo()" class="text-gray-400 hover:text-gray-600 text-3xl transition-transform hover:rotate-90">&times;</button>
             </div>
             
             <div id="classInfoContent" class="space-y-4">
                 <!-- Content will be inserted here -->
             </div>
 
-            <button onclick="closeClassInfo()" class="w-full mt-6 bg-gradient-to-r from-pink-500 to-teal-400 hover:shadow-lg text-white font-semibold py-3 rounded-lg transition-all">
+            <button onclick="closeClassInfo()" class="w-full mt-6 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white font-bold py-3 rounded-xl transition-all transform hover:scale-105 shadow-lg border-2 border-pink-300/50">
                 Close
             </button>
         </div>
@@ -476,41 +495,22 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
 
     <!-- Manage Class Modal -->
     <div id="manageClassModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all">
+        <div class="bg-white rounded-3xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl transform transition-all border-2 border-pink-200/50">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">⚙️ Manage Class Students</h2>
-                <button onclick="closeManageClass()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                <h2 class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">⚙️ Manage Class Students</h2>
+                <button onclick="closeManageClass()" class="text-gray-400 hover:text-gray-600 text-3xl transition-transform hover:rotate-90">&times;</button>
             </div>
             
 
-            <!-- Add Unenrolled Students -->
-            <div class="mb-6 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                <h3 class="text-lg font-bold text-gray-800 mb-3">➕ Add Unenrolled Students</h3>
-                <div class="flex gap-2">
-                    <select id="newStudentSelect" class="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500">
-                        <option value="">Select a student to add...</option>
-                        @foreach($unenrolledStudents ?? [] as $student)
-                            <option value="{{ $student['id'] }}">{{ $student['name'] }} ({{ $student['email'] }})</option>
-                        @endforeach
-                    </select>
-                    <button onclick="addStudentToClass()" class="bg-gradient-to-r from-blue-500 to-purple-500 hover:shadow-lg text-white font-semibold px-6 py-2 rounded-lg transition-all">
-                        Add
-                    </button>
-                </div>
-                @if(empty($unenrolledStudents))
-                    <p class="text-sm text-gray-500 mt-2">No unenrolled students found.</p>
-                @endif
-            </div>
-
             <!-- Current Students List -->
             <div>
-                <h3 class="text-lg font-bold text-gray-800 mb-4">👥 Current Students (<span id="studentCount">0</span>)</h3>
-                <div id="manageStudentsContent" class="space-y-2">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">👥 Current Students (<span id="studentCount" class="text-pink-600">0</span>)</h3>
+                <div id="manageStudentsContent" class="space-y-3">
                     <!-- Content will be inserted here -->
                 </div>
             </div>
 
-            <button onclick="closeManageClass()" class="w-full mt-6 bg-gradient-to-r from-pink-500 to-teal-400 hover:shadow-lg text-white font-semibold py-3 rounded-lg transition-all">
+            <button onclick="closeManageClass()" class="w-full mt-6 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white font-bold py-3 rounded-xl transition-all transform hover:scale-105 shadow-lg border-2 border-pink-300/50">
                 Done
             </button>
         </div>
@@ -530,17 +530,15 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
                 content = '<div class="space-y-2">';
                 students.forEach((student, index) => {
                     content += `
-                        <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg hover:shadow-md transition-all">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold">
+                        <div class="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl hover:shadow-lg transition-all transform hover:scale-[1.02] border-2 border-pink-200/50 student-card">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center text-white font-bold shadow-md">
                                 ${index + 1}
                             </div>
                             <div class="flex-1">
-                                <p class="font-semibold text-gray-800">${student.name}</p>
-                                <p class="text-xs text-gray-500">${student.email}</p>
+                                <p class="font-bold text-gray-800">${student.name}</p>
+                                <p class="text-xs text-gray-600 font-medium">${student.email}</p>
                             </div>
-                            <div class="text-pink-500">
-                                👤
-                            </div>
+                            <div class="text-2xl">👤</div>
                         </div>
                     `;
                 });
@@ -664,67 +662,28 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
             if (students.length > 0) {
                 students.forEach((student, index) => {
                     content += `
-                        <div class="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg hover:shadow-md transition-all">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold">
+                        <div class="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl hover:shadow-lg transition-all transform hover:scale-[1.02] border-2 border-pink-200/50 student-card">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center text-white font-bold shadow-md">
                                 ${index + 1}
                             </div>
                             <div class="flex-1">
-                                <p class="font-semibold text-gray-800">${student.name}</p>
-                                <p class="text-xs text-gray-500">${student.email}</p>
+                                <p class="font-bold text-gray-800">${student.name}</p>
+                                <p class="text-xs text-gray-600 font-medium">${student.email}</p>
                             </div>
-                            <button onclick="changeStudentClass(${student.id}, '${student.name}')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-all">
-                                🔄 Change Class
+                            <button onclick="changeStudentClass(${student.id}, '${student.name}')" class="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white px-4 py-2 rounded-xl font-bold transition-all transform hover:scale-105 shadow-md">
+                                🔄 Change
                             </button>
-                            <button onclick="removeStudent(${student.id})" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all">
+                            <button onclick="removeStudent(${student.id})" class="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-4 py-2 rounded-xl font-bold transition-all transform hover:scale-105 shadow-md">
                                 🗑️ Remove
                             </button>
                         </div>
                     `;
                 });
             } else {
-                content = '<div class="text-center py-8"><p class="text-gray-500">No students enrolled yet</p><p class="text-sm text-gray-400 mt-2">Add students using the form above</p></div>';
+                content = '<div class="text-center py-8"><p class="text-gray-500">No students enrolled yet</p></div>';
             }
 
             document.getElementById('manageStudentsContent').innerHTML = content;
-        }
-
-        function addStudentToClass() {
-            const select = document.getElementById('newStudentSelect');
-            const studentId = select.value;
-            const studentName = select.options[select.selectedIndex].text;
-
-            if (!studentId) {
-                alert('Please select a student');
-                return;
-            }
-
-            // Check if student already in class
-            const students = studentsData[currentClassId] || [];
-            if (students.find(s => s.id == studentId)) {
-                alert('Student is already in this class');
-                return;
-            }
-
-            // Add student to class (in real app, this would be an API call)
-            const newStudent = {
-                id: parseInt(studentId),
-                name: studentName,
-                email: studentName.toLowerCase().replace(' ', '') + '@student.com'
-            };
-
-            if (!studentsData[currentClassId]) {
-                studentsData[currentClassId] = [];
-            }
-            studentsData[currentClassId].push(newStudent);
-
-            // Re-render the list
-            renderManageStudents(studentsData[currentClassId]);
-
-            // Reset select
-            select.value = '';
-
-            // Show success message
-            alert('Student added successfully!');
         }
 
         function removeStudent(studentId) {
@@ -844,5 +803,59 @@ document.getElementById('manageClassModal').addEventListener('click', function(e
         });
 
 </div>
+
+<style>
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes iconPulse {
+        0%, 100% { transform: scale(1) rotate(0deg); }
+        25% { transform: scale(1.05) rotate(-2deg); }
+        75% { transform: scale(1.05) rotate(2deg); }
+    }
+    
+    /* Header icon subtle animation on hover */
+    .bg-gradient-to-br.from-pink-500:hover {
+        animation: iconPulse 2s ease-in-out infinite;
+    }
+    
+    /* Card hover animations */
+    .group:hover {
+        animation: none;
+    }
+    
+    /* Smooth transitions for all interactive elements */
+    button, a {
+        transition: all 0.3s ease;
+    }
+    
+    /* Modal backdrop animation */
+    #studentsModal, #classInfoModal, #manageClassModal {
+        animation: fadeIn 0.3s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    
+    /* Student card styling in modals */
+    .student-card {
+        background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+        border: 2px solid rgba(236, 72, 153, 0.2);
+    }
+    
+    .student-card:hover {
+        background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+        border-color: rgba(236, 72, 153, 0.4);
+        transform: translateX(4px);
+    }
+</style>
 @endsection
 

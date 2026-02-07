@@ -5,12 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Meeting;
 use App\Models\MeetingAttendance;
 use App\Models\StudentClass;
+use App\Services\MeetingEnrollmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class MeetingController extends Controller
 {
+    protected $enrollmentService;
+    
+    public function __construct(MeetingEnrollmentService $enrollmentService)
+    {
+        $this->enrollmentService = $enrollmentService;
+    }
     /**
      * Show form to create a meeting (teachers only)
      */
@@ -45,13 +52,14 @@ class MeetingController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'class_id' => 'required|exists:student_classes,class_id',
-            'date' => 'required|date',
+            'date' => 'required|date|after_or_equal:today',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'google_meet_link' => ['required', 'url', 'regex:#^https://(meet\.google\.com|.*\.google\.com/.*meet)#i'],
             'description' => 'nullable|string',
         ], [
             'google_meet_link.regex' => 'Please enter a valid Google Meet link (must start with https://meet.google.com)',
+            'date.after_or_equal' => 'The meeting date must be today or a future date.',
         ]);
 
         if ($validator->fails()) {
@@ -66,6 +74,14 @@ class MeetingController extends Controller
                 $request->date . ' ' . $request->start_time
             );
             
+            // Additional validation: ensure the combined datetime is in the future
+            $now = new \DateTime();
+            if ($startDateTime < $now) {
+                return redirect()->back()
+                    ->withErrors(['date' => 'The meeting date and time must be in the future.'])
+                    ->withInput();
+            }
+            
             // Combine date and time for end_time
             $endDateTime = new \DateTime(
                 $request->date . ' ' . $request->end_time
@@ -76,7 +92,7 @@ class MeetingController extends Controller
                               ($startDateTime->diff($endDateTime)->h * 60);
 
             // Create meeting
-            Meeting::create([
+            $meeting = Meeting::create([
                 'teacher_id' => $user->user_id,
                 'class_id' => $request->class_id,
                 'title' => $request->title,
@@ -88,6 +104,9 @@ class MeetingController extends Controller
                 'duration_minutes' => $durationMinutes,
                 'status' => 'scheduled',
             ]);
+
+            // Automatically sync enrollments for all students in the class
+            $this->enrollmentService->syncEnrollmentsForMeeting($meeting);
 
             return redirect()->route('meetings.index')
                 ->with('success', 'Meeting created successfully!');
@@ -129,14 +148,8 @@ class MeetingController extends Controller
                 })->count(),
             ];
         } elseif ($user->role === 'student') {
-            // Students see meetings for their class
-            $student = $user->student;
-            if ($student && $student->class_id) {
-                $meetings = Meeting::where('class_id', $student->class_id)
-                    ->with(['studentClass', 'teacher'])
-                    ->orderBy('start_time', 'desc')
-                    ->get();
-            }
+            // Use the enrollment service to get meetings - handles all logic internally
+            $meetings = $this->enrollmentService->getMeetingsForStudent($user);
         }
 
         return view('meetings.index', compact('meetings', 'stats'));
@@ -163,31 +176,65 @@ class MeetingController extends Controller
 
         $meeting->load(['studentClass', 'teacher']);
 
+        // Ensure meeting has enrollments (for backward compatibility)
+        $this->enrollmentService->ensureMeetingHasEnrollments($meeting);
+
+        // Ensure meeting has a verification code (generate if missing)
+        if (empty($meeting->verification_code)) {
+            $meeting->verification_code = strtoupper(substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, 6));
+            $meeting->save();
+        }
+
         // Get attendance for student if they're a student
         $attendance = null;
         if ($user->role === 'student' && $user->student) {
-            $attendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
-                ->where('student_id', $user->student->student_id)
-                ->first();
+            // Try enrollment system first (with error handling)
+            try {
+                $enrollment = \App\Models\MeetingEnrollment::where('meeting_id', $meeting->meeting_id)
+                    ->where('student_id', $user->user_id)
+                    ->first();
+            } catch (\Exception $e) {
+                $enrollment = null; // Fall back to old system
+            }
             
-            // Fix: If student is currently in meeting (has joined_at but no leave_time)
-            // but status is 'absent', reset to 'pending'
-            if ($attendance && $attendance->joined_at && !$attendance->leave_time && $attendance->status === 'absent') {
-                $attendance->status = 'pending';
-                $attendance->save();
+            if ($enrollment) {
+                // Use enrollment data, but also check MeetingAttendance for verification data
+                $meetingAttendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
+                    ->where('student_id', $user->student->student_id)
+                    ->first();
+                
+                $attendance = (object)[
+                    'status' => $enrollment->attendance_status,
+                    'joined_at' => $enrollment->joined_at,
+                    'join_time' => $enrollment->joined_at,
+                    'leave_time' => $enrollment->left_at ?? ($meetingAttendance ? $meetingAttendance->leave_time : null),
+                    'is_verified' => $meetingAttendance ? $meetingAttendance->is_verified : false,
+                    'entered_code' => $meetingAttendance ? $meetingAttendance->entered_code : null,
+                ];
+            } else {
+                // Fallback to old system
+                $attendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
+                    ->where('student_id', $user->student->student_id)
+                    ->first();
+                
+                // Fix: If student is currently in meeting (has join_time but no leave_time)
+                // but status is 'absent', reset to 'pending'
+                if ($attendance && $attendance->join_time && !$attendance->leave_time && $attendance->status === 'absent') {
+                    $attendance->status = 'pending';
+                    $attendance->save();
+                }
             }
         }
 
         // Get all attendance records for teachers
-        $attendances = collect([]);
+        // Use MeetingAttendance for verification system
+        $attendances = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
+            ->with('student.user')
+            ->get();
+        
+        // Get all students in the class
         $allStudents = collect([]);
-        if ($user->role === 'teacher') {
-            $attendances = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
-                ->with(['student.user'])
-                ->orderByRaw('COALESCE(joined_at, join_time) ASC')
-                ->get();
-            
-            // Get all students in the class to show who hasn't attended
+        if ($meeting->class_id) {
             $allStudents = \App\Models\Student::where('class_id', $meeting->class_id)
                 ->with('user')
                 ->get();
@@ -218,53 +265,93 @@ class MeetingController extends Controller
             return response()->json(['error' => 'You can only join meetings for your class.'], 403);
         }
 
-        // Check if already joined (and hasn't left yet)
-        $existingAttendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
-            ->where('student_id', $student->student_id)
-            ->first();
-
-        if ($existingAttendance) {
-            // If they have left (leave_time is set), allow them to rejoin
-            if ($existingAttendance->leave_time) {
-                // Reset attendance for re-joining
-                $existingAttendance->joined_at = now();
-                $existingAttendance->join_time = now(); // Keep for backward compatibility
-                $existingAttendance->leave_time = null;
-                $existingAttendance->duration_minutes = null;
-                $existingAttendance->status = 'pending'; // Reset to pending when rejoining
-                $existingAttendance->last_confirmed_at = null;
-                $existingAttendance->save();
-                
-                // Delete old check responses when rejoining
-                $existingAttendance->checkResponses()->delete();
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Successfully rejoined the meeting.',
-                    'attendance' => $existingAttendance
-                ], 200);
-            } else {
-                // They're already in the meeting
-                return response()->json([
-                    'error' => 'You have already joined this meeting.',
-                    'attendance' => $existingAttendance
-                ], 400);
-            }
+        // Check if enrollment exists (for enrollment system)
+        $enrollment = null;
+        try {
+            $enrollment = \App\Models\MeetingEnrollment::where('meeting_id', $meeting->meeting_id)
+                ->where('student_id', $user->user_id)
+                ->first();
+        } catch (\Exception $e) {
+            // Enrollment system not available, continue with old system
         }
 
-        // Create attendance record with automatic attendance system
-        $attendance = MeetingAttendance::create([
-            'meeting_id' => $meeting->meeting_id,
-            'student_id' => $student->student_id,
-            'join_time' => now(), // Keep for backward compatibility
-            'joined_at' => now(), // New field for automatic attendance
-            'status' => 'pending', // Start with pending status
-        ]);
+        // Always create or update MeetingAttendance record (required for verification)
+        // This ensures the record exists even if they already joined
+        $joinTime = now();
+        
+        // Use updateOrCreate to ensure record exists
+        $attendance = MeetingAttendance::updateOrCreate(
+            [
+                'meeting_id' => $meeting->meeting_id,
+                'student_id' => $student->student_id,
+            ],
+            [
+                'join_time' => $joinTime,
+                'status' => 'pending',
+                'is_verified' => false,
+                'entered_code' => null,
+                'leave_time' => null,
+                'verification_attempts' => 0,
+            ]
+        );
+        
+        // Always update join_time and reset verification status
+        $attendance->join_time = $joinTime;
+        $attendance->leave_time = null;
+        $attendance->is_verified = false;
+        $attendance->entered_code = null;
+        // Reset verification attempts only if not already marked as absent
+        if ($attendance->status !== 'absent') {
+            $attendance->verification_attempts = 0;
+        }
+        
+        // Determine if student is late or on time (compare join_time with meeting start_time)
+        // Only set status if not already verified as 'present'
+        if ($meeting->start_time && $attendance->status !== 'present') {
+            // Allow 10 minutes grace period
+            $gracePeriod = 10;
+            $lateThreshold = $meeting->start_time->copy()->addMinutes($gracePeriod);
+            
+            if ($attendance->join_time <= $lateThreshold) {
+                $attendance->status = 'on_time';
+            } else {
+                $attendance->status = 'late';
+            }
+        } else {
+            // If no start_time or already present, set to pending
+            $attendance->status = 'pending';
+        }
+        
+        $attendance->save();
+        
+        // Get fresh instance from database to ensure it's saved
+        $attendance = MeetingAttendance::find($attendance->attendance_id);
+
+        // Update enrollment if exists (for enrollment system)
+        if ($enrollment) {
+            $enrollment->joined_at = $joinTime;
+            $enrollment->left_at = null;
+            $enrollment->save();
+        }
+
+        // Update enrollment if exists (for enrollment system)
+        if ($enrollment) {
+            $enrollment->joined_at = $joinTime;
+            $enrollment->left_at = null;
+            $enrollment->save();
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Successfully joined the meeting.',
-            'attendance' => $attendance
+            'message' => 'Successfully joined the meeting. You can now enter the verification code.',
+            'attendance' => [
+                'attendance_id' => $attendance->attendance_id,
+                'meeting_id' => $attendance->meeting_id,
+                'student_id' => $attendance->student_id,
+                'join_time' => $attendance->join_time ? $attendance->join_time->toDateTimeString() : null,
+                'status' => $attendance->status,
+                'is_verified' => $attendance->is_verified,
+            ]
         ], 200);
     }
 
@@ -314,32 +401,18 @@ class MeetingController extends Controller
         $attendance->leave_time = now();
 
         // Calculate duration in minutes
-        $joinTime = $attendance->joined_at ?? $attendance->join_time;
+        $joinTime = $attendance->join_time;
         $leaveTime = $attendance->leave_time;
         $duration = $joinTime->diffInMinutes($leaveTime);
         $attendance->duration_minutes = $duration;
 
-        // Handle automatic attendance system status
-        // If student is using automatic attendance (has joined_at)
-        if ($attendance->joined_at) {
-            // Calculate final status based on all check responses
-            $finalStatus = $attendance->calculateFinalStatus();
-            
-            // Only update status if there are check responses
-            // If no check responses, keep as 'pending' (they left before any checks)
-            if ($attendance->checkResponses()->count() > 0) {
-                $attendance->status = $finalStatus;
-            } else {
-                // No check responses - they left before any checks occurred
-                // Keep as 'pending' rather than marking as 'absent'
-                // This allows them to rejoin and have a fresh start
-                $attendance->status = 'pending';
-            }
-        } else {
-            // Legacy system: Determine if on time or late (compare join_time with meeting start_time)
+        // Only update status if not already verified as 'present'
+        // If student verified their code, keep status as 'present'
+        if ($attendance->status !== 'present' && !$attendance->is_verified) {
+            // Determine if on time or late (compare join_time with meeting start_time)
             if ($meeting->start_time) {
-                // Allow 5 minutes grace period
-                $gracePeriod = 5;
+                // Allow 10 minutes grace period
+                $gracePeriod = 10;
                 $lateThreshold = $meeting->start_time->copy()->addMinutes($gracePeriod);
                 
                 if ($attendance->join_time <= $lateThreshold) {
@@ -413,6 +486,7 @@ class MeetingController extends Controller
                     'status' => $request->status === 'late' ? 'late' : ($request->status === 'present' ? 'on_time' : null),
                     'leave_time' => null, // Will be set when student leaves
                     'duration_minutes' => null, // Will be calculated when student leaves
+                    'verification_attempts' => 0,
                 ]
             );
             
@@ -511,15 +585,15 @@ class MeetingController extends Controller
     }
 
     /**
-     * Confirm student presence (for automatic attendance system)
+     * Student submits verification code
      */
-    public function confirmPresence(Meeting $meeting)
+    public function verifyCode(Request $request, Meeting $meeting)
     {
         $user = Auth::user();
 
-        // Only students can confirm presence
+        // Only students can verify codes
         if ($user->role !== 'student') {
-            return response()->json(['error' => 'Only students can confirm presence.'], 403);
+            return response()->json(['error' => 'Only students can verify codes.'], 403);
         }
 
         $student = $user->student;
@@ -529,120 +603,230 @@ class MeetingController extends Controller
 
         // Check if student belongs to the meeting's class
         if ($student->class_id !== $meeting->class_id) {
-            return response()->json(['error' => 'You can only confirm presence for meetings in your class.'], 403);
+            return response()->json(['error' => 'You can only verify codes for your class meetings.'], 403);
         }
 
-        // Find or create attendance record
+        $request->validate([
+            'code' => 'required|string|max:10',
+        ]);
+
+        // Check if student has joined - check MeetingAttendance first (primary system)
+        // Try multiple queries to ensure we find the record
         $attendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
             ->where('student_id', $student->student_id)
             ->first();
 
+        // If still not found, try with fresh query (bypass cache)
         if (!$attendance) {
-            // Create attendance record if it doesn't exist
+            $attendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
+                ->where('student_id', $student->student_id)
+                ->lockForUpdate()
+                ->first();
+        }
+
+        // If no attendance found, check enrollment system as fallback
+        if (!$attendance) {
+            try {
+                $enrollment = \App\Models\MeetingEnrollment::where('meeting_id', $meeting->meeting_id)
+                    ->where('student_id', $user->user_id)
+                    ->first();
+                
+                // If enrollment exists with join time, create attendance record
+                if ($enrollment && $enrollment->joined_at) {
+                    $attendance = MeetingAttendance::create([
+                        'meeting_id' => $meeting->meeting_id,
+                        'student_id' => $student->student_id,
+                        'join_time' => $enrollment->joined_at,
+                        'status' => 'pending',
+                        'is_verified' => false,
+                        'verification_attempts' => 0,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Enrollment system not available, continue
+            }
+        }
+
+        // Last resort: If still not found, create it now (they must have joined if they're trying to verify)
+        if (!$attendance) {
+            // Create attendance record with current time as join_time
             $attendance = MeetingAttendance::create([
                 'meeting_id' => $meeting->meeting_id,
                 'student_id' => $student->student_id,
-                'joined_at' => now(),
-                'last_confirmed_at' => now(),
+                'join_time' => now(),
                 'status' => 'pending',
+                'is_verified' => false,
+                'verification_attempts' => 0,
             ]);
         }
 
-        // Get the next check number
-        $nextCheckNumber = $attendance->checkResponses()->max('check_number') ?? 0;
-        $nextCheckNumber += 1;
-
-        // Record this check response
-        \App\Models\AttendanceCheckResponse::create([
-            'attendance_id' => $attendance->attendance_id,
-            'check_number' => $nextCheckNumber,
-            'response' => 'present',
-            'checked_at' => now(),
-        ]);
-
-        // Update last confirmed time
-        $attendance->last_confirmed_at = now();
+        // Must have join_time to verify - if missing, set it to now
+        if (!$attendance->join_time) {
+            $attendance->join_time = now();
+            $attendance->status = 'pending';
+            $attendance->save();
+        }
         
-        // Calculate and update final status based on all checks
-        $finalStatus = $attendance->calculateFinalStatus();
-        $attendance->status = $finalStatus;
-        $attendance->save();
+        // Refresh to ensure we have latest data
+        $attendance->refresh();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Presence confirmed.',
-            'attendance' => $attendance,
-            'check_number' => $nextCheckNumber,
-            'final_status' => $finalStatus
-        ], 200);
+        // Check if already verified
+        if ($attendance->is_verified) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Code already verified.',
+                'attendance' => $attendance
+            ], 200);
+        }
+
+        // Check if student has exceeded verification attempts (2 attempts allowed)
+        $verificationAttempts = $attendance->verification_attempts ?? 0;
+        if ($verificationAttempts >= 2) {
+            // Mark as absent if not already marked
+            if ($attendance->status !== 'absent') {
+                $attendance->status = 'absent';
+                $attendance->save();
+
+                // Also update enrollment system if it exists
+                try {
+                    $enrollment = \App\Models\MeetingEnrollment::where('meeting_id', $meeting->meeting_id)
+                        ->where('student_id', $user->user_id)
+                        ->first();
+                    
+                    if ($enrollment) {
+                        $enrollment->attendance_status = 'absent';
+                        $enrollment->save();
+                    }
+                } catch (\Exception $e) {
+                    // Enrollment system not available, continue
+                }
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => 'You have exceeded the maximum number of verification attempts (2). You have been marked as absent.',
+                'attendance' => $attendance,
+                'marked_absent' => true
+            ], 400);
+        }
+
+        // Ensure meeting has a verification code (generate if missing)
+        if (empty($meeting->verification_code)) {
+            $meeting->verification_code = strtoupper(substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, 6));
+            $meeting->save();
+        }
+
+        // Compare codes (case-insensitive)
+        $enteredCode = strtoupper(trim($request->code));
+        $meetingCode = strtoupper(trim($meeting->verification_code));
+
+        if (empty($enteredCode)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Please enter a verification code.',
+            ], 400);
+        }
+
+        if (empty($meetingCode)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Meeting verification code not set. Please contact your teacher.',
+            ], 400);
+        }
+
+        if ($enteredCode === $meetingCode) {
+            // Correct code - reset attempts and mark as verified
+            $attendance->entered_code = $enteredCode;
+            $attendance->is_verified = true;
+            $attendance->status = 'present'; // Mark as present when code is verified
+            $attendance->verification_attempts = 0; // Reset attempts on success
+            $attendance->save();
+
+            // Also update enrollment system if it exists
+            try {
+                $enrollment = \App\Models\MeetingEnrollment::where('meeting_id', $meeting->meeting_id)
+                    ->where('student_id', $user->user_id)
+                    ->first();
+                
+                if ($enrollment) {
+                    $enrollment->attendance_status = 'present';
+                    $enrollment->save();
+                }
+            } catch (\Exception $e) {
+                // Enrollment system not available, continue
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification code accepted! Your presence has been confirmed.',
+                'attendance' => $attendance
+            ], 200);
+        } else {
+            // Wrong code - increment attempts
+            $attendance->entered_code = $enteredCode;
+            $attendance->verification_attempts = $verificationAttempts + 1;
+            $attendance->save();
+
+            $remainingAttempts = 2 - $attendance->verification_attempts;
+            
+            // If this was the second attempt, mark as absent
+            if ($attendance->verification_attempts >= 2) {
+                $attendance->status = 'absent';
+                $attendance->save();
+
+                // Also update enrollment system if it exists
+                try {
+                    $enrollment = \App\Models\MeetingEnrollment::where('meeting_id', $meeting->meeting_id)
+                        ->where('student_id', $user->user_id)
+                        ->first();
+                    
+                    if ($enrollment) {
+                        $enrollment->attendance_status = 'absent';
+                        $enrollment->save();
+                    }
+                } catch (\Exception $e) {
+                    // Enrollment system not available, continue
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid verification code. You have exceeded the maximum number of attempts (2). You have been marked as absent.',
+                    'remaining_attempts' => 0,
+                    'marked_absent' => true,
+                    'attendance' => $attendance
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid verification code. Please check and try again.',
+                'remaining_attempts' => $remainingAttempts,
+            ], 400);
+        }
     }
 
     /**
-     * Mark student as absent or no response (for automatic attendance system)
+     * Teacher views or regenerates verification code
      */
-    public function markAbsent(Meeting $meeting, Request $request)
+    public function getVerificationCode(Request $request, Meeting $meeting)
     {
         $user = Auth::user();
 
-        // Only students can be marked absent (or system can mark them)
-        if ($user->role !== 'student') {
-            return response()->json(['error' => 'Only students can be marked absent.'], 403);
+        // Only teachers can view verification codes
+        if ($user->role !== 'teacher' || $meeting->teacher_id !== $user->user_id) {
+            return response()->json(['error' => 'Only the meeting teacher can view verification codes.'], 403);
         }
 
-        $student = $user->student;
-        if (!$student) {
-            return response()->json(['error' => 'Student profile not found.'], 404);
+        // Regenerate code if requested
+        if ($request->has('regenerate') && $request->regenerate === 'true') {
+            $meeting->verification_code = strtoupper(substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, 6));
+            $meeting->save();
         }
-
-        // Check if student belongs to the meeting's class
-        if ($student->class_id !== $meeting->class_id) {
-            return response()->json(['error' => 'You can only be marked absent for meetings in your class.'], 403);
-        }
-
-        // Find attendance record
-        $attendance = MeetingAttendance::where('meeting_id', $meeting->meeting_id)
-            ->where('student_id', $student->student_id)
-            ->first();
-
-        if (!$attendance) {
-            // Create attendance record with absent status
-            $attendance = MeetingAttendance::create([
-                'meeting_id' => $meeting->meeting_id,
-                'student_id' => $student->student_id,
-                'joined_at' => now(),
-                'status' => 'pending',
-            ]);
-        }
-
-        // Get the next check number
-        $nextCheckNumber = $attendance->checkResponses()->max('check_number') ?? 0;
-        $nextCheckNumber += 1;
-
-        // Determine response type: 'absent' (student clicked button) or 'no_response' (auto-closed)
-        $responseType = $request->input('response_type', 'absent'); // 'absent' or 'no_response'
-        if (!in_array($responseType, ['absent', 'no_response'])) {
-            $responseType = 'absent';
-        }
-
-        // Record this check response
-        \App\Models\AttendanceCheckResponse::create([
-            'attendance_id' => $attendance->attendance_id,
-            'check_number' => $nextCheckNumber,
-            'response' => $responseType,
-            'checked_at' => now(),
-        ]);
-
-        // Calculate and update final status based on all checks
-        $finalStatus = $attendance->calculateFinalStatus();
-        $attendance->status = $finalStatus;
-        $attendance->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Marked as absent for this check.',
-            'attendance' => $attendance,
-            'check_number' => $nextCheckNumber,
-            'final_status' => $finalStatus
+            'verification_code' => $meeting->verification_code,
         ], 200);
     }
+
 }

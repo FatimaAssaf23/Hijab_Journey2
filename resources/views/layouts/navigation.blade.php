@@ -33,9 +33,28 @@
                         </div>
                     </div>
                     <!-- Games button removed, now in Tasks dropdown -->
-                    <a href="{{ route('teacher.lessons.manage') }}" class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Lessons Management</a>
+                    <a href="{{ route('teacher.lessons.manage') }}" class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 whitespace-nowrap">Lessons Management</a>
+                    <div class="group relative">
+                        <button class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 focus:outline-none">
+                            Schedule
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
+                            <a href="{{ route('teacher.schedule.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Schedule</a>
+                            <a href="{{ route('teacher.personal-schedule.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Student Schedule</a>
+                        </div>
+                    </div>
                     <!-- Quizzes button removed, now in Tasks dropdown -->
-                    <a href="{{ route('teacher.grades') }}" class="font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10">Grades</a>
+                    <div class="group relative">
+                        <button class="flex items-center gap-1 text-base font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 focus:outline-none">
+                            Progress
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
+                            <a href="{{ route('teacher.grades') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Grades</a>
+                            <a href="{{ route('teacher.progress') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Students Progress</a>
+                        </div>
+                    </div>
                     <a href="{{ route('teacher.emergency.create') }}" class="font-semibold px-4 py-2 rounded-xl transition text-white hover:bg-white/10">Emergency</a>
                 @elseif(Auth::check() && Auth::user()->role === 'admin')
                     <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition" style="order: -1;">
@@ -86,40 +105,46 @@
                         </svg>
                         Rewards
                     </a>
-                    <a href="{{ route('student.grades') }}" class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                        </svg>
-                        Grades
-                    </a>
+                    <div class="group relative">
+                        <button class="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition focus:outline-none">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                            Progress
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0 transition-all z-50">
+                            <a href="{{ route('student.grades') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                                </svg>
+                                Grades
+                            </a>
+                            <a href="{{ route('student.progress') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                                My Progress
+                            </a>
+                            <a href="{{ route('student.schedule.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                My Schedule
+                            </a>
+                        </div>
+                    </div>
                 @endif
 
                 <!-- Assignments button removed, now in Tasks dropdown -->
             </div>
-
-
-                @if(Auth::check() && Auth::user()->role === 'teacher')
-                <a href="{{ route('teacher.progress') }}" class="flex flex-row items-center gap-2 font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 whitespace-nowrap">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#197D8C"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>
-                    <span class="whitespace-nowrap">Students</span> <span class="whitespace-nowrap">Progress</span>
-                </a>
-                @elseif(Auth::check() && Auth::user()->role === 'admin')
-                <!-- Admin users may not need progress link, or can be customized -->
-                @else
-                <a href="{{ route('student.progress') }}" class="flex flex-row items-center gap-2 font-semibold px-4 py-2 rounded-xl transition shadow-sm text-white hover:bg-white/10 whitespace-nowrap">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                    </svg>
-                    <span class="whitespace-nowrap">My</span> <span class="whitespace-nowrap">Progress</span>
-                </a>
-                @endif
 
             </div>
 
             <!-- Profile avatar at far right -->
             <div class="flex items-center justify-end flex-1 min-w-fit">
                 @auth
-                    <div class="relative group flex items-center h-full" x-data="{ showBioModal: false, showPasswordModal: false }">
+                    <div class="relative group flex items-center h-full" x-data="{ showBioModal: false, showPasswordModal: false, preventModalClose: false }">
                         <button class="focus:outline-none flex items-center justify-center w-16 h-16 rounded-full bg-white/90 ring-2 ring-[#7AD7C1] overflow-hidden shadow-lg transition-transform hover:scale-105">
                             <img src="{{ Auth::user()->profile_photo_url ?? '/images/default-avatar.svg' }}" alt="avatar" class="w-14 h-14 rounded-full object-cover" />
                         </button>
@@ -155,13 +180,47 @@
                                             </form>
                                         </div>
                                     </div>
-                                    <button type="button" @click="showPasswordModal = true" class="inline-block mt-2 text-xs text-[#7AD7C1] font-medium">Manage My Account</button>
+                                    <button type="button" @click="showPasswordModal = true; preventModalClose = false" class="inline-block mt-2 text-xs text-[#7AD7C1] font-medium">Manage My Account</button>
                                     <!-- Manage My Account Modal -->
-                                    <div x-show="showPasswordModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                                        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
+                                    <div x-show="showPasswordModal" 
+                                         x-cloak 
+                                         style="display: none;" 
+                                         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+                                         @click.self="if (!preventModalClose) showPasswordModal = false"
+                                         x-init="
+                                             let checkInterval = null;
+                                             $watch('showPasswordModal', value => {
+                                                 if (value) {
+                                                     preventModalClose = true;
+                                                     // Check periodically if password fields are focused or password manager is active
+                                                     checkInterval = setInterval(() => {
+                                                         let passwordInputs = $el.querySelectorAll('input[type=\'password\']');
+                                                         let anyFocused = Array.from(passwordInputs).some(input => document.activeElement === input);
+                                                         if (anyFocused) {
+                                                             preventModalClose = true;
+                                                         }
+                                                     }, 200);
+                                                 } else {
+                                                     if (checkInterval) {
+                                                         clearInterval(checkInterval);
+                                                         checkInterval = null;
+                                                     }
+                                                 }
+                                             });
+                                         ">
+                                        <div @click.stop 
+                                             @mousedown.stop 
+                                             @mouseup.stop
+                                             @mouseenter="preventModalClose = true"
+                                             @mouseleave="setTimeout(() => { 
+                                                 let passwordInputs = document.querySelectorAll('input[type=\'password\']');
+                                                 let anyFocused = Array.from(passwordInputs).some(input => document.activeElement === input);
+                                                 if (!anyFocused) preventModalClose = false; 
+                                             }, 2000)"
+                                             class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
                                             <button @click="showPasswordModal = false" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
                                             <h3 class="text-lg font-semibold mb-4 text-gray-800">Change Password</h3>
-                                            <form method="POST" action="{{ route('profile.update') }}">
+                                            <form method="POST" action="{{ route('profile.update') }}" @submit.stop>
                                                 @csrf
                                                 @method('PATCH')
                                                 <input type="hidden" name="name" value="{{ Auth::user()->first_name ? Auth::user()->first_name . ' ' . Auth::user()->last_name : Auth::user()->name }}">
@@ -169,15 +228,60 @@
                                                 <input type="hidden" name="bio" value="{{ Auth::user()->bio }}">
                                                 <div class="mb-4">
                                                     <label for="current_password" class="block text-sm text-gray-700 mb-1">Current Password</label>
-                                                    <input id="current_password" name="current_password" type="password" class="w-full rounded border border-gray-300 p-2 focus:ring focus:ring-[#7AD7C1] focus:border-[#7AD7C1]" required>
+                                                    <input id="current_password" 
+                                                           name="current_password" 
+                                                           type="password" 
+                                                           autocomplete="current-password"
+                                                           @focus="preventModalClose = true"
+                                                           @blur="setTimeout(() => { 
+                                                               let passwordInputs = document.querySelectorAll('input[type=\'password\']');
+                                                               let anyFocused = Array.from(passwordInputs).some(input => document.activeElement === input);
+                                                               if (!anyFocused) preventModalClose = false; 
+                                                           }, 2000)"
+                                                           @click.stop
+                                                           @mousedown.stop
+                                                           @mouseup.stop
+                                                           @mouseenter="preventModalClose = true"
+                                                           class="w-full rounded border border-gray-300 p-2 focus:ring focus:ring-[#7AD7C1] focus:border-[#7AD7C1]" 
+                                                           required>
                                                 </div>
                                                 <div class="mb-4">
                                                     <label for="password" class="block text-sm text-gray-700 mb-1">New Password</label>
-                                                    <input id="password" name="password" type="password" class="w-full rounded border border-gray-300 p-2 focus:ring focus:ring-[#7AD7C1] focus:border-[#7AD7C1]" required>
+                                                    <input id="password" 
+                                                           name="password" 
+                                                           type="password" 
+                                                           autocomplete="new-password"
+                                                           @focus="preventModalClose = true"
+                                                           @blur="setTimeout(() => { 
+                                                               let passwordInputs = document.querySelectorAll('input[type=\'password\']');
+                                                               let anyFocused = Array.from(passwordInputs).some(input => document.activeElement === input);
+                                                               if (!anyFocused) preventModalClose = false; 
+                                                           }, 2000)"
+                                                           @click.stop
+                                                           @mousedown.stop
+                                                           @mouseup.stop
+                                                           @mouseenter="preventModalClose = true"
+                                                           class="w-full rounded border border-gray-300 p-2 focus:ring focus:ring-[#7AD7C1] focus:border-[#7AD7C1]" 
+                                                           required>
                                                 </div>
                                                 <div class="mb-4">
                                                     <label for="password_confirmation" class="block text-sm text-gray-700 mb-1">Confirm New Password</label>
-                                                    <input id="password_confirmation" name="password_confirmation" type="password" class="w-full rounded border border-gray-300 p-2 focus:ring focus:ring-[#7AD7C1] focus:border-[#7AD7C1]" required>
+                                                    <input id="password_confirmation" 
+                                                           name="password_confirmation" 
+                                                           type="password" 
+                                                           autocomplete="new-password"
+                                                           @focus="preventModalClose = true"
+                                                           @blur="setTimeout(() => { 
+                                                               let passwordInputs = document.querySelectorAll('input[type=\'password\']');
+                                                               let anyFocused = Array.from(passwordInputs).some(input => document.activeElement === input);
+                                                               if (!anyFocused) preventModalClose = false; 
+                                                           }, 2000)"
+                                                           @click.stop
+                                                           @mousedown.stop
+                                                           @mouseup.stop
+                                                           @mouseenter="preventModalClose = true"
+                                                           class="w-full rounded border border-gray-300 p-2 focus:ring focus:ring-[#7AD7C1] focus:border-[#7AD7C1]" 
+                                                           required>
                                                 </div>
                                                 <button type="submit" class="mt-2 w-full py-2 bg-[#7AD7C1] text-white rounded shadow hover:bg-[#5ec1a6] transition">Save Password</button>
                                             </form>
@@ -229,10 +333,44 @@
             @if(Auth::check() && Auth::user()->role === 'teacher')
                 <a href="{{ route('teacher.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Dashboard</a>
                 <a href="/lessons/manage" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Lessons Management</a>
+                <div class="px-3 py-2 text-base font-medium text-gray-700 border-b border-gray-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Schedule
+                </div>
+                <a href="{{ route('teacher.schedule.index') }}" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    My Schedule
+                </a>
+                <a href="{{ route('teacher.personal-schedule.index') }}" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Student Schedule
+                </a>
                 <a href="/quizzes" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Quizzes</a>
                 <a href="/meetings" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Meetings</a>
-                <a href="{{ route('teacher.grades') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Grades</a>
-                <a href="{{ route('teacher.progress') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Students Progress</a>
+                <div class="px-3 py-2 text-base font-medium text-gray-700 border-b border-gray-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                    Progress
+                </div>
+                <a href="{{ route('teacher.grades') }}" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                    </svg>
+                    Grades
+                </a>
+                <a href="{{ route('teacher.progress') }}" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/>
+                    </svg>
+                    Students Progress
+                </a>
                 <a href="/group-chat" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Contacts</a>
                 <a href="/inbox" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Inbox</a>
             @elseif(Auth::check() && Auth::user()->role === 'admin')
@@ -241,7 +379,30 @@
                 <a href="{{ route('student.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Home / Dashboard</a>
                 <a href="/levels" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">My Class / Levels</a>
                 <a href="/lessons" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Lessons</a>
-                <a href="/grades" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Reward / Grades</a>
+                <div class="px-3 py-2 text-base font-medium text-gray-700 border-b border-gray-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                    Progress
+                </div>
+                <a href="{{ route('student.grades') }}" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                    </svg>
+                    Grades
+                </a>
+                <a href="{{ route('student.progress') }}" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                    My Progress
+                </a>
+                <a href="{{ route('student.schedule.index') }}" class="flex items-center gap-2 px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    My Schedule
+                </a>
                 <div class="px-3 py-2 text-base font-medium text-gray-700 border-b border-gray-200 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -272,11 +433,11 @@
                     </svg>
                     Lessons
                 </a>
-                <a href="{{ route('student.grades') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">
+                <a href="{{ route('student.rewards') }}" class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
                     </svg>
-                    Reward / Grades
+                    Rewards
                 </a>
                 <a href="/meetings" class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

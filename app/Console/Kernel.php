@@ -28,6 +28,9 @@ class Kernel extends ConsoleKernel
         $schedule->command('schedule:process-daily')
                  ->daily()
                  ->at('00:00');
+        
+        // Finalize meeting attendance every minute
+        $schedule->job(new \App\Jobs\FinalizeMeetingAttendance)->everyMinute();
     }
 
     /**

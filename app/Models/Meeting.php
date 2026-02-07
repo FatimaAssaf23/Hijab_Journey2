@@ -11,6 +11,25 @@ class Meeting extends Model
 
     protected $primaryKey = 'meeting_id';
 
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName()
+    {
+        return 'meeting_id';
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($meeting) {
+            if (empty($meeting->verification_code)) {
+                $meeting->verification_code = strtoupper(substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, 6));
+            }
+        });
+    }
+
     protected $fillable = [
         'class_id',
         'teacher_id',
@@ -22,6 +41,7 @@ class Meeting extends Model
         'end_time',
         'duration_minutes',
         'status',
+        'verification_code',
     ];
 
     protected function casts(): array
@@ -51,10 +71,18 @@ class Meeting extends Model
     }
 
     /**
-     * Get the attendances for the meeting.
+     * Get the attendances for the meeting (simplified system).
      */
     public function attendances()
     {
-        return $this->hasMany(MeetingAttendance::class, 'meeting_id', 'meeting_id');
+        return $this->hasMany(Attendance::class, 'meeting_id', 'meeting_id');
+    }
+
+    /**
+     * Get the enrollments for the meeting.
+     */
+    public function enrollments()
+    {
+        return $this->hasMany(MeetingEnrollment::class, 'meeting_id', 'meeting_id');
     }
 }

@@ -7,6 +7,7 @@ use App\Models\TeacherRequest;
 use App\Models\Lesson;
 use App\Models\StudentClass;
 use App\Models\TeacherSubstitution;
+use App\Models\EmergencyRequest;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\Level;
@@ -17,6 +18,8 @@ use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\Teacher;
 use App\Models\Meeting;
+use App\Models\MeetingEnrollment;
+use App\Services\MeetingEnrollmentService;
 use App\Models\Game;
 use App\Models\WordSearchGame;
 use App\Models\MatchingPairsGame;
@@ -266,9 +269,35 @@ class AdminController extends Controller
     /**
      * Get classes from database
      */
-    private function getClassesFromDb()
+    private function getClassesFromDb($search = '')
     {
-        return StudentClass::with(['teacher', 'students.user'])->get()->map(function ($class) {
+        $query = StudentClass::with(['teacher', 'students.user']);
+        
+        // Apply search filter if provided
+        if (!empty($search)) {
+            // If search is numeric, ONLY search max capacity (not class name, status, or teacher)
+            if (is_numeric($search)) {
+                $query->where('capacity', '=', (int)$search);
+            } else {
+                // For non-numeric searches, search in class name, status, and teacher name
+                $query->where(function($q) use ($search) {
+                    // Search in class name
+                    $q->where('class_name', 'like', '%' . $search . '%')
+                      // Search in status
+                      ->orWhere('status', 'like', '%' . $search . '%')
+                      // Search in teacher name (via relationship)
+                      ->orWhereHas('teacher', function($teacherQuery) use ($search) {
+                          $teacherQuery->where('first_name', 'like', '%' . $search . '%')
+                                       ->orWhere('last_name', 'like', '%' . $search . '%')
+                                       ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ['%' . $search . '%']);
+                      });
+                });
+            }
+        }
+        
+        $classes = $query->orderBy('class_name', 'asc')
+            ->get()
+            ->map(function ($class) {
             $colorKey = $class->color;
             $colorGradient = self::$classColors[$colorKey] ?? null;
             // Get students for this class, using related User model for name/email
@@ -286,13 +315,25 @@ class AdminController extends Controller
                 ];
             })->toArray();
             
-            // Ensure status is correct based on enrollment
-            $correctStatus = $class->status;
-            if ($class->current_enrollment == 0) {
+            // Recalculate actual enrollment count from students list (not from database field)
+            $actualEnrollment = count($studentsList);
+            
+            // Update current_enrollment in database if it's incorrect
+            if ($class->current_enrollment != $actualEnrollment) {
+                $class->current_enrollment = $actualEnrollment;
+                $class->save();
+            }
+            
+            // Calculate status based on ACTUAL enrollment count
+            // Full: actual enrollment >= capacity (strict check)
+            // Active: actual enrollment > 0 and < capacity
+            // Empty: actual enrollment == 0
+            $correctStatus = 'active'; // Default
+            if ($actualEnrollment == 0) {
                 $correctStatus = 'empty';
-            } elseif ($class->current_enrollment >= $class->capacity) {
+            } elseif ($actualEnrollment >= $class->capacity) {
                 $correctStatus = 'full';
-            } elseif ($class->current_enrollment > 0 && $class->current_enrollment < $class->capacity) {
+            } elseif ($actualEnrollment > 0 && $actualEnrollment < $class->capacity) {
                 $correctStatus = 'active';
             }
             
@@ -308,7 +349,7 @@ class AdminController extends Controller
                     'teacherId' => $class->teacher_id,
                     'teacherName' => $class->teacher ? $class->teacher->first_name . ' ' . $class->teacher->last_name : 'Unassigned',
                     'grade' => 1,
-                    'students' => $class->current_enrollment,
+                    'students' => $actualEnrollment, // Use actual count, not database field
                     'capacity' => $class->capacity,
                     'status' => $correctStatus,
                     'color' => $colorKey,
@@ -317,6 +358,13 @@ class AdminController extends Controller
                     'description' => $class->description,
                 ];
         })->toArray();
+        
+        // Natural sort by class name to handle numeric ordering properly (class 1, class 2, class 10)
+        usort($classes, function($a, $b) {
+            return strnatcasecmp($a['name'], $b['name']);
+        });
+        
+        return $classes;
     }
 
     /**
@@ -472,7 +520,7 @@ class AdminController extends Controller
             'lessonsCount' => Lesson::count(),
             'classesCount' => StudentClass::count(),
             'teacherRequestsCount' => TeacherRequest::where('status', 'pending')->count(),
-            'emergencyCasesCount' => TeacherSubstitution::where('status', 'active')->count(),
+            'emergencyCasesCount' => EmergencyRequest::where('status', 'pending')->count(),
             'studentsCount' => $totalStudents,
             'teachersCount' => $totalTeachers,
             'fullClassesCount' => $fullClassesCount,
@@ -601,13 +649,14 @@ class AdminController extends Controller
      */
     private function getEngagementData()
     {
-        // Assignment submissions over time (last 12 months)
+        // Assignment submissions over time - Last 3 months including current month (auto-updates)
         $assignmentSubmissionsOverTime = [];
         $assignmentLabels = [];
-        for ($i = 11; $i >= 0; $i--) {
+        for ($i = 2; $i >= 0; $i--) {
             $date = now()->subMonths($i);
             $monthStart = $date->copy()->startOfMonth();
-            $monthEnd = $date->copy()->endOfMonth();
+            // For current month, use today's date as end; for past months, use end of month
+            $monthEnd = ($i === 0) ? now() : $date->copy()->endOfMonth();
             
             $count = \App\Models\AssignmentSubmission::whereBetween('submitted_at', [$monthStart, $monthEnd])
                 ->count();
@@ -616,14 +665,15 @@ class AdminController extends Controller
             $assignmentLabels[] = $date->format('M Y');
         }
         
-        // Quiz attempts and average scores over time (last 12 months)
+        // Quiz attempts and average scores over time - Last 3 months including current month (auto-updates)
         $quizAttemptsOverTime = [];
         $quizAvgScoresOverTime = [];
         $quizLabels = [];
-        for ($i = 11; $i >= 0; $i--) {
+        for ($i = 2; $i >= 0; $i--) {
             $date = now()->subMonths($i);
             $monthStart = $date->copy()->startOfMonth();
-            $monthEnd = $date->copy()->endOfMonth();
+            // For current month, use today's date as end; for past months, use end of month
+            $monthEnd = ($i === 0) ? now() : $date->copy()->endOfMonth();
             
             $attempts = \App\Models\QuizAttempt::whereBetween('submitted_at', [$monthStart, $monthEnd])
                 ->where('status', 'completed')
@@ -637,17 +687,35 @@ class AdminController extends Controller
             $quizLabels[] = $date->format('M Y');
         }
         
-        // Game play counts over time (last 12 months)
+        // Game play counts over time - Last 3 months including current month (auto-updates)
         $gamePlayCountsOverTime = [];
         $gameLabels = [];
-        for ($i = 11; $i >= 0; $i--) {
+        
+        // Helper function to count game plays for a month
+        // Use completed_at if available (when game was actually played), otherwise use created_at
+        $countGamePlays = function($startDate, $endDate) {
+            return \App\Models\StudentGameProgress::where(function($query) use ($startDate, $endDate) {
+                $query->where(function($q) use ($startDate, $endDate) {
+                    // Records with completed_at in the date range
+                    $q->whereNotNull('completed_at')
+                      ->whereBetween('completed_at', [$startDate, $endDate]);
+                })->orWhere(function($q) use ($startDate, $endDate) {
+                    // Records without completed_at but created_at in the date range
+                    $q->whereNull('completed_at')
+                      ->whereBetween('created_at', [$startDate, $endDate]);
+                });
+            })->count();
+        };
+        
+        // Generate data for last 3 months (including current month)
+        // This will automatically update when a new month starts
+        for ($i = 2; $i >= 0; $i--) {
             $date = now()->subMonths($i);
             $monthStart = $date->copy()->startOfMonth();
-            $monthEnd = $date->copy()->endOfMonth();
+            // For current month, use today's date as end; for past months, use end of month
+            $monthEnd = ($i === 0) ? now() : $date->copy()->endOfMonth();
             
-            $count = \App\Models\StudentGameProgress::whereBetween('created_at', [$monthStart, $monthEnd])
-                ->count();
-            
+            $count = $countGamePlays($monthStart, $monthEnd);
             $gamePlayCountsOverTime[] = $count;
             $gameLabels[] = $date->format('M Y');
         }
@@ -801,20 +869,21 @@ class AdminController extends Controller
             $alerts['games_never_played'] = array_slice($gamesNeverPlayed, 0, 10);
         }
         
-        // Inactive teachers (teachers with no assignments, quizzes, or games in last 3 months)
-        $threeMonthsAgo = now()->subMonths(3);
+        // Inactive teachers (teachers with no assignments or quizzes in last 15 days)
+        $fifteenDaysAgo = now()->subDays(15);
         $teachersWithRecentActivity = collect();
         
-        // Get teachers from assignments
-        $recentAssignmentTeachers = Assignment::where('created_at', '>=', $threeMonthsAgo)
+        // Get teachers from assignments created in last 15 days
+        $recentAssignmentTeachers = Assignment::where('created_at', '>=', $fifteenDaysAgo)
             ->pluck('teacher_id');
         $teachersWithRecentActivity = $teachersWithRecentActivity->merge($recentAssignmentTeachers);
         
-        // Get teachers from quizzes
-        $recentQuizTeachers = Quiz::where('created_at', '>=', $threeMonthsAgo)
+        // Get teachers from quizzes created in last 15 days
+        $recentQuizTeachers = Quiz::where('created_at', '>=', $fifteenDaysAgo)
             ->pluck('teacher_id');
         $teachersWithRecentActivity = $teachersWithRecentActivity->merge($recentQuizTeachers);
         
+        // Get all teachers who have no activity in the last 15 days
         $inactiveTeachers = User::where('role', 'teacher')
             ->whereNotIn('user_id', $teachersWithRecentActivity->unique())
             ->take(10)
@@ -825,7 +894,7 @@ class AdminController extends Controller
                     'title' => $teacher->first_name . ' ' . $teacher->last_name,
                     'type' => 'teacher',
                     'class' => 'N/A',
-                    'message' => 'No activity in last 3 months',
+                    'message' => 'No activity in last 15 days',
                 ];
             })->toArray();
         
@@ -875,34 +944,51 @@ class AdminController extends Controller
         })->toArray();
     }
 
-    public function lessons()
+    public function lessons(Request $request)
     {
-        $levels = $this->getLevelsArray();
-        $lessons = Lesson::all();
-        
-        // Group by level
-        $groupedLessons = [];
-        foreach ($levels as $level) {
-            $levelLessons = $lessons->where('level_id', $level['id'])->map(function($lesson) {
-                return [
-                    'id' => $lesson->lesson_id,
-                    'levelId' => $lesson->level_id,
-                    'title' => $lesson->title,
-                    'skills' => $lesson->skills,
-                    'icon' => $lesson->icon,
-                    'description' => $lesson->description,
-                    'content_url' => $lesson->content_url,
-                    'duration_minutes' => $lesson->duration_minutes,
-                ];
-            })->values()->toArray();
+        try {
+            $levels = $this->getLevelsArray();
+            $searchQuery = $request->get('search', '');
             
-            $groupedLessons[$level['id']] = [
-                'level' => $level,
-                'lessons' => $levelLessons
-            ];
-        }
+            $lessonsQuery = Lesson::query();
+            
+            // Apply search filter if provided
+            if (!empty($searchQuery)) {
+                $lessonsQuery->where(function($q) use ($searchQuery) {
+                    $q->where('title', 'LIKE', '%' . $searchQuery . '%')
+                      ->orWhere('description', 'LIKE', '%' . $searchQuery . '%');
+                });
+            }
+            
+            $lessons = $lessonsQuery->get();
+            
+            // Group by level
+            $groupedLessons = [];
+            foreach ($levels as $level) {
+                $levelLessons = $lessons->where('level_id', $level['id'])->map(function($lesson) {
+                    return [
+                        'id' => $lesson->lesson_id ?? null,
+                        'levelId' => $lesson->level_id ?? null,
+                        'title' => $lesson->title ?? '',
+                        'skills' => $lesson->skills ?? 0,
+                        'icon' => $lesson->icon ?? '📚',
+                        'description' => $lesson->description ?? '',
+                        'content_url' => $lesson->content_url ?? '',
+                        'duration_minutes' => $lesson->duration_minutes ?? null,
+                    ];
+                })->values()->toArray();
+                
+                $groupedLessons[$level['id']] = [
+                    'level' => $level,
+                    'lessons' => $levelLessons
+                ];
+            }
 
-        return view('admin.lessons.index', compact('groupedLessons', 'levels'));
+            return view('admin.lessons.index', compact('groupedLessons', 'levels', 'searchQuery'));
+        } catch (\Exception $e) {
+            \Log::error('Error in AdminController@lessons: ' . $e->getMessage());
+            return redirect()->route('admin.dashboard')->with('error', 'An error occurred while loading lessons. Please check the logs.');
+        }
     }
 
     public function createLesson()
@@ -1266,17 +1352,21 @@ class AdminController extends Controller
     }
 
     // CLASSES
-    public function classes()
+    public function classes(Request $request)
     {
         // Mark all auto-created classes as read when admin views the classes page
         StudentClass::where('is_read', false)
             ->where('description', 'Automatically created class')
             ->update(['is_read' => true]);
         
+        $search = $request->get('search', '');
+        $classes = $this->getClassesFromDb($search);
+        
         return view('admin.classes.index', [
-            'classes' => $this->getClassesFromDb(),
+            'classes' => $classes,
             'teachers' => $this->getTeachersFromDb(),
             'unenrolledStudents' => $this->getUnenrolledStudents(),
+            'search' => $search,
         ]);
     }
 
@@ -1294,7 +1384,7 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'students' => 'required|integer|min:1',
             'teacherId' => 'nullable|integer',
-            'color' => 'required|string|in:pink-dark,pink-light,cream,turquoise,teal,tan,beige,ivory,blush,coral,rose',
+            'color' => 'nullable|string|in:pink-dark,pink-light,cream,turquoise,teal,tan,beige,ivory,blush,coral,rose',
         ]);
 
         // Check if a class with the same name already exists (prevent duplicates)
@@ -1312,7 +1402,7 @@ class AdminController extends Controller
             'current_enrollment' => 0,
             'status' => 'active',
             'description' => $request->description ?? null,
-            'color' => $request->color,
+            'color' => $request->color ?? 'pink-dark', // Default color if not provided
         ]);
 
         return redirect()->route('admin.classes')->with('success', 'Class created successfully!');
@@ -1388,24 +1478,28 @@ class AdminController extends Controller
     public function students()
     {
         $students = Student::with(['user', 'studentClass'])
-            ->whereHas('user') // Only get students that have a user
+            ->whereHas('user', function($query) {
+                $query->where('role', 'student'); // Only get students with role='student'
+            })
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($student) {
-                // Get the most recent activity from all lesson progresses
-                // Check last_activity_at first, then fallback to last_watched_at, then updated_at
-                $progresses = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)
-                    ->get();
+                // Get the most recent activity from all sources:
+                // 1. Lesson progresses (last_activity_at, last_watched_at, updated_at)
+                // 2. Quiz attempts (submitted_at, started_at, updated_at)
+                // 3. Assignment submissions (submitted_at, updated_at)
+                // 4. Game progresses (updated_at)
                 
                 $lastActivity = null;
+                
+                // Check lesson progresses
+                $progresses = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)->get();
                 foreach ($progresses as $progress) {
-                    // Get the most recent date from available fields
                     $dates = array_filter([
                         $progress->last_activity_at,
                         $progress->last_watched_at,
                         $progress->updated_at
                     ]);
-                    
                     if (!empty($dates)) {
                         $maxDate = max($dates);
                         if (!$lastActivity || $maxDate > $lastActivity) {
@@ -1414,9 +1508,116 @@ class AdminController extends Controller
                     }
                 }
                 
-                $student->last_activity_at = $lastActivity;
+                // Check quiz attempts
+                $quizAttempts = \App\Models\QuizAttempt::where('student_id', $student->student_id)->get();
+                foreach ($quizAttempts as $attempt) {
+                    $dates = array_filter([
+                        $attempt->submitted_at,
+                        $attempt->started_at,
+                        $attempt->updated_at
+                    ]);
+                    if (!empty($dates)) {
+                        $maxDate = max($dates);
+                        if (!$lastActivity || $maxDate > $lastActivity) {
+                            $lastActivity = $maxDate;
+                        }
+                    }
+                }
                 
-                $student->last_activity_at = $lastActivity ? \Carbon\Carbon::parse($lastActivity) : null;
+                // Check assignment submissions
+                $submissions = \App\Models\AssignmentSubmission::where('student_id', $student->student_id)->get();
+                foreach ($submissions as $submission) {
+                    $dates = array_filter([
+                        $submission->submitted_at,
+                        $submission->updated_at
+                    ]);
+                    if (!empty($dates)) {
+                        $maxDate = max($dates);
+                        if (!$lastActivity || $maxDate > $lastActivity) {
+                            $lastActivity = $maxDate;
+                        }
+                    }
+                }
+                
+                // Check game progresses
+                $gameProgresses = \App\Models\StudentGameProgress::where('student_id', $student->student_id)->get();
+                foreach ($gameProgresses as $gameProgress) {
+                    if ($gameProgress->updated_at) {
+                        if (!$lastActivity || $gameProgress->updated_at > $lastActivity) {
+                            $lastActivity = $gameProgress->updated_at;
+                        }
+                    }
+                }
+                
+                // Set last_activity_at as a display-only property (not saved to database)
+                $lastActivityCarbon = $lastActivity ? \Carbon\Carbon::parse($lastActivity) : null;
+                $student->setAttribute('last_activity_at', $lastActivityCarbon);
+                
+                // Calculate status based on last activity
+                // Active: activity within last 7 days
+                // Inactive: activity more than 7 days ago (but has some activity)
+                // Expired: NO activity at all (never had any activity)
+                $status = 'expired'; // default - no activity
+                if ($lastActivityCarbon) {
+                    // Student has some activity, so cannot be expired
+                    $daysSinceActivity = $lastActivityCarbon->diffInDays(\Carbon\Carbon::now());
+                    if ($daysSinceActivity <= 7) {
+                        $status = 'active';
+                    } else {
+                        // Any activity older than 7 days is inactive (not expired)
+                        $status = 'inactive';
+                    }
+                }
+                $student->setAttribute('activity_status', $status);
+                
+                // Calculate total_score dynamically from games, quizzes, and assignments
+                $totalScore = 0;
+                
+                // Sum of all game scores
+                $gameScores = \App\Models\StudentGameProgress::where('student_id', $student->student_id)
+                    ->where('status', 'completed')
+                    ->whereNotNull('score')
+                    ->sum('score');
+                
+                // Sum of all quiz scores (best score per quiz)
+                $quizScores = \App\Models\QuizAttempt::where('student_id', $student->student_id)
+                    ->whereNotNull('submitted_at')
+                    ->whereNotNull('score')
+                    ->get()
+                    ->groupBy('quiz_id')
+                    ->map(function($attempts) {
+                        return $attempts->max('score');
+                    })
+                    ->sum();
+                
+                // Sum of all assignment grades (use grade_value or percentage if available)
+                $assignmentGrades = \App\Models\Grade::where('student_id', $student->student_id)
+                    ->whereNotNull('assignment_submission_id')
+                    ->whereNotNull('grade_value')
+                    ->get()
+                    ->sum(function($grade) {
+                        // Use percentage if available, otherwise calculate from grade_value/max_grade
+                        if ($grade->percentage !== null) {
+                            return $grade->percentage;
+                        }
+                        // Calculate percentage from grade_value and max_grade
+                        if ($grade->max_grade > 0) {
+                            return ($grade->grade_value / $grade->max_grade) * 100;
+                        }
+                        return $grade->grade_value;
+                    });
+                
+                $totalScore = round($gameScores + $quizScores + $assignmentGrades);
+                
+                // Update the student's total_score in the database (only update total_score, not last_activity_at)
+                if ($student->total_score != $totalScore) {
+                    \DB::table('students')
+                        ->where('student_id', $student->student_id)
+                        ->update(['total_score' => $totalScore]);
+                    // Refresh the model to reflect the updated score
+                    $student->refresh();
+                }
+                
                 return $student;
             });
 
@@ -1429,7 +1630,7 @@ class AdminController extends Controller
             ->findOrFail($id);
 
         // Calculate statistics
-        $completedLessons = $student->lessonProgresses()->where('is_completed', true)->count();
+        $completedLessons = $student->lessonProgresses()->where('status', 'completed')->count();
         $lessonProgress = $student->lessonProgresses()->count();
         $quizAttempts = $student->quizAttempts()->count();
         $assignmentSubmissions = $student->assignmentSubmissions()->count();
@@ -1453,19 +1654,65 @@ class AdminController extends Controller
         ));
     }
 
+    public function updateStudentPhone(Request $request, $id)
+    {
+        $request->validate([
+            'phone_number' => 'required|string|max:20',
+        ]);
+
+        $student = Student::with('user')->findOrFail($id);
+        
+        if ($student->user) {
+            $student->user->phone_number = $request->phone_number;
+            $student->user->save();
+            
+            // Return JSON response for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Phone number updated successfully.',
+                    'phone_number' => $student->user->phone_number
+                ]);
+            }
+            
+            return redirect()->route('admin.students.show', $id)->with('success', 'Phone number updated successfully.');
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Student user not found.'
+            ], 404);
+        }
+
+        return redirect()->route('admin.students.show', $id)->with('error', 'Student user not found.');
+    }
+
     public function exportStudents()
     {
-        $students = Student::with(['user', 'studentClass'])->get();
+        // Filter only students with role='student' to match the main students page
+        $students = Student::with(['user', 'studentClass'])
+            ->whereHas('user', function($query) {
+                $query->where('role', 'student');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        $filename = 'students_export_' . date('Y-m-d_His') . '.csv';
+        $filename = 'students_export_' . now()->format('Y-m-d') . '.csv';
         
         $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
         $callback = function() use ($students) {
             $file = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             
             // Add CSV headers
             fputcsv($file, [
@@ -1473,28 +1720,106 @@ class AdminController extends Controller
                 'First Name',
                 'Last Name',
                 'Email',
-                'Phone',
+                'Date of Birth',
+                'City',
                 'Class',
                 'Total Score',
-                'Plan Type',
-                'Subscription Status',
-                'Date Joined'
+                'Activation Status',
+                'Date Joined',
+                'Created At'
             ]);
 
             // Add student data
             foreach ($students as $student) {
                 $user = $student->user;
+                if (!$user) {
+                    continue; // Skip students without user data
+                }
+                
+                // Calculate activity status (same logic as in students() method)
+                $lastActivity = null;
+                
+                // Check lesson progresses
+                $progresses = \App\Models\StudentLessonProgress::where('student_id', $student->student_id)->get();
+                foreach ($progresses as $progress) {
+                    $dates = array_filter([
+                        $progress->last_activity_at,
+                        $progress->last_watched_at,
+                        $progress->updated_at
+                    ]);
+                    if (!empty($dates)) {
+                        $maxDate = max($dates);
+                        if (!$lastActivity || $maxDate > $lastActivity) {
+                            $lastActivity = $maxDate;
+                        }
+                    }
+                }
+                
+                // Check quiz attempts
+                $quizAttempts = \App\Models\QuizAttempt::where('student_id', $student->student_id)->get();
+                foreach ($quizAttempts as $attempt) {
+                    $dates = array_filter([
+                        $attempt->submitted_at,
+                        $attempt->started_at,
+                        $attempt->updated_at
+                    ]);
+                    if (!empty($dates)) {
+                        $maxDate = max($dates);
+                        if (!$lastActivity || $maxDate > $lastActivity) {
+                            $lastActivity = $maxDate;
+                        }
+                    }
+                }
+                
+                // Check assignment submissions
+                $submissions = \App\Models\AssignmentSubmission::where('student_id', $student->student_id)->get();
+                foreach ($submissions as $submission) {
+                    $dates = array_filter([
+                        $submission->submitted_at,
+                        $submission->updated_at
+                    ]);
+                    if (!empty($dates)) {
+                        $maxDate = max($dates);
+                        if (!$lastActivity || $maxDate > $lastActivity) {
+                            $lastActivity = $maxDate;
+                        }
+                    }
+                }
+                
+                // Check game progresses
+                $gameProgresses = \App\Models\StudentGameProgress::where('student_id', $student->student_id)->get();
+                foreach ($gameProgresses as $gameProgress) {
+                    if ($gameProgress->updated_at) {
+                        if (!$lastActivity || $gameProgress->updated_at > $lastActivity) {
+                            $lastActivity = $gameProgress->updated_at;
+                        }
+                    }
+                }
+                
+                // Calculate activation status
+                $activationStatus = 'expired'; // default - no activity
+                if ($lastActivity) {
+                    $lastActivityCarbon = \Carbon\Carbon::parse($lastActivity);
+                    $daysSinceActivity = $lastActivityCarbon->diffInDays(\Carbon\Carbon::now());
+                    if ($daysSinceActivity <= 7) {
+                        $activationStatus = 'active';
+                    } else {
+                        $activationStatus = 'inactive';
+                    }
+                }
+                
                 fputcsv($file, [
                     $student->student_id,
                     $user->first_name ?? '',
                     $user->last_name ?? '',
                     $user->email ?? '',
-                    $user->phone_number ?? '',
-                    $student->studentClass->class_name ?? 'No Class',
+                    $student->date_of_birth ? $student->date_of_birth->format('Y-m-d') : '',
+                    $user->country ?? ($student->country ?? ''),
+                    $student->studentClass ? $student->studentClass->class_name : 'No Class',
                     $student->total_score ?? 0,
-                    $student->plan_type ?? 'basic',
-                    $student->subscription_status ?? 'inactive',
-                    $user->date_joined ? $user->date_joined->format('Y-m-d') : ''
+                    ucfirst($activationStatus),
+                    $user->date_joined ? $user->date_joined->format('Y-m-d') : '',
+                    $student->created_at ? $student->created_at->format('Y-m-d H:i:s') : ''
                 ]);
             }
 
@@ -1567,7 +1892,6 @@ class AdminController extends Controller
         return view('admin.teachers.show', compact(
             'teacher',
             'user',
-            'profile',
             'teacherRequest',
             'classes',
             'classesCount',
@@ -1581,27 +1905,47 @@ class AdminController extends Controller
 
     public function exportTeachers()
     {
+        // Filter only teachers with role='teacher'
         $teachers = Teacher::with(['user'])
-            ->whereHas('user')
+            ->whereHas('user', function($query) {
+                $query->where('role', 'teacher');
+            })
             ->get()
             ->map(function($teacher) {
                 if ($teacher->user) {
-                    $teacher->classes_count = $teacher->user->taughtClasses()->count();
+                    $classes = $teacher->user->taughtClasses();
+                    $teacher->classes_count = $classes->count();
+                    
+                    // Calculate total students across all classes
+                    $teacher->total_students = $classes->withCount('students')->get()->sum('students_count');
+                    
+                    // Get assignments and quizzes count
+                    $teacher->assignments_count = Assignment::where('teacher_id', $teacher->user->user_id)->count();
+                    $teacher->quizzes_count = Quiz::where('teacher_id', $teacher->user->user_id)->count();
                 } else {
                     $teacher->classes_count = 0;
+                    $teacher->total_students = 0;
+                    $teacher->assignments_count = 0;
+                    $teacher->quizzes_count = 0;
                 }
                 return $teacher;
             });
 
-        $filename = 'teachers_export_' . date('Y-m-d_His') . '.csv';
+        $filename = 'teachers_export_' . now()->format('Y-m-d') . '.csv';
         
         $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
         $callback = function() use ($teachers) {
             $file = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             
             // Add CSV headers
             fputcsv($file, [
@@ -1612,13 +1956,24 @@ class AdminController extends Controller
                 'Phone',
                 'Language',
                 'Classes Count',
+                'Total Students',
+                'Assignments Count',
+                'Quizzes Count',
                 'Bio',
-                'Date Joined'
+                'Date Joined',
+                'Created At',
+                'Status'
             ]);
 
             // Add teacher data
             foreach ($teachers as $teacher) {
                 $user = $teacher->user;
+                if (!$user) {
+                    continue; // Skip teachers without user data
+                }
+                
+                // Determine status
+                $status = ($teacher->classes_count > 0) ? 'Active' : 'Available';
                 
                 fputcsv($file, [
                     $teacher->teacher_id,
@@ -1628,8 +1983,13 @@ class AdminController extends Controller
                     $user->phone_number ?? '',
                     $user->language ?? '',
                     $teacher->classes_count ?? 0,
+                    $teacher->total_students ?? 0,
+                    $teacher->assignments_count ?? 0,
+                    $teacher->quizzes_count ?? 0,
                     $user->bio ?? '',
-                    $user->date_joined ? $user->date_joined->format('Y-m-d') : ''
+                    $user->date_joined ? $user->date_joined->format('m/d/Y') : '',
+                    $teacher->created_at ? $teacher->created_at->format('m/d/Y') : '',
+                    $status
                 ]);
             }
 
@@ -1697,7 +2057,21 @@ class AdminController extends Controller
                         DB::rollBack();
                         return redirect()->route('admin.requests')->with('error', 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.');
                     }
+                    
+                    // Store old credentials before updating
+                    $teacherRequest->old_name = $user->name;
+                    $teacherRequest->old_email = $user->email;
+                    $teacherRequest->old_password_hash = $user->password;
+                    $teacherRequest->save();
+                    
                     $user->role = 'teacher';
+                    // Copy phone and language from teacher request
+                    if ($teacherRequest->phone) {
+                        $user->phone_number = $teacherRequest->phone;
+                    }
+                    if ($teacherRequest->language) {
+                        $user->language = $teacherRequest->language;
+                    }
                     $user->save();
 
                     Teacher::firstOrCreate(
@@ -1727,14 +2101,28 @@ class AdminController extends Controller
                         DB::rollBack();
                         return redirect()->route('admin.requests')->with('error', 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.');
                     }
+                    
+                    // Store old credentials before updating
+                    $teacherRequest->old_name = $user->name;
+                    $teacherRequest->old_email = $user->email;
+                    $teacherRequest->old_password_hash = $user->password;
+                    $teacherRequest->save();
+                    
                     // User exists, update role and password
                     $user->role = 'teacher';
                     $user->first_name = $firstName;
                     $user->last_name = $lastName;
+                    // Copy phone and language from teacher request
+                    if ($teacherRequest->phone) {
+                        $user->phone_number = $teacherRequest->phone;
+                    }
+                    if ($teacherRequest->language) {
+                        $user->language = $teacherRequest->language;
+                    }
                     $user->password = Hash::make($generatedPassword);
                     $user->save();
                 } else {
-                    // Create new user
+                    // Create new user - no old credentials to store
                     $user = User::create([
                         'name' => $teacherName,
                         'first_name' => $firstName,
@@ -1742,6 +2130,8 @@ class AdminController extends Controller
                         'email' => $teacherEmail,
                         'password' => Hash::make($generatedPassword),
                         'role' => 'teacher',
+                        'phone_number' => $teacherRequest->phone,
+                        'language' => $teacherRequest->language,
                     ]);
                 }
 
@@ -2420,6 +2810,52 @@ class AdminController extends Controller
             ]);
         }
 
+        // Sync meeting enrollments for all meetings in the new class
+        // This ensures the student gets access to ALL meetings, even those created before they joined
+        try {
+            $enrollmentService = app(MeetingEnrollmentService::class);
+            $user = $student->user;
+            
+            if ($user) {
+                // Get all meetings for the new class
+                $newClassMeetings = Meeting::where('class_id', $validated['new_class_id'])->get();
+                
+                $meetingsSynced = 0;
+                foreach ($newClassMeetings as $meeting) {
+                    // Sync enrollments for this meeting (will create enrollment for this student)
+                    $syncResult = $enrollmentService->syncEnrollmentsForMeeting($meeting);
+                    $meetingsSynced++;
+                }
+                
+                // Remove enrollments from old class meetings (cleanup)
+                if ($oldClassId) {
+                    $oldClassMeetings = Meeting::where('class_id', $oldClassId)->get();
+                    $oldMeetingIds = $oldClassMeetings->pluck('meeting_id')->toArray();
+                    
+                    if (!empty($oldMeetingIds)) {
+                        MeetingEnrollment::where('student_id', $user->user_id)
+                            ->whereIn('meeting_id', $oldMeetingIds)
+                            ->delete();
+                    }
+                }
+                
+                \Log::info('Meeting enrollments synced for student moved to new class', [
+                    'student_id' => $studentId,
+                    'user_id' => $user->user_id,
+                    'new_class_id' => $validated['new_class_id'],
+                    'old_class_id' => $oldClassId,
+                    'meetings_synced' => $meetingsSynced
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the operation if meeting sync fails
+            \Log::error('Failed to sync meeting enrollments for student moved to new class: ' . $e->getMessage(), [
+                'student_id' => $studentId,
+                'new_class_id' => $validated['new_class_id'],
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+
         if ($request->expectsJson()) {
             $user = $student->user;
             return response()->json([
@@ -2604,7 +3040,21 @@ class AdminController extends Controller
                         }
                         return redirect()->route('admin.requests')->with('error', 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.');
                     }
+                    
+                    // Store old credentials before updating
+                    $teacherRequest->old_name = $user->name;
+                    $teacherRequest->old_email = $user->email;
+                    $teacherRequest->old_password_hash = $user->password;
+                    $teacherRequest->save();
+                    
                     $user->role = 'teacher';
+                    // Copy phone and language from teacher request
+                    if ($teacherRequest->phone) {
+                        $user->phone_number = $teacherRequest->phone;
+                    }
+                    if ($teacherRequest->language) {
+                        $user->language = $teacherRequest->language;
+                    }
                     $user->save();
 
                     Teacher::firstOrCreate(
@@ -2640,14 +3090,28 @@ class AdminController extends Controller
                         }
                         return redirect()->route('admin.requests')->with('error', 'Cannot approve teacher request for an admin account. Admin email cannot be used for teacher applications.');
                     }
+                    
+                    // Store old credentials before updating
+                    $teacherRequest->old_name = $user->name;
+                    $teacherRequest->old_email = $user->email;
+                    $teacherRequest->old_password_hash = $user->password;
+                    $teacherRequest->save();
+                    
                     // User exists, update role and password
                     $user->role = 'teacher';
                     $user->first_name = $firstName;
                     $user->last_name = $lastName;
+                    // Copy phone and language from teacher request
+                    if ($teacherRequest->phone) {
+                        $user->phone_number = $teacherRequest->phone;
+                    }
+                    if ($teacherRequest->language) {
+                        $user->language = $teacherRequest->language;
+                    }
                     $user->password = Hash::make($generatedPassword);
                     $user->save();
                 } else {
-                    // Create new user
+                    // Create new user - no old credentials to store
                     $user = User::create([
                         'name' => $teacherName,
                         'first_name' => $firstName,
@@ -2655,6 +3119,8 @@ class AdminController extends Controller
                         'email' => $teacherEmail,
                         'password' => Hash::make($generatedPassword),
                         'role' => 'teacher',
+                        'phone_number' => $teacherRequest->phone,
+                        'language' => $teacherRequest->language,
                     ]);
                 }
 
@@ -2787,6 +3253,187 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.requests')->with('success', 'Teacher request rejected. Notification email has been sent to ' . ($teacherEmail ?? 'the applicant'));
+    }
+
+    /**
+     * Get old credentials for a teacher request
+     * 
+     * @param Request $request
+     * @param int $id Teacher request ID
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    public function getOldCredentials(Request $request, $id)
+    {
+        $teacherRequest = TeacherRequest::find($id);
+        if (!$teacherRequest) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Teacher request not found'], 404);
+            }
+            return redirect()->route('admin.requests')->with('error', 'Teacher request not found');
+        }
+
+        $currentUser = $teacherRequest->user;
+        $responseData = [
+            'request_id' => $id,
+            'original_request_data' => [
+                'full_name' => $teacherRequest->full_name,
+                'email' => $teacherRequest->email,
+                'request_date' => $teacherRequest->request_date,
+            ],
+            'current_teacher' => $currentUser ? [
+                'name' => $currentUser->name ?? ($currentUser->first_name . ' ' . $currentUser->last_name),
+                'first_name' => $currentUser->first_name,
+                'last_name' => $currentUser->last_name,
+                'email' => $currentUser->email
+            ] : null
+        ];
+
+        // Check if old credentials exist (stored when an existing user was updated)
+        if ($teacherRequest->old_name || $teacherRequest->old_email || $teacherRequest->old_password_hash) {
+            $responseData['old_credentials'] = [
+                'old_name' => $teacherRequest->old_name,
+                'old_email' => $teacherRequest->old_email,
+                'has_old_password' => !empty($teacherRequest->old_password_hash),
+                'old_password_hash' => $teacherRequest->old_password_hash,
+                'note' => 'The old password is stored as a hash and cannot be retrieved in plain text for security reasons.'
+            ];
+            $responseData['has_stored_old_credentials'] = true;
+        } else {
+            // No stored old credentials - this was a new user account
+            // But we can show the original request data vs current data
+            $responseData['old_credentials'] = null;
+            $responseData['has_stored_old_credentials'] = false;
+            $responseData['note'] = 'No old credentials were stored because this was a new user account. Showing original request data instead.';
+            
+            // Compare original request data with current user data
+            if ($currentUser) {
+                $responseData['changes'] = [
+                    'name_changed' => ($teacherRequest->full_name !== ($currentUser->name ?? ($currentUser->first_name . ' ' . $currentUser->last_name))),
+                    'original_name' => $teacherRequest->full_name,
+                    'current_name' => $currentUser->name ?? ($currentUser->first_name . ' ' . $currentUser->last_name),
+                    'email_changed' => ($teacherRequest->email !== $currentUser->email),
+                    'original_email' => $teacherRequest->email,
+                    'current_email' => $currentUser->email,
+                ];
+            }
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                ...$responseData
+            ]);
+        }
+
+        return redirect()->route('admin.requests')->with('old_credentials_data', $responseData);
+    }
+
+    /**
+     * Restore old credentials for a teacher
+     * 
+     * @param Request $request
+     * @param int $id Teacher request ID
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    public function restoreOldCredentials(Request $request, $id)
+    {
+        $teacherRequest = TeacherRequest::find($id);
+        if (!$teacherRequest) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Teacher request not found'], 404);
+            }
+            return redirect()->route('admin.requests')->with('error', 'Teacher request not found');
+        }
+
+        $user = $teacherRequest->user;
+        if (!$user) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'User not found for this teacher request'], 404);
+            }
+            return redirect()->route('admin.requests')->with('error', 'User not found for this teacher request');
+        }
+
+        DB::beginTransaction();
+        try {
+            $restored = false;
+            $restoredFields = [];
+
+            // Restore old name if available
+            if ($teacherRequest->old_name) {
+                $user->name = $teacherRequest->old_name;
+                // Try to split and update first_name/last_name
+                $nameParts = preg_split('/\s+/', trim($teacherRequest->old_name), 2);
+                if (isset($nameParts[0])) {
+                    $user->first_name = $nameParts[0];
+                }
+                if (isset($nameParts[1])) {
+                    $user->last_name = $nameParts[1];
+                }
+                $restoredFields[] = 'name';
+                $restored = true;
+            }
+
+            // Restore old email if available
+            if ($teacherRequest->old_email) {
+                $user->email = $teacherRequest->old_email;
+                $restoredFields[] = 'email';
+                $restored = true;
+            }
+
+            // Restore old password hash if available
+            if ($teacherRequest->old_password_hash) {
+                $user->password = $teacherRequest->old_password_hash;
+                $restoredFields[] = 'password';
+                $restored = true;
+            }
+
+            if (!$restored) {
+                DB::rollBack();
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No old credentials found to restore. This was likely a new user account.'
+                    ], 404);
+                }
+                return redirect()->route('admin.requests')->with('error', 'No old credentials found to restore.');
+            }
+
+            $user->save();
+            DB::commit();
+
+            \Log::info('Old credentials restored for teacher', [
+                'user_id' => $user->user_id,
+                'email' => $user->email,
+                'restored_fields' => $restoredFields,
+                'request_id' => $id
+            ]);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Old credentials restored successfully. User can now log in with old password.',
+                    'restored_fields' => $restoredFields,
+                    'user' => [
+                        'name' => $user->name ?? ($user->first_name . ' ' . $user->last_name),
+                        'email' => $user->email
+                    ]
+                ]);
+            }
+
+            return redirect()->route('admin.requests')->with('success', 
+                'Old credentials restored successfully. Fields restored: ' . implode(', ', $restoredFields) . 
+                '. User can now log in with their old password.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to restore old credentials: ' . $e->getMessage());
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to restore old credentials: ' . $e->getMessage()
+                ], 500);
+            }
+            return redirect()->route('admin.requests')->with('error', 'Failed to restore old credentials: ' . $e->getMessage());
+        }
     }
 
     // --------------------------

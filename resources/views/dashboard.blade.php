@@ -6,6 +6,7 @@
     $class = $student?->studentClass;
     $upcomingAssignments = [];
     $lessonsCompleted = 0;
+    $upcomingScheduleEvents = $upcomingScheduleEvents ?? collect();
     if ($student) {
         $lessonsCompleted = $student->lessonProgresses()->where('status', 'completed')->count();
     }
@@ -369,10 +370,10 @@
         @endif
 
         @if($class)
-        <!-- Main Content Grid -->
+        <!-- Main Content Grid - Three Sections Side by Side -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
-            <!-- Class Info Card - Large (8 columns) -->
-            <div class="lg:col-span-8 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-pink-200/40 transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+            <!-- Class Info Card (4 columns) -->
+            <div class="lg:col-span-4 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-pink-200/40 transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 bg-gradient-to-br from-pink-300 to-cyan-300 rounded-xl flex items-center justify-center shadow-md transform rotate-3 hover:rotate-6 transition-transform">
@@ -404,7 +405,7 @@
                 @endif
 
                 <!-- Stats Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                <div class="grid grid-cols-2 gap-4 mb-5">
                     <div class="bg-gradient-to-br from-cyan-50 to-cyan-100/80 rounded-xl p-5 border border-cyan-200 transform transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-cyan-300">
                         <div class="flex items-center gap-2.5 mb-2.5">
                             <div class="w-9 h-9 bg-gradient-to-br from-cyan-300 to-teal-300 rounded-lg flex items-center justify-center shadow-md">
@@ -427,36 +428,6 @@
                             <span class="text-xs font-bold text-teal-700 uppercase tracking-wider">Students</span>
                         </div>
                         <div class="text-3xl font-black text-teal-900">{{ $class->students->count() }}</div>
-                    </div>
-
-                    <div class="bg-gradient-to-br from-pink-50 to-pink-100/80 rounded-xl p-5 border border-pink-200 transform transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-pink-300">
-                        <div class="flex items-center gap-2.5 mb-2.5">
-                            <div class="w-9 h-9 bg-gradient-to-br from-pink-300 to-rose-300 rounded-lg flex items-center justify-center shadow-md">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                </svg>
-                            </div>
-                            <span class="text-xs font-bold text-pink-700 uppercase tracking-wider">Capacity</span>
-                        </div>
-                        <div class="text-3xl font-black text-pink-900">{{ $class->capacity }}</div>
-                    </div>
-
-                    <div class="bg-gradient-to-br from-gray-50 to-gray-100/80 rounded-xl p-5 border border-gray-200 transform transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-gray-300">
-                        <div class="flex items-center gap-2.5 mb-2.5">
-                            <div class="w-9 h-9 bg-gradient-to-br from-gray-400 to-gray-500 rounded-lg flex items-center justify-center shadow-md">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Status</span>
-                        </div>
-                        <span class="inline-block px-3 py-1.5 rounded-full font-black text-xs tracking-wide border
-                            @if($class->status === 'active') bg-green-100 text-green-800 border-green-300
-                            @elseif($class->status === 'full') bg-yellow-100 text-yellow-800 border-yellow-300
-                            @elseif($class->status === 'closed') bg-red-100 text-red-800 border-red-300
-                            @else bg-gray-200 text-gray-700 border-gray-300 @endif">
-                            {{ ucfirst($class->status) }}
-                        </span>
                     </div>
                 </div>
 
@@ -526,6 +497,95 @@
                     </div>
                 @endif
             </div>
+
+            <!-- Today's Events Card (4 columns) -->
+            @php
+                $todayEvents = isset($upcomingScheduleEvents) ? $upcomingScheduleEvents->filter(function($event) {
+                    return $event['is_today'] ?? false;
+                }) : collect();
+            @endphp
+            
+            <div class="lg:col-span-4 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-pink-200/40 transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-cyan-400 rounded-xl flex items-center justify-center shadow-md transform -rotate-3 hover:rotate-0 transition-transform animate-pulse">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-black text-gray-800">Today's Events</h2>
+                            <p class="text-xs font-bold text-gray-600">{{ $todayEvents->count() }} event{{ $todayEvents->count() > 1 ? 's' : '' }} scheduled</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('student.schedule.index') }}" class="text-xs font-black text-pink-700 hover:text-cyan-700 transition-colors">
+                        View All →
+                    </a>
+                </div>
+                
+                @if($todayEvents->count() > 0)
+                    <div class="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                        @foreach($todayEvents as $event)
+                            <div class="group relative bg-gradient-to-br from-pink-50/80 via-white to-cyan-50/80 rounded-xl p-4 border-2 transform transition-all duration-300 hover:scale-105 hover:shadow-lg overflow-hidden"
+                                 style="border-color: {{ $event['color'] ?? '#FC8EAC' }}; animation: slideInUp 0.4s ease-out {{ $loop->index * 0.1 }}s both;">
+                                <!-- Color indicator bar -->
+                                <div class="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl" style="background: linear-gradient(180deg, {{ $event['color'] ?? '#FC8EAC' }}, {{ $event['color'] ?? '#EC769A' }});"></div>
+                                
+                                <!-- TODAY Badge -->
+                                <div class="absolute top-3 right-3 bg-gradient-to-r from-red-500 to-pink-500 text-white px-2.5 py-1 rounded-full text-xs font-black shadow-lg animate-pulse z-10">
+                                    TODAY 🔥
+                                </div>
+                                
+                                <div class="ml-4 pr-12">
+                                    <h4 class="font-black text-gray-800 mb-2 text-sm leading-tight group-hover:text-pink-600 transition-colors">
+                                        {{ $event['title'] }}
+                                    </h4>
+                                    
+                                    <div class="space-y-2">
+                                        @if($event['event_time'])
+                                            <div class="flex items-center gap-2 text-gray-700">
+                                                <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, {{ $event['color'] ?? '#FC8EAC' }}, {{ $event['color'] ?? '#EC769A' }});">
+                                                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </div>
+                                                <span class="text-xs font-bold">{{ $event['event_time'] }}</span>
+                                            </div>
+                                        @endif
+                                        
+                                        @if($event['teacher_name'])
+                                            <div class="flex items-center gap-2 text-gray-700">
+                                                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400 to-teal-400 flex items-center justify-center">
+                                                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                    </svg>
+                                                </div>
+                                                <span class="text-xs font-bold truncate">{{ $event['teacher_name'] }}</span>
+                                            </div>
+                                        @endif
+                                        
+                                        @if($event['event_type'])
+                                            <div class="inline-block px-2 py-1 rounded-full text-xs font-black mt-1" style="background: linear-gradient(135deg, {{ $event['color'] ?? '#FC8EAC' }}20, {{ $event['color'] ?? '#EC769A' }}20); color: {{ $event['color'] ?? '#FC8EAC' }};">
+                                                {{ ucfirst($event['event_type']) }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                
+                                <!-- Hover Glow Effect -->
+                                <div class="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl pointer-events-none" 
+                                     style="background: {{ $event['color'] ?? '#FC8EAC' }};"></div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-12">
+                        <div class="text-5xl mb-4 animate-bounce">📅</div>
+                        <div class="text-gray-500 text-base font-bold mb-2">No events scheduled for today</div>
+                        <div class="text-gray-400 text-sm font-medium">Check back later! 🎉</div>
+                    </div>
+                @endif
+            </div>
         </div>
         @else
         <!-- No Class Message -->
@@ -559,6 +619,16 @@
         @keyframes shimmer {
             0% { background-position: -1000px 0; }
             100% { background-position: 1000px 0; }
+        }
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
         
         /* Enhanced Congratulations Banner Animations */

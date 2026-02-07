@@ -45,40 +45,42 @@
                 @enderror
             </div>
 
-            <div>
-                <label for="class_id" class="block font-bold text-pink-700 mb-2">
-                    Class <span class="text-red-500">*</span>
-                </label>
-                <select name="class_id" 
-                        id="class_id" 
-                        required
-                        class="border-2 border-pink-200 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-pink-200 bg-white">
-                    <option value="">Select a class</option>
-                    @foreach($classes as $class)
-                        <option value="{{ $class->class_id }}" {{ old('class_id') == $class->class_id ? 'selected' : '' }}>
-                            {{ $class->class_name }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('class_id')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="class_id" class="block font-bold text-pink-700 mb-2">
+                        Class <span class="text-red-500">*</span>
+                    </label>
+                    <select name="class_id" 
+                            id="class_id" 
+                            required
+                            class="border-2 border-pink-200 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-pink-200 bg-white">
+                        <option value="">Select a class</option>
+                        @foreach($classes as $class)
+                            <option value="{{ $class->class_id }}" {{ old('class_id') == $class->class_id ? 'selected' : '' }}>
+                                {{ $class->class_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('class_id')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
 
-            <div>
-                <label for="date" class="block font-bold text-pink-700 mb-2">
-                    Date <span class="text-red-500">*</span>
-                </label>
-                <input type="date" 
-                       name="date" 
-                       id="date" 
-                       value="{{ old('date', date('Y-m-d')) }}"
-                       required
-                       min="{{ date('Y-m-d') }}"
-                       class="border-2 border-pink-200 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-pink-200 bg-white">
-                @error('date')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
+                <div>
+                    <label for="date" class="block font-bold text-pink-700 mb-2">
+                        Date <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" 
+                           name="date" 
+                           id="date" 
+                           value="{{ old('date', date('Y-m-d')) }}"
+                           required
+                           min="{{ date('Y-m-d') }}"
+                           class="border-2 border-pink-200 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-pink-200 bg-white">
+                    @error('date')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

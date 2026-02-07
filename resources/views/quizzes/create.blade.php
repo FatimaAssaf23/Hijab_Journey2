@@ -133,6 +133,20 @@
                         <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
+                <div>
+                    <label class="block font-bold text-pink-700 mb-2">Deadline Date</label>
+                    <input type="date" name="deadline_date" value="{{ old('deadline_date') }}" min="{{ date('Y-m-d') }}" class="border-2 border-pink-200 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-pink-200 bg-white" required>
+                    @error('deadline_date')
+                        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div>
+                    <label class="block font-bold text-pink-700 mb-2">Deadline Time</label>
+                    <input type="time" name="deadline_time" value="{{ old('deadline_time', '23:59') }}" class="border-2 border-pink-200 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-pink-200 bg-white" required>
+                    @error('deadline_time')
+                        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
                 <div class="md:col-span-2">
                     <label class="block font-bold text-pink-700 mb-2">Description (optional)</label>
                     <textarea name="description" class="border-2 border-pink-200 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-pink-200 bg-white" rows="2">{{ old('description') }}</textarea>

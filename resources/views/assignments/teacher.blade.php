@@ -334,7 +334,7 @@
                             </div>
 
                             <!-- Actions -->
-                            <div class="pt-4 border-t-2 border-gray-100">
+                            <div class="pt-4 border-t-2 border-gray-100 space-y-3">
                                 <a href="{{ asset('storage/' . $assignment->file_path) }}" 
                                    target="_blank"
                                    class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-2 border-pink-300/50">
@@ -344,6 +344,31 @@
                                     </svg>
                                     View Assignment File
                                 </a>
+                                
+                                <!-- Edit and Delete Buttons -->
+                                <div class="flex gap-2">
+                                    <a href="{{ route('assignments.edit', $assignment->assignment_id) }}" 
+                                       class="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 to-cyan-400 hover:from-blue-500 hover:to-cyan-500 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-2 border-blue-300/50">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        Edit
+                                    </a>
+                                    <form action="{{ route('assignments.destroy', $assignment->assignment_id) }}" 
+                                          method="POST" 
+                                          class="flex-1"
+                                          onsubmit="return confirm('Are you sure you want to delete this assignment? This action cannot be undone and will also delete all student submissions.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-red-400 to-rose-400 hover:from-red-500 hover:to-rose-500 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-2 border-red-300/50">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </li>

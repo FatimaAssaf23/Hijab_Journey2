@@ -17,10 +17,10 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
-      <div className="bg-gradient-to-r from-pink-600 via-pink-400 to-teal-400 shadow-xl">
+      <div className="bg-gradient-to-r from-pink-300 via-pink-200 to-teal-300 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-4xl font-extrabold text-white mb-2">Admin Dashboard</h1>
-          <p className="text-pink-100">Manage lessons, classes, and teacher assignments</p>
+          <p className="text-pink-50">Manage lessons, classes, and teacher assignments</p>
         </div>
       </div>
 
@@ -33,7 +33,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab(tab.id)}
               className={`px-6 py-3 rounded-lg font-semibold transition-all ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-pink-500 to-teal-400 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-pink-300 to-teal-300 text-white shadow-lg'
                   : 'bg-white/10 text-white hover:bg-white/20'
               }`}
             >

@@ -73,6 +73,7 @@ Route::middleware(['auth', 'verified'])->prefix('student')->group(function () {
     Route::get('/games/quiz', [StudentGameController::class, 'quiz'])->name('student.games.quiz');
     Route::post('/games/save-score', [StudentGameController::class, 'saveScore'])->name('student.games.saveScore');
     Route::get('/grades', [App\Http\Controllers\StudentGradeController::class, 'index'])->name('student.grades');
+    Route::get('/schedule', [App\Http\Controllers\Student\StudentScheduleController::class, 'index'])->name('student.schedule.index');
 });
 
 // Student Rewards Route
@@ -246,13 +247,44 @@ Route::get('/student/dashboard', function () {
             ->get();
     }
     
+    // Get upcoming schedule events (today and next 7 days)
+    $upcomingScheduleEvents = \App\Models\TeacherScheduleEvent::where('is_active', true)
+        ->whereDate('event_date', '>=', Carbon::today())
+        ->whereDate('event_date', '<=', Carbon::today()->addDays(7))
+        ->orderBy('event_date')
+        ->orderBy('event_time')
+        ->with('teacher')
+        ->get()
+        ->map(function($event) {
+            $eventTime = null;
+            if ($event->event_time) {
+                $eventTime = is_string($event->event_time) 
+                    ? substr($event->event_time, 0, 5)
+                    : null;
+            }
+            
+            return [
+                'event_id' => $event->event_id,
+                'title' => $event->title,
+                'description' => $event->description,
+                'event_date' => $event->event_date,
+                'event_time' => $eventTime,
+                'event_type' => $event->event_type,
+                'color' => $event->color,
+                'teacher_name' => $event->teacher ? $event->teacher->first_name . ' ' . $event->teacher->last_name : 'Unknown',
+                'is_today' => $event->event_date->isToday(),
+                'days_until' => Carbon::today()->diffInDays($event->event_date, false),
+            ];
+        });
+    
     return view('dashboard', compact(
         'isInTop3Day', 
         'isInTop3Week', 
         'dayRank', 
         'weekRank', 
         'top3DayPosition', 
-        'top3WeekPosition'
+        'top3WeekPosition',
+        'upcomingScheduleEvents'
     ));
 })->middleware(['auth', 'verified'])->name('student.dashboard');
 
@@ -532,14 +564,15 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     
     // Student Management
     Route::get('/students', [AdminController::class, 'students'])->name('admin.students.index');
-    Route::get('/students/{id}', [AdminController::class, 'showStudent'])->name('admin.students.show');
     Route::get('/students/export', [AdminController::class, 'exportStudents'])->name('admin.students.export');
+    Route::get('/students/{id}', [AdminController::class, 'showStudent'])->name('admin.students.show');
+    Route::patch('/students/{id}/phone', [AdminController::class, 'updateStudentPhone'])->name('admin.students.updatePhone');
     Route::post('/students/{studentId}/change-class', [AdminController::class, 'changeStudentClass'])->name('admin.students.changeClass');
     
     // Teacher Management
     Route::get('/teachers', [AdminController::class, 'teachers'])->name('admin.teachers.index');
-    Route::get('/teachers/{id}', [AdminController::class, 'showTeacher'])->name('admin.teachers.show');
     Route::get('/teachers/export', [AdminController::class, 'exportTeachers'])->name('admin.teachers.export');
+    Route::get('/teachers/{id}', [AdminController::class, 'showTeacher'])->name('admin.teachers.show');
     
     // Teacher Requests
     Route::get('/requests', [AdminController::class, 'teacherRequests'])->name('admin.requests');
@@ -550,6 +583,8 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     Route::post('/teacher-requests/{id}/approve', [AdminController::class, 'approveTeacherRequest'])->name('admin.teacherRequests.approve');
     Route::post('/teacher-requests/{id}/reject', [AdminController::class, 'rejectTeacherRequest'])->name('admin.teacherRequests.reject');
     Route::get('/teacher-requests/pending', [AdminController::class, 'getPendingTeacherRequests'])->name('admin.teacherRequests.pending');
+    Route::get('/teacher-requests/{id}/old-credentials', [AdminController::class, 'getOldCredentials'])->name('admin.teacherRequests.oldCredentials');
+    Route::post('/teacher-requests/{id}/restore-old-credentials', [AdminController::class, 'restoreOldCredentials'])->name('admin.teacherRequests.restoreOldCredentials');
     
     // Emergency Reassignment
     Route::get('/emergency', [AdminController::class, 'emergency'])->name('admin.emergency');
@@ -601,8 +636,17 @@ Route::middleware(['auth', 'verified', 'can:isTeacher'])->prefix('teacher')->gro
     Route::post('/lessons/{lesson}/lock', [TeacherLessonController::class, 'lock'])->name('teacher.lessons.lock');
     Route::get('/lessons/{lesson}/view', [TeacherLessonController::class, 'view'])->name('teacher.lessons.view');
     
-    // Teacher Schedule
-    Route::get('/schedule', function () {
+    // Teacher Schedule - Show events created by admin
+    Route::get('/schedule', [\App\Http\Controllers\Teacher\TeacherScheduleController::class, 'index'])->name('teacher.schedule.index');
+    
+    // Teacher Personal Schedule - Manage own schedule events
+    Route::get('/personal-schedule', [\App\Http\Controllers\Teacher\TeacherPersonalScheduleController::class, 'index'])->name('teacher.personal-schedule.index');
+    Route::post('/personal-schedule', [\App\Http\Controllers\Teacher\TeacherPersonalScheduleController::class, 'store'])->name('teacher.personal-schedule.store');
+    Route::put('/personal-schedule/{id}', [\App\Http\Controllers\Teacher\TeacherPersonalScheduleController::class, 'update'])->name('teacher.personal-schedule.update');
+    Route::delete('/personal-schedule/{id}', [\App\Http\Controllers\Teacher\TeacherPersonalScheduleController::class, 'destroy'])->name('teacher.personal-schedule.destroy');
+    
+    // Teacher Schedule - Show lesson/assignment schedule (old route, kept for backward compatibility)
+    Route::get('/schedule/lessons', function () {
         $teacher_id = Auth::id();
         $schedule = \App\Models\Schedule::where('teacher_id', $teacher_id)
             ->where('status', '!=', 'completed')
@@ -736,22 +780,47 @@ Route::get('/lessons/{lesson}/view', function ($lessonId) {
                 $accuratePercentage = $progress->watched_percentage ?? 0;
             }
             
+            // CRITICAL: Ensure watched_seconds is at least equal to max_watched_time
+            // This prevents progress from appearing to decrease when returning to the page
+            $currentWatchedSeconds = $progress->watched_seconds ?? 0;
+            if ($currentWatchedSeconds < $maxWatchedTime) {
+                $currentWatchedSeconds = $maxWatchedTime;
+                if ($videoDuration > 0) {
+                    $currentWatchedSeconds = min($currentWatchedSeconds, $videoDuration);
+                }
+                $progress->watched_seconds = $currentWatchedSeconds;
+            }
+            
             // Update watched_percentage if it differs from accurate calculation
             if (abs(($progress->watched_percentage ?? 0) - $accuratePercentage) > 0.01) {
                 $progress->watched_percentage = $accuratePercentage;
             }
             
-            // Ensure video_completed is set correctly based on accurate percentage
+            // Ensure video_completed and status are set correctly based on accurate percentage
             // This fixes the issue where video_completed might not be set even if progress >= 80%
             $shouldBeCompleted = $accuratePercentage >= 80;
             $isCurrentlyCompleted = $progress->video_completed ?? false;
+            $isStatusCompleted = $progress->status === 'completed';
             
-            if ($shouldBeCompleted && !$isCurrentlyCompleted) {
-                $progress->video_completed = true;
+            if ($shouldBeCompleted) {
+                // Set video_completed flag
+                if (!$isCurrentlyCompleted) {
+                    $progress->video_completed = true;
+                }
                 
-                // Use the controller's unlock method to properly unlock all game types
-                $progressController = new \App\Http\Controllers\StudentProgressController();
-                $progressController->unlockLessonGame($student->student_id, $lessonId);
+                // Set status to completed if not already
+                if (!$isStatusCompleted) {
+                    $progress->status = 'completed';
+                    if (!$progress->completed_at) {
+                        $progress->completed_at = now();
+                    }
+                    
+                    // Use the controller's unlock method to properly unlock all game types
+                    $progressController = new \App\Http\Controllers\StudentProgressController();
+                    $progressController->unlockLessonGame($student->student_id, $lessonId);
+                    // Unlock next lesson
+                    $progressController->unlockNextLesson($student->student_id, $lesson->level_id, $lessonId);
+                }
             }
             
             $progress->save();
@@ -867,10 +936,59 @@ Route::get('/lessons/{lesson}/view', function ($lessonId) {
         }
         
         // Update the progress object's watched_percentage to ensure blade template uses correct value
-        $progress->watched_percentage = $accuratePercentage;
+        // CRITICAL: Save this to database so it persists for next visit
+        if (abs(($progress->watched_percentage ?? 0) - $accuratePercentage) > 0.01) {
+            $progress->watched_percentage = $accuratePercentage;
+        }
+        
+        // Ensure video_completed and status are set correctly based on accurate percentage
+        $shouldBeCompleted = $accuratePercentage >= 80;
+        if ($shouldBeCompleted) {
+            if (!($progress->video_completed ?? false)) {
+                $progress->video_completed = true;
+            }
+            if ($progress->status !== 'completed') {
+                $progress->status = 'completed';
+                if (!$progress->completed_at) {
+                    $progress->completed_at = now();
+                }
+                // Unlock games if lesson just became completed
+                $progressController = new \App\Http\Controllers\StudentProgressController();
+                $progressController->unlockLessonGame($student->student_id, $lessonId);
+            }
+        }
+        
+        // Save any changes to ensure data persists
+        if ($progress->isDirty()) {
+            $progress->save();
+            $progress->refresh();
+        }
+        
+        // CRITICAL: Refresh progress one more time to get absolute latest values from database
+        // This ensures we have the most up-to-date completion status
+        $progress->refresh();
+        
+        // Recalculate accurate percentage one final time after refresh
+        $finalVideoDuration = $lesson->video_duration_seconds ?? 0;
+        $finalMaxWatchedTime = $progress->max_watched_time ?? 0;
+        $finalAccuratePercentage = 0;
+        
+        if ($finalVideoDuration > 0 && $finalMaxWatchedTime > 0) {
+            $finalAccuratePercentage = round(($finalMaxWatchedTime / $finalVideoDuration) * 100, 2);
+        } else {
+            $finalAccuratePercentage = $progress->watched_percentage ?? 0;
+        }
+        
+        // Update accuratePercentageForView with final calculated value
+        $accuratePercentage = $finalAccuratePercentage;
         
         // Check video completion based on accurate percentage OR video_completed flag
-        $isVideoCompleted = $progress && (($progress->video_completed ?? false) || $accuratePercentage >= 80);
+        // Use the refreshed progress object to ensure we have the latest status
+        $isVideoCompleted = $progress && (
+            ($progress->video_completed ?? false) || 
+            ($progress->status === 'completed') ||
+            $finalAccuratePercentage >= 80
+        );
         
         // Check if ANY game for this lesson is completed (considering class_id)
         // CRITICAL: Use fresh queries to ensure we get latest game completion status
@@ -1076,6 +1194,9 @@ Route::middleware(['auth', 'verified', 'can:isTeacher'])->group(function () {
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::get('/assignments/create', [AssignmentController::class, 'create'])->name('assignments.create');
     Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+    Route::get('/assignments/{assignment}/edit', [AssignmentController::class, 'edit'])->name('assignments.edit');
+    Route::put('/assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update');
+    Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
 });
 
 // Group Chat Routes (Students and Teachers)
@@ -1155,14 +1276,37 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Student attendance routes
     Route::post('/meetings/{meeting:meeting_id}/join', [MeetingController::class, 'join'])->name('meetings.join');
     Route::post('/meetings/{meeting:meeting_id}/leave', [MeetingController::class, 'leave'])->name('meetings.leave');
-    
-    // Automatic attendance system routes (students only)
-    Route::post('/meetings/{meeting:meeting_id}/confirm-presence', [MeetingController::class, 'confirmPresence'])->name('meetings.confirm-presence');
-    Route::post('/meetings/{meeting:meeting_id}/mark-absent', [MeetingController::class, 'markAbsent'])->name('meetings.mark-absent');
+    Route::post('/meetings/{meeting:meeting_id}/verify-code', [MeetingController::class, 'verifyCode'])->name('meetings.verify-code');
     
     // Teacher attendance management routes
     Route::middleware(['can:isTeacher'])->group(function () {
         Route::post('/meetings/{meeting:meeting_id}/mark-attendance', [MeetingController::class, 'markAttendance'])->name('meetings.mark-attendance');
         Route::get('/meetings/{meeting:meeting_id}/export-attendance', [MeetingController::class, 'exportAttendance'])->name('meetings.export-attendance');
+        Route::get('/meetings/{meeting:meeting_id}/verification-code', [MeetingController::class, 'getVerificationCode'])->name('meetings.verification-code');
     });
+});
+
+// New Meeting Attendance System Routes
+// Teacher Routes
+Route::middleware(['auth', 'verified', 'can:isTeacher'])->prefix('teacher')->name('teacher.')->group(function () {
+    Route::get('meetings', [\App\Http\Controllers\TeacherMeetingController::class, 'index'])->name('meetings.index');
+    Route::get('meetings/create', [\App\Http\Controllers\TeacherMeetingController::class, 'create'])->name('meetings.create');
+    Route::post('meetings', [\App\Http\Controllers\TeacherMeetingController::class, 'store'])->name('meetings.store');
+    Route::get('meetings/{id}', [\App\Http\Controllers\TeacherMeetingController::class, 'show'])->name('meetings.show')->where('id', '[0-9]+');
+    Route::get('meetings/{id}/edit', [\App\Http\Controllers\TeacherMeetingController::class, 'edit'])->name('meetings.edit')->where('id', '[0-9]+');
+    Route::put('meetings/{id}', [\App\Http\Controllers\TeacherMeetingController::class, 'update'])->name('meetings.update')->where('id', '[0-9]+');
+    Route::delete('meetings/{id}', [\App\Http\Controllers\TeacherMeetingController::class, 'destroy'])->name('meetings.destroy')->where('id', '[0-9]+');
+});
+
+// Student Routes
+Route::middleware(['auth', 'verified'])->prefix('student')->name('student.')->group(function () {
+    Route::get('meetings', [\App\Http\Controllers\StudentMeetingController::class, 'index'])->name('meetings.index');
+    Route::get('meetings/{id}/join', [\App\Http\Controllers\StudentMeetingController::class, 'join'])->name('meetings.join');
+    Route::post('meetings/{id}/record-join', [\App\Http\Controllers\StudentMeetingController::class, 'recordJoin']);
+    Route::post('confirmations/{id}/confirm', [\App\Http\Controllers\StudentMeetingController::class, 'confirmAttendance']);
+});
+
+// API Routes
+Route::middleware('auth')->prefix('api')->group(function () {
+    Route::get('enrollments/{id}/check-prompt', [\App\Http\Controllers\API\AttendanceController::class, 'checkForPrompt']);
 });
