@@ -1,6 +1,1 @@
-
-In ServeCommand.php line 250:
-                                           
-  Unsupported operand types: string + int  
-                                           
-
+web: php artisan serve --host=0.0.0.0 --port=$PORT 
