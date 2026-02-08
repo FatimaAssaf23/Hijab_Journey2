@@ -588,7 +588,7 @@ Route::prefix('admin')->middleware(['auth', 'can:isAdmin'])->group(function () {
     
     // Emergency Reassignment
     Route::get('/emergency', [AdminController::class, 'emergency'])->name('admin.emergency');
-    Route::post('/emergency/{caseId}/reassign', [AdminController::class, 'reassignTeacher'])->name('admin.emergency.reassign');
+    Route::post('/emergency/{caseId}/reassign', [AdminController::class, 'reassignTeacher'])->name('admin.emergency.reassign.teacher');
     // Emergency Requests Approval/Rejection
     Route::post('/emergency-requests/{id}/approve', [AdminController::class, 'approveEmergencyRequest'])->name('admin.emergency.approve');
     Route::post('/emergency-requests/{id}/reject', [AdminController::class, 'rejectEmergencyRequest'])->name('admin.emergency.reject');
