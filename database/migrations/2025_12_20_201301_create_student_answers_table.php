@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -12,10 +13,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('student_answers', function (Blueprint $table) {
-            $table->increments('answer_id');
-            $table->unsignedInteger('attempt_id');
-            $table->unsignedInteger('question_id');
-            $table->unsignedInteger('selected_option_id')->nullable();
+            $table->id('answer_id');
+            $table->unsignedBigInteger('attempt_id');
+            $table->unsignedBigInteger('question_id');
+            $table->unsignedBigInteger('selected_option_id')->nullable();
             $table->boolean('is_correct')->nullable();
             $table->dateTime('answered_at')->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->timestamps();

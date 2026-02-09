@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('matching_pairs_games', function (Blueprint $table) {
             $table->increments('matching_pairs_game_id');
             $table->unsignedInteger('game_id')->nullable();
-            $table->unsignedInteger('lesson_id');
+            $table->unsignedBigInteger('lesson_id');
             $table->string('title')->nullable();
             $table->timestamps();
 

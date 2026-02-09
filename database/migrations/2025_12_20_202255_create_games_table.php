@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('games', function (Blueprint $table) {
             $table->increments('game_id');
-            $table->unsignedInteger('lesson_id')->unique();
+            $table->unsignedBigInteger('lesson_id')->unique();
             $table->string('game_type', 100)->nullable();
             $table->text('description')->nullable();
             $table->integer('max_score')->default(100);

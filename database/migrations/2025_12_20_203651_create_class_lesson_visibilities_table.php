@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('class_lesson_visibilities', function (Blueprint $table) {
-            $table->increments('visibility_id');
+            $table->id('visibility_id');
             $table->unsignedInteger('class_id');
-            $table->unsignedInteger('lesson_id');
+            $table->unsignedBigInteger('lesson_id');
             $table->unsignedInteger('teacher_id');
             $table->boolean('is_visible')->default(true);
             $table->timestamp('changed_at')->useCurrent();

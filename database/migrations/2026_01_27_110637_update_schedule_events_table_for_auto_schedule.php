@@ -24,7 +24,7 @@ return new class extends Migration
             
             // Admin editing fields
             $table->boolean('edited_by_admin')->default(false)->after('quiz_id');
-            $table->unsignedBigInteger('admin_id')->nullable()->after('edited_by_admin');
+            $table->unsignedInteger('admin_id')->nullable()->after('edited_by_admin');
             $table->text('admin_notes')->nullable()->after('admin_id');
         });
         

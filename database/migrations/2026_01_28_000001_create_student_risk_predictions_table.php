@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('student_risk_predictions', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->unsignedInteger('student_id');
-            $table->unsignedInteger('current_level_id')->nullable();
+            $table->unsignedBigInteger('student_id');
+            $table->unsignedBigInteger('current_level_id')->nullable();
             $table->integer('risk_level'); // 0, 1, 2
             $table->string('risk_label', 50); // "Will Pass", "May Struggle", "Needs Help"
             $table->decimal('confidence', 5, 2); // Probability percentage

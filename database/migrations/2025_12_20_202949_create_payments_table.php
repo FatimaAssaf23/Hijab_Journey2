@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payments', function (Blueprint $table) {
-            $table->increments('payment_id');
-            $table->unsignedInteger('student_id');
+            $table->id('payment_id');
+            $table->unsignedBigInteger('student_id');
             $table->string('transaction_reference', 191)->unique();
             $table->enum('payment_method', ['paypal', 'credit_card']);
             $table->enum('payment_status', ['pending', 'successful', 'rejected', 'refunded'])->default('pending');

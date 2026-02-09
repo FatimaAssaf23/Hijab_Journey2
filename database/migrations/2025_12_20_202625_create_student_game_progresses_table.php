@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('student_game_progresses', function (Blueprint $table) {
             $table->id('progress_id');
             $table->unsignedInteger('game_id');
-            $table->unsignedInteger('student_id');
+            $table->unsignedBigInteger('student_id');
             $table->enum('status', ['not_started', 'in_progress', 'completed'])->default('not_started');
             $table->integer('score')->default(0);
             $table->timestamp('started_at')->nullable();

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('clock_games', function (Blueprint $table) {
             $table->increments('clock_game_id');
             $table->unsignedInteger('game_id')->nullable();
-            $table->unsignedInteger('lesson_id');
+            $table->unsignedBigInteger('lesson_id');
             $table->json('words'); // Store array of words as JSON
             $table->timestamps();
 

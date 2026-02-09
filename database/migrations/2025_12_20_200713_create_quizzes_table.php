@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('quizzes', function (Blueprint $table) {
-            $table->increments('quiz_id');
-            $table->unsignedInteger('level_id');
+            $table->id('quiz_id');
+            $table->unsignedBigInteger('level_id');
             $table->unsignedInteger('class_id');
             $table->unsignedInteger('teacher_id');
             $table->unsignedInteger('checked_by_admin_id')->nullable();

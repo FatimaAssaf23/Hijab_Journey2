@@ -12,19 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('student_lesson_progresses', function (Blueprint $table) {
-            $table->increments('progress_id');
-            $table->unsignedInteger('student_id');
-            $table->unsignedInteger('lesson_id');
+            $table->id('progress_id'); // BIGINT unsigned auto-increment
+            $table->foreignId('student_id')->constrained('students', 'student_id');
+            $table->foreignId('lesson_id')->constrained('lessons', 'lesson_id');
             $table->enum('status', ['not_started', 'in_progress', 'completed'])->default('not_started');
             $table->dateTime('started_at')->nullable();
             $table->dateTime('completed_at')->nullable();
             $table->integer('score')->nullable();
             $table->integer('time_spent_minutes')->nullable();
             $table->timestamps();
-
+        
             $table->unique(['student_id', 'lesson_id']);
-            $table->foreign('student_id')->references('student_id')->on('students');
-            $table->foreign('lesson_id')->references('lesson_id')->on('lessons');
         });
     }
 

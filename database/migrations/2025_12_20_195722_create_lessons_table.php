@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('lessons', function (Blueprint $table) {
-            $table->increments('lesson_id');
-            $table->unsignedInteger('level_id');
+            $table->id('lesson_id');
+            $table->unsignedBigInteger('level_id');
             $table->unsignedInteger('teacher_id')->nullable();
             $table->unsignedInteger('uploaded_by_admin_id')->nullable();
             $table->string('title', 255);

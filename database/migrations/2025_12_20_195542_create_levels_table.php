@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('levels', function (Blueprint $table) {
-            $table->increments('level_id');
+            $table->id('level_id');
             $table->unsignedInteger('class_id');
             $table->string('level_name', 255);
             $table->integer('level_number');
             $table->text('description')->nullable();
-            $table->unsignedInteger('prerequisite_level_id')->nullable();
+            $table->unsignedBigInteger('prerequisite_level_id')->nullable();
             $table->boolean('is_locked_by_default')->default(true);
             $table->timestamps();
 

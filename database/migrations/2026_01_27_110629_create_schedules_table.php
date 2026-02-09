@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('schedules', function (Blueprint $table) {
             $table->id('schedule_id');
-            $table->unsignedBigInteger('teacher_id');
-            $table->unsignedBigInteger('class_id')->nullable(); // Optional: can be null for teacher-wide schedule
+            $table->unsignedInteger('teacher_id');
+            $table->unsignedInteger('class_id')->nullable(); // Optional: can be null for teacher-wide schedule
             $table->enum('status', ['active', 'paused', 'completed'])->default('active');
             $table->timestamp('started_at');
             $table->timestamp('paused_at')->nullable();

@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::create('student_classes', function (Blueprint $table) {
             $table->increments('class_id');
             $table->string('class_name', 255);
-            $table->unsignedInteger('teacher_id');
+            $table->unsignedInteger('teacher_id'); 
             $table->integer('capacity')->default(10);
             $table->integer('current_enrollment')->default(0);
             $table->enum('status', ['active', 'full', 'closed'])->default('active');
             $table->text('description')->nullable();
             $table->timestamps();
-
+        
             $table->foreign('teacher_id')->references('user_id')->on('users');
         });
     }

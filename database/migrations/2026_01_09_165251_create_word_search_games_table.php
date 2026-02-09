@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('word_search_games', function (Blueprint $table) {
             $table->increments('word_search_game_id');
             $table->unsignedInteger('game_id')->nullable();
-            $table->unsignedInteger('lesson_id');
+            $table->unsignedBigInteger('lesson_id');
             $table->json('words'); // Array of words to find
             $table->integer('grid_size')->default(10); // Grid size (e.g., 10x10)
             $table->json('grid_data')->nullable(); // The generated grid with letters

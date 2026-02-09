@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('class_level', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('class_id');
+            $table->unsignedInteger('class_id');
             $table->unsignedBigInteger('level_id');
             $table->timestamps();
 

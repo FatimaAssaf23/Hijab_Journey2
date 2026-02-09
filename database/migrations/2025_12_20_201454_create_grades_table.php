@@ -13,11 +13,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('grades', function (Blueprint $table) {
-            $table->increments('grade_id');
-            $table->unsignedInteger('student_id');
+            $table->id('grade_id');
+            $table->unsignedBigInteger('student_id');
             $table->unsignedInteger('teacher_id');
-            $table->unsignedInteger('assignment_submission_id')->nullable();
-            $table->unsignedInteger('quiz_attempt_id')->nullable();
+            $table->unsignedBigInteger('assignment_submission_id')->nullable();
+            $table->unsignedBigInteger('quiz_attempt_id')->nullable();
             $table->decimal('grade_value', 5, 2);
             $table->decimal('max_grade', 5, 2)->default(100);
             $table->decimal('percentage', 5, 2)->nullable();

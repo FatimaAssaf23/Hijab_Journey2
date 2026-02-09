@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('quiz_options', function (Blueprint $table) {
-            $table->increments('option_id');
-            $table->unsignedInteger('question_id');
+            $table->id('option_id');
+            $table->unsignedBigInteger('question_id');
             $table->string('option_text', 500);
             $table->integer('option_order');
             $table->boolean('is_correct')->default(false);

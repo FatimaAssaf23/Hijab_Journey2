@@ -24,7 +24,7 @@ return new class extends Migration
             
             // Add foreign key columns
             $table->unsignedInteger('meeting_id')->after('attendance_id');
-            $table->unsignedInteger('student_id')->after('meeting_id');
+            $table->unsignedBigInteger('student_id')->after('meeting_id');
             
             // Add attendance tracking columns
             $table->dateTime('join_time')->after('student_id');
