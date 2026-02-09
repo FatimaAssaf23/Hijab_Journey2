@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('attendance_confirmations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('meeting_enrollment_id')->constrained()->onDelete('cascade');
+            $table->unsignedInteger('meeting_enrollment_id');
+            $table->foreign('meeting_enrollment_id')->references('id')->on('meeting_enrollments')->onDelete('cascade');
             $table->integer('confirmation_number'); // 1-6 for each 10-min interval
             $table->dateTime('prompted_at');
             $table->dateTime('responded_at')->nullable();

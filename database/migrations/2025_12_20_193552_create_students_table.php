@@ -11,10 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Drop table if it exists with wrong column types
+        if (Schema::hasTable('students')) {
+            Schema::dropIfExists('students');
+        }
+        
         Schema::create('students', function (Blueprint $table) {
             $table->id('student_id');
-            $table->unsignedBigInteger('user_id')->unique();
-            $table->unsignedBigInteger('class_id')->nullable();
+            $table->unsignedInteger('user_id')->unique();
+            $table->unsignedInteger('class_id')->nullable();
             $table->enum('gender', ['male', 'female', 'other', 'prefer_not_to_say'])->nullable();
             $table->date('date_of_birth')->nullable();
             $table->string('country', 100)->nullable();
