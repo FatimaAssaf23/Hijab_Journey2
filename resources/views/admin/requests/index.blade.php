@@ -34,6 +34,24 @@
         </div>
     @endif
 
+    <!-- Warning Message (for email failures) -->
+    @if (session('warning'))
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+            <div class="bg-yellow-500 text-white rounded-lg p-4 shadow-lg">
+                ⚠️ {{ session('warning') }}
+            </div>
+        </div>
+    @endif
+
+    <!-- Error Message -->
+    @if (session('error'))
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+            <div class="bg-red-500 text-white rounded-lg p-4 shadow-lg">
+                ✗ {{ session('error') }}
+            </div>
+        </div>
+    @endif
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <!-- Pending Requests -->
         <div>

@@ -2146,24 +2146,38 @@ class AdminController extends Controller
             }
 
             // Send approval email with credentials (send immediately, not queued)
+            $emailSent = false;
+            $emailError = null;
             try {
-                $mailSent = Mail::to($teacherEmail)->send(new TeacherApprovedMail(
+                Mail::to($teacherEmail)->send(new TeacherApprovedMail(
                     $teacherName,
                     $teacherEmail,
                     $generatedPassword
                 ));
+                $emailSent = true;
                 \Log::info('Approval email sent to: ' . $teacherEmail . ' with password for request ID: ' . $id);
                 \Log::info('Mail configuration - MAIL_MAILER: ' . config('mail.default'));
             } catch (\Exception $mailException) {
-                \Log::error('Failed to send approval email to ' . $teacherEmail . ': ' . $mailException->getMessage());
+                $emailError = $mailException->getMessage();
+                \Log::error('Failed to send approval email to ' . $teacherEmail . ': ' . $emailError);
                 \Log::error('Email exception details: ' . $mailException->getTraceAsString());
                 \Log::error('Mail configuration - MAIL_MAILER: ' . config('mail.default') . ', MAIL_HOST: ' . config('mail.mailers.smtp.host'));
-                // Continue even if email fails, but log it
+                \Log::error('MAIL_USERNAME: ' . (config('mail.mailers.smtp.username') ? 'SET' : 'NOT SET'));
+                \Log::error('MAIL_PASSWORD: ' . (config('mail.mailers.smtp.password') ? 'SET' : 'NOT SET'));
+                \Log::error('MAIL_FROM_ADDRESS: ' . config('mail.from.address'));
             }
 
             DB::commit();
             \Log::info('TeacherRequest approval completed for id: ' . $id);
-            return redirect()->route('admin.requests')->with('success', 'Teacher request approved successfully! Login credentials have been sent to ' . $teacherEmail);
+            
+            if ($emailSent) {
+                return redirect()->route('admin.requests')->with('success', 'Teacher request approved successfully! Login credentials have been sent to ' . $teacherEmail);
+            } else {
+                return redirect()->route('admin.requests')->with([
+                    'success' => 'Teacher request approved successfully!',
+                    'warning' => 'However, the email could not be sent to ' . $teacherEmail . '. Please check mail configuration. Error: ' . ($emailError ?? 'Unknown error')
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to approve request for id: ' . $id . ' - ' . $e->getMessage());
@@ -3135,32 +3149,55 @@ class AdminController extends Controller
             }
 
             // Send approval email with credentials (send immediately, not queued)
+            $emailSent = false;
+            $emailError = null;
             try {
-                $mailSent = Mail::to($teacherEmail)->send(new TeacherApprovedMail(
+                Mail::to($teacherEmail)->send(new TeacherApprovedMail(
                     $teacherName,
                     $teacherEmail,
                     $generatedPassword
                 ));
+                $emailSent = true;
                 \Log::info('Approval email sent to: ' . $teacherEmail . ' with password for request ID: ' . $id);
                 \Log::info('Mail configuration - MAIL_MAILER: ' . config('mail.default'));
             } catch (\Exception $mailException) {
-                \Log::error('Failed to send approval email to ' . $teacherEmail . ': ' . $mailException->getMessage());
+                $emailError = $mailException->getMessage();
+                \Log::error('Failed to send approval email to ' . $teacherEmail . ': ' . $emailError);
                 \Log::error('Email exception details: ' . $mailException->getTraceAsString());
                 \Log::error('Mail configuration - MAIL_MAILER: ' . config('mail.default') . ', MAIL_HOST: ' . config('mail.mailers.smtp.host'));
-                // Continue even if email fails, but log it
+                \Log::error('MAIL_USERNAME: ' . (config('mail.mailers.smtp.username') ? 'SET' : 'NOT SET'));
+                \Log::error('MAIL_PASSWORD: ' . (config('mail.mailers.smtp.password') ? 'SET' : 'NOT SET'));
+                \Log::error('MAIL_FROM_ADDRESS: ' . config('mail.from.address'));
             }
 
             DB::commit();
 
             if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Teacher request approved successfully! Login credentials have been sent to ' . $teacherEmail,
-                    'request' => $teacherRequest->fresh()
-                ]);
+                if ($emailSent) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Teacher request approved successfully! Login credentials have been sent to ' . $teacherEmail,
+                        'request' => $teacherRequest->fresh()
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Teacher request approved successfully! However, the email could not be sent. Error: ' . ($emailError ?? 'Unknown error'),
+                        'request' => $teacherRequest->fresh(),
+                        'email_sent' => false,
+                        'email_error' => $emailError
+                    ]);
+                }
             }
 
-            return redirect()->route('admin.requests')->with('success', 'Teacher request approved successfully! Login credentials have been sent to ' . $teacherEmail);
+            if ($emailSent) {
+                return redirect()->route('admin.requests')->with('success', 'Teacher request approved successfully! Login credentials have been sent to ' . $teacherEmail);
+            } else {
+                return redirect()->route('admin.requests')->with([
+                    'success' => 'Teacher request approved successfully!',
+                    'warning' => 'However, the email could not be sent to ' . $teacherEmail . '. Please check mail configuration. Error: ' . ($emailError ?? 'Unknown error')
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to approve teacher request: ' . $e->getMessage());
