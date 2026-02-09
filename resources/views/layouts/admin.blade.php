@@ -112,7 +112,7 @@
                                         <span>🧕</span> Students
                                     </a>
                                     <a href="{{ route('admin.teachers.index') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
-                                        <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">👩‍🏫</span> Teachers
+                                        <img src="{{ asset('images/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">👩‍🏫</span> Teachers
                                     </a>
                                 </div>
                             </div>
@@ -232,7 +232,7 @@
                             <span>🧕</span> Students
                         </a>
                         <a href="{{ route('admin.teachers.index') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
-                            <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">👩‍🏫</span> Teachers
+                            <img src="{{ asset('images/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">👩‍🏫</span> Teachers
                         </a>
                         <a href="{{ route('admin.requests') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
                             <span>📝</span> Teacher Requests

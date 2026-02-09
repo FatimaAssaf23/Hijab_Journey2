@@ -9,12 +9,12 @@
                 <div class="flex items-center gap-6 text-center md:text-left">
                     <!-- Teachers Icon -->
                     <div class="hidden md:flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-2xl transform hover:scale-105 transition-all duration-300 border-4 border-white/50">
-                        <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-20 h-20 object-cover rounded-xl filter drop-shadow-2xl" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\'text-5xl filter drop-shadow-2xl\'>👩‍🏫</span>';">
+                        <img src="{{ asset('images/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-20 h-20 object-cover rounded-xl filter drop-shadow-2xl" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\'text-5xl filter drop-shadow-2xl\'>👩‍🏫</span>';">
                     </div>
                     <div>
                         <h1 class="text-5xl font-extrabold text-gray-800 mb-3 drop-shadow-lg flex items-center gap-4 justify-center md:justify-start">
                             <span class="md:hidden flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-400 to-cyan-500 shadow-xl border-4 border-white/50">
-                                <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-16 h-16 object-cover rounded-lg" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\'text-4xl\'>👩‍🏫</span>';">
+                                <img src="{{ asset('images/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-16 h-16 object-cover rounded-lg" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\'text-4xl\'>👩‍🏫</span>';">
                             </span>
                             <span class="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-cyan-600">All Teachers</span>
                         </h1>
