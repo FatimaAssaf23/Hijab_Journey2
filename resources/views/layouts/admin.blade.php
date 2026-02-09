@@ -4,6 +4,9 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        @if(config('app.env') === 'production')
+        <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+        @endif
 
         <title>Admin - {{ config('app.name', 'Hijab Journey') }}</title>
 
@@ -109,7 +112,7 @@
                                         <span>🧕</span> Students
                                     </a>
                                     <a href="{{ route('admin.teachers.index') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
-                                        <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded"> Teachers
+                                        <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">👩‍🏫</span> Teachers
                                     </a>
                                 </div>
                             </div>
@@ -229,7 +232,7 @@
                             <span>🧕</span> Students
                         </a>
                         <a href="{{ route('admin.teachers.index') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
-                            <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded"> Teachers
+                            <img src="{{ asset('storage/Admin_Page/TeacherIcon.jpg') }}" alt="Teachers" class="w-5 h-5 object-cover rounded" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">👩‍🏫</span> Teachers
                         </a>
                         <a href="{{ route('admin.requests') }}" class="flex items-center gap-3 text-white px-4 py-3 rounded-lg hover:bg-white/20">
                             <span>📝</span> Teacher Requests
